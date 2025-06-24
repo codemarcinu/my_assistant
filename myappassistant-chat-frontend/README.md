@@ -67,3 +67,52 @@ export default tseslint.config([
   },
 ])
 ```
+
+# MyAppAssistant Chat Frontend
+
+## Testowanie
+
+Projekt wykorzystuje [Vitest](https://vitest.dev/) oraz [Testing Library](https://testing-library.com/docs/react-testing-library/intro/) do testów jednostkowych i integracyjnych.
+
+### Skrypty testowe
+
+- `npm run test` – uruchamia testy w trybie watch
+- `npm run test:run` – uruchamia testy jednorazowo (CI)
+- `npm run test:coverage` – generuje raport pokrycia kodu
+- `npm run test:ui` – uruchamia interfejs graficzny Vitest
+
+### Konfiguracja
+
+- Plik konfiguracyjny: `vitest.config.ts`
+- Plik setup: `src/test/setup.ts` (mocki dla JSDOM, suppress warnings, globalne setupy)
+- Utils: `src/test/utils.tsx` (custom render, fabryki danych, mocki API)
+- Przykładowy test: `src/test/__tests__/App.test.tsx`
+
+### Przykład uruchomienia
+
+```sh
+npm install
+npm run test:run
+npm run test:coverage
+```
+
+### Pokrycie kodu
+
+Raport pokrycia generowany jest w katalogu `coverage/` po uruchomieniu `npm run test:coverage`.
+
+### Dobre praktyki
+
+- Nowe komponenty powinny mieć testy jednostkowe w katalogu `src/test/__tests__`.
+- Do testów używaj customowego rendera z `src/test/utils.tsx` (zapewnia React Query Provider).
+- Mockuj API i dane przez fabryki z utils.
+
+---
+
+## Środowisko
+- React 18+
+- TypeScript
+- Vite
+- Tailwind CSS
+- Zustand
+- React Query
+- Vitest + Testing Library
