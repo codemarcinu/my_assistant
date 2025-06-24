@@ -1,8 +1,8 @@
 // ✅ REQUIRED: Zustand store for chat state management
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { ChatMessage, FoodItem, ReceiptData, WeatherData } from '../types';
-import { ChatStore, Message } from '../types/chat';
+import type { ChatMessage, FoodItem, ReceiptData, WeatherData } from '../types';
+import type { ChatStore, Message } from '../types/chat';
 import { sendChatMessage } from '../services/api';
 
 interface ChatState {

@@ -1,78 +1,84 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
 import { useTheme } from '../ThemeProvider';
+import ThemeToggle from '../ThemeToggle';
 
 interface SidebarProps {
-  onClose?: () => void;
+  collapsed: boolean;
+  onToggle: () => void;
 }
 
-const navigation = [
-  { name: 'Chat', href: '/chat', icon: '💬' },
-  { name: 'OCR', href: '/ocr', icon: '📷' },
-  { name: 'Weather', href: '/weather', icon: '🌤️' },
-  { name: 'Shopping', href: '/shopping', icon: '🛒' },
-  { name: 'Settings', href: '/settings', icon: '⚙️' },
+const NAV_ITEMS = [
+  { name: "Chat", icon: "💬", path: "/chat" },
+  { name: "Zakupy", icon: "🛒", path: "/shopping" },
+  { name: "Produkty", icon: "📦", path: "/products" },
+  { name: "Ustawienia", icon: "⚙️", path: "/settings" },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
-  const location = useLocation();
-  const { theme, setTheme } = useTheme();
+export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const { resolvedTheme } = useTheme();
 
   return (
-    <div className="flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-      {/* Logo */}
-      <div className="flex items-center h-16 px-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">F</span>
+    <aside 
+      className={`
+        ${resolvedTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}
+        border-r transition-all duration-300 ease-in-out
+        ${collapsed ? 'w-16' : 'w-64'}
+        flex flex-col h-screen sticky top-0
+      `}
+    >
+      {/* Logo Section */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        {!collapsed && (
+          <div className="flex items-center space-x-2">
+            <span className="text-2xl">🍽️</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">FoodSave AI</span>
           </div>
-          <span className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
-            FoodSave AI
-          </span>
-        </div>
+        )}
+        <button
+          onClick={onToggle}
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          {collapsed ? (
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          )}
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-2">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              onClick={onClose}
-              className={`
-                flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-                ${isActive
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
-                }
-              `}
-            >
-              <span className="mr-3 text-lg">{item.icon}</span>
-              {item.name}
-            </NavLink>
-          );
-        })}
+      <nav className="flex-1 py-4">
+        <ul className="space-y-2 px-3">
+          {NAV_ITEMS.map((item) => (
+            <li key={item.name}>
+              <button
+                className={`
+                  w-full flex items-center px-3 py-2 rounded-lg transition-colors
+                  ${resolvedTheme === 'dark' 
+                    ? 'text-gray-300 hover:bg-gray-700 hover:text-white' 
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  }
+                  ${collapsed ? 'justify-center' : 'justify-start space-x-3'}
+                `}
+              >
+                <span className="text-xl">{item.icon}</span>
+                {!collapsed && <span className="font-medium">{item.name}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
       </nav>
 
       {/* Theme Toggle */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Theme
-          </span>
-          <select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
-            className="text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-gray-900 dark:text-white"
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="system">System</option>
-          </select>
+        <div className={collapsed ? 'flex justify-center' : ''}>
+          <ThemeToggle />
         </div>
       </div>
-    </div>
+    </aside>
   );
-}; 
+} 

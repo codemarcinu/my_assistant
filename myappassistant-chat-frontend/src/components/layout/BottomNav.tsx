@@ -1,40 +1,39 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useTheme } from '../ThemeProvider';
 
-const navigation = [
-  { name: 'Chat', href: '/chat', icon: '💬' },
-  { name: 'OCR', href: '/ocr', icon: '📷' },
-  { name: 'Weather', href: '/weather', icon: '🌤️' },
-  { name: 'Shopping', href: '/shopping', icon: '🛒' },
-  { name: 'Settings', href: '/settings', icon: '⚙️' },
+const NAV_ITEMS = [
+  { name: "Czat", icon: "💬", path: "/chat" },
+  { name: "Zakupy", icon: "🛒", path: "/shopping" },
+  { name: "Produkty", icon: "📦", path: "/products" },
+  { name: "Ustawienia", icon: "⚙️", path: "/settings" },
 ];
 
-export const BottomNav: React.FC = () => {
-  const location = useLocation();
+export default function BottomNav() {
+  const { resolvedTheme } = useTheme();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-      <nav className="flex justify-around">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              className={`
-                flex flex-col items-center py-2 px-3 text-xs font-medium transition-colors
-                ${isActive
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }
-              `}
-            >
-              <span className="text-lg mb-1">{item.icon}</span>
-              <span>{item.name}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
-    </div>
+    <nav className={`
+      fixed bottom-0 left-0 right-0 z-50 lg:hidden
+      ${resolvedTheme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}
+      border-t
+    `}>
+      <div className="flex items-center justify-around px-2 py-2">
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.name}
+            className={`
+              flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors
+              ${resolvedTheme === 'dark'
+                ? 'text-gray-400 hover:text-white hover:bg-gray-700'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }
+            `}
+          >
+            <span className="text-xl mb-1">{item.icon}</span>
+            <span className="text-xs font-medium">{item.name}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
   );
-}; 
+} 

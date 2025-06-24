@@ -104,6 +104,22 @@ export const chatAPI = {
   },
 };
 
+// Export sendChatMessage function for use in chatStore
+export const sendChatMessage = async ({ content, role }: { content: string; role: string }): Promise<{ content: string; role: string }> => {
+  try {
+    const response = await chatAPI.sendMessage(content);
+    // Convert ChatMessage to the format expected by chatStore
+    const chatMessage = response.data || response;
+    return {
+      content: chatMessage.content || content,
+      role: chatMessage.type || role
+    };
+  } catch (error) {
+    console.error('Error sending chat message:', error);
+    throw error;
+  }
+};
+
 // Food and pantry API endpoints
 export const foodAPI = {
   // Get all food items
