@@ -66,7 +66,7 @@ services:
     depends_on:
       - ollama
       - postgres
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level=debug"]
+    command: ["uvicorn", "src.backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level=debug"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -83,13 +83,13 @@ services:
   # Frontend Next.js
   frontend:
     build:
-      context: ./foodsave-frontend
+      context: ./myappassistant-chat-frontend
       dockerfile: Dockerfile.dev
     container_name: foodsave-frontend
     ports:
       - "3000:3000"
     volumes:
-      - ./foodsave-frontend:/app
+      - ./myappassistant-chat-frontend:/app
       - frontend_node_modules:/app/node_modules
       - ./logs/frontend:/app/logs
     environment:

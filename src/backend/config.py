@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     MMLW_MODEL_NAME: str = "sdadas/mmlw-retrieval-roberta-base"
 
     # Konfiguracja bazy danych
-    DATABASE_URL: str = "sqlite+aiosqlite:///./data/foodsave.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./foodsave_dev.db"
 
     # CORS Configuration
     CORS_ORIGINS: str = (

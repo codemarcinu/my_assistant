@@ -1,18 +1,13 @@
-export interface Message {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
-}
+import type { ChatMessage } from './index';
 
 export interface ChatState {
-  messages: Message[];
+  messages: ChatMessage[];
   isLoading: boolean;
   error: string | null;
 }
 
 export interface ChatStore extends ChatState {
-  addMessage: (message: Omit<Message, 'id'>) => void;
+  addMessage: (message: Omit<ChatMessage, 'id'>) => void;
   clearMessages: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
