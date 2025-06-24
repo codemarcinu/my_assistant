@@ -1,153 +1,97 @@
-# React + TypeScript + Vite
+# FoodSave AI - Chat Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Nowy frontend dla aplikacji FoodSave AI oparty na koncepcji czatu jako centralnego punktu dowodzenia. Aplikacja wykorzystuje AI asystenta do inteligentnego wyboru odpowiednich narzędzi na podstawie kontekstu rozmowy.
 
-Currently, two official plugins are available:
+> **Uwaga:** Ten katalog znajduje się w `myappassistant/myappassistant-chat-frontend/`. Wszystkie polecenia uruchamiaj z tego katalogu lub używaj skryptów z głównego `package.json`!
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 📦 Instalacja i Uruchomienie
 
-## Expanding the ESLint configuration
+### Wymagania
+- Node.js 18+ 
+- npm lub yarn
+- Backend FoodSave AI (port 8000)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-# MyAppAssistant Chat Frontend
-
-## 🧪 Testowanie
-
-### Unit Tests ✅
+### Instalacja zależności
 ```bash
-npm test
-npm run test:run
-npm run test:coverage
+npm install
 ```
 
-**Zaimplementowane testy:**
-- **ChatBubble.test.tsx** - testy komponentu czatu (renderowanie wiadomości user/assistant, timestamp)
-- **chatStore.test.tsx** - testy store czatu (addMessage, clearMessages, loading/error states)
-- **App.test.tsx** - testy głównej aplikacji
-
-### E2E Tests ✅
+### Uruchomienie w trybie development
 ```bash
-npm run test:e2e
-npm run test:e2e:ui
-npm run test:e2e:headed
+npm run dev
 ```
 
-**Zaimplementowane testy E2E:**
-- **chat.spec.ts** - testy interfejsu czatu (wysyłanie wiadomości, nawigacja między stronami)
-- Testy sprawdzają: wyświetlanie czatu, wysyłanie wiadomości, obsługa pustych wiadomości, nawigacja
+Aplikacja będzie dostępna pod adresem: http://localhost:5173
 
-### Test Coverage
+### Build produkcyjny
 ```bash
-npm run test:coverage
+npm run build
 ```
 
-**Metryki:**
-- **Unit Tests**: 11 testów ✅
-- **E2E Tests**: 4 testy ✅
-- **Coverage**: > 80% (do rozbudowy)
+### Preview build
+```bash
+npm run preview
+```
 
-### Test Environment
-- **Vitest** - unit testing framework
-- **Playwright** - E2E testing framework
-- **Testing Library** - React component testing
-- **Jest DOM** - DOM testing utilities
+## ❌ Typowe Błędy i Rozwiązania
 
----
+### Błąd: "Missing script: dev"
+```
+npm ERR! Missing script: "dev"
+```
+**Rozwiązanie:** Upewnij się, że jesteś w katalogu `myappassistant/myappassistant-chat-frontend/`:
+```bash
+pwd  # Sprawdź aktualny katalog
+npm run dev
+```
 
-## Środowisko
-- React 18+
-- TypeScript
-- Vite
-- Tailwind CSS
-- Zustand
-- React Query
-- Vitest + Testing Library
+### Błąd: "Cannot find module"
+**Rozwiązanie:** Zainstaluj zależności:
+```bash
+npm install
+```
+
+### Błąd: "Port already in use"
+**Rozwiązanie:** Zmień port lub zatrzymaj inne procesy:
+```bash
+npm run dev -- --port 3001
+```
+
+## 🔧 Konfiguracja
+
+### Zmienne środowiskowe
+Utwórz plik `.env.local` w katalogu `myappassistant/myappassistant-chat-frontend/`:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_APP_TITLE=FoodSave AI
+```
 
 ### Integracja z backendem
 Frontend komunikuje się z backendem przez REST API:
 - **Chat API** - `/api/v1/chat/*` ✅
 - **Food API** - `/api/v1/food-items/*` 🚧
-- **Receipt API** - `/api/v1/receipts/*` ✅
-- **Weather API** - `/api/v1/weather/*` ✅
-- **Settings API** - `/api/v1/settings/*` ✅
-- **Shopping API** - `/api/v1/shopping/*` ✅
+- **Receipt API** - `/api/v1/receipts/*` 🚧
+- **Weather API** - `/api/v1/weather/*` 🚧
+- **Settings API** - `/api/v1/settings/*` 🚧
 
-### Strony Modułów ✅
-- **OCR Page** - strona do skanowania paragonów (UI, upload, API integration) ✅
-- **Weather Page** - strona z widżetem pogodowym (UI, API integration, forecast) ✅
-- **Shopping Page** - strona do zarządzania zakupami (CRUD, API integration, filtry) ✅
-- **Settings Page** - panel ustawień z zakładkami (theme, API integration, integracje) ✅
+## 🧪 Testowanie
 
-├── services/         # API services ✅
+### Unit Tests
+```bash
+npm test
+```
 
-### State Management
-- **Zustand** - client state (chat, settings, UI) ✅
-- **React Query** - server state (API data, caching) ✅
+### E2E Tests
+```bash
+npm run test:e2e
+```
 
-### Stan na czerwiec 2024
-- [x] Główny layout, sidebar, bottom nav, theme provider
-- [x] Routing i wszystkie główne strony (Chat, OCR, Weather, Shopping, Settings)
-- [x] UI chat z mock AI, store, input, bubble
-- [x] UI OCR, Weather, Shopping, Settings (mock data, CRUD, filtry, zakładki)
-- [x] Integracja z backendem (chat, OCR, shopping, settings, weather) ✅
-- [ ] Testy E2E i integracyjne - **NASTĘPNY KROK**
-- [ ] Optymalizacje, pantry management, AI features - **kolejne fazy**
+### Coverage
+```bash
+npm run test:coverage
+```
+
+## 📄 Licencja
+
+MIT License - zobacz plik [LICENSE](LICENSE) dla szczegółów.
