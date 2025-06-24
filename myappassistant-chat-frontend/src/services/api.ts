@@ -13,7 +13,8 @@ import type {
   UserSettings,
   AgentStatus,
   PaginatedResponse,
-  SearchParams
+  SearchParams,
+  ShoppingItem
 } from '../types';
 
 // API configuration
@@ -193,6 +194,51 @@ export const weatherAPI = {
   },
 };
 
+// Shopping list API endpoints
+export const shoppingAPI = {
+  // Get all shopping items
+  getShoppingItems: async (params?: SearchParams): Promise<ApiResponse<PaginatedResponse<ShoppingItem>>> => {
+    const response = await apiClient.get('/api/v1/shopping/items', { params });
+    return response.data;
+  },
+
+  // Get shopping item by ID
+  getShoppingItem: async (id: string): Promise<ApiResponse<ShoppingItem>> => {
+    const response = await apiClient.get(`/api/v1/shopping/items/${id}`);
+    return response.data;
+  },
+
+  // Create new shopping item
+  createShoppingItem: async (item: Omit<ShoppingItem, 'id' | 'createdAt'>): Promise<ApiResponse<ShoppingItem>> => {
+    const response = await apiClient.post('/api/v1/shopping/items', item);
+    return response.data;
+  },
+
+  // Update shopping item
+  updateShoppingItem: async (id: string, updates: Partial<ShoppingItem>): Promise<ApiResponse<ShoppingItem>> => {
+    const response = await apiClient.put(`/api/v1/shopping/items/${id}`, updates);
+    return response.data;
+  },
+
+  // Delete shopping item
+  deleteShoppingItem: async (id: string): Promise<ApiResponse<void>> => {
+    const response = await apiClient.delete(`/api/v1/shopping/items/${id}`);
+    return response.data;
+  },
+
+  // Toggle item completion
+  toggleItemCompletion: async (id: string): Promise<ApiResponse<ShoppingItem>> => {
+    const response = await apiClient.patch(`/api/v1/shopping/items/${id}/toggle`);
+    return response.data;
+  },
+
+  // Clear completed items
+  clearCompletedItems: async (): Promise<ApiResponse<void>> => {
+    const response = await apiClient.delete('/api/v1/shopping/items/completed');
+    return response.data;
+  },
+};
+
 // Settings API endpoints
 export const settingsAPI = {
   // Get user settings
@@ -243,6 +289,7 @@ export const api = {
   weather: weatherAPI,
   settings: settingsAPI,
   health: healthAPI,
+  shopping: shoppingAPI,
 };
 
 export default api; 

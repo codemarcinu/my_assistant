@@ -64,6 +64,20 @@ export enum FoodStatus {
   CONSUMED = 'consumed'
 }
 
+// Shopping list types
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  category: FoodCategory;
+  quantity: number;
+  unit: string;
+  priority: 'low' | 'medium' | 'high';
+  completed: boolean;
+  createdAt: Date;
+  completedAt?: Date;
+  notes?: string;
+}
+
 // OCR and receipt processing
 export interface ReceiptData {
   id: string;
