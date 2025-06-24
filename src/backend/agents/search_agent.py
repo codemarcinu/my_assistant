@@ -10,6 +10,7 @@ from backend.core.decorators import handle_exceptions
 from backend.core.hybrid_llm_client import hybrid_llm_client
 from backend.core.llm_client import LLMClient
 from backend.core.vector_store import VectorStore
+from backend.integrations.web_search import web_search
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class SearchAgentInput:
 
 
 class SearchAgent(BaseAgent):
-    """Agent that performs web searches using DuckDuckGo and Perplexity"""
+    """Agent that performs web searches using multiple sources with knowledge verification"""
 
     def __init__(
         self,
@@ -54,6 +55,7 @@ class SearchAgent(BaseAgent):
         self.web_search = perplexity_client or global_perplexity_client
         self.plugins = plugins or []
         self.initial_state = initial_state or {}
+        self.knowledge_verification_threshold = 0.7
 
     @handle_exceptions(max_retries=2)
     async def process(self, input_data: Dict[str, Any]) -> AgentResponse:
@@ -68,10 +70,11 @@ class SearchAgent(BaseAgent):
 
         max_results = input_data.get("max_results", 5)
         use_perplexity = input_data.get("use_perplexity", True)  # Domyślnie Perplexity
+        verify_knowledge = input_data.get("verify_knowledge", True)  # Domyślnie włączona weryfikacja
 
         async def stream_generator() -> AsyncGenerator[str, None]:
             try:
-                yield "Rozpoczynam wyszukiwanie...\n"
+                yield "Rozpoczynam wyszukiwanie z weryfikacją wiedzy...\n"
 
                 if use_perplexity:
                     logger.info(f"Using Perplexity for search query: {query}")
@@ -84,14 +87,17 @@ class SearchAgent(BaseAgent):
                     else:
                         yield f"Błąd podczas wyszukiwania w Perplexity: {search_result['error']}"
                 else:
-                    # Alternatywna logika (np. DuckDuckGo), która może wspierać streaming
-                    logger.info(f"Using DuckDuckGo for search query: {query}")
-                    yield "Korzystam z DuckDuckGo...\n"
-                    duckduckgo_result = await self._duckduckgo_search(query)
-                    if duckduckgo_result["success"]:
-                        yield duckduckgo_result["content"]
+                    # Użyj ulepszonego systemu wyszukiwania z weryfikacją wiedzy
+                    logger.info(f"Using enhanced web search for query: {query}")
+                    yield "Korzystam z ulepszonego systemu wyszukiwania...\n"
+                    
+                    if verify_knowledge:
+                        yield "🔍 Weryfikuję wiarygodność źródeł...\n"
+                        enhanced_result = await self._enhanced_search_with_verification(query, max_results)
+                        yield enhanced_result
                     else:
-                        yield f"Błąd podczas wyszukiwania w DuckDuckGo: {duckduckgo_result['error']}"
+                        basic_result = await self._basic_search(query, max_results)
+                        yield basic_result
 
             except Exception as e:
                 logger.error(f"[SearchAgent] Error during stream generation: {e}")
@@ -102,6 +108,76 @@ class SearchAgent(BaseAgent):
             text_stream=stream_generator(),
             message="Search stream started.",
         )
+
+    async def _enhanced_search_with_verification(self, query: str, max_results: int) -> str:
+        """Perform enhanced search with knowledge verification"""
+        try:
+            # Użyj nowego systemu wyszukiwania z weryfikacją
+            search_response = await web_search.search_with_verification(query, max_results)
+            
+            if not search_response["results"]:
+                return "Nie znaleziono odpowiednich wyników wyszukiwania."
+
+            # Analizuj wyniki wyszukiwania
+            verified_results = [r for r in search_response["results"] if r["knowledge_verified"]]
+            total_results = len(search_response["results"])
+            verification_score = search_response["knowledge_verification_score"]
+
+            # Przygotuj odpowiedź
+            response_parts = []
+            response_parts.append(f"📊 **Wyniki wyszukiwania dla: '{query}'**\n")
+            response_parts.append(f"🔍 Znaleziono {total_results} wyników")
+            response_parts.append(f"✅ Zweryfikowane źródła: {len(verified_results)}/{total_results}")
+            response_parts.append(f"📈 Wskaźnik wiarygodności: {verification_score:.2f}\n")
+
+            # Dodaj najlepsze wyniki
+            response_parts.append("**Najlepsze wyniki:**\n")
+            for i, result in enumerate(search_response["results"][:3], 1):
+                verification_icon = "✅" if result["knowledge_verified"] else "⚠️"
+                confidence_icon = "🟢" if result["confidence"] > 0.7 else "🟡" if result["confidence"] > 0.4 else "🔴"
+                
+                response_parts.append(f"{i}. {verification_icon} {confidence_icon} **{result['title']}**")
+                response_parts.append(f"   📝 {result['snippet'][:150]}...")
+                response_parts.append(f"   🔗 {result['url']}")
+                response_parts.append(f"   📊 Wiarygodność: {result['confidence']:.2f}")
+                response_parts.append("")
+
+            # Dodaj rekomendację na podstawie weryfikacji
+            if verification_score > self.knowledge_verification_threshold:
+                response_parts.append("✅ **Wysoka wiarygodność źródeł** - wyniki są godne zaufania.")
+            elif verification_score > 0.4:
+                response_parts.append("⚠️ **Średnia wiarygodność źródeł** - zalecana dodatkowa weryfikacja.")
+            else:
+                response_parts.append("🔴 **Niska wiarygodność źródeł** - zalecana ostrożność przy interpretacji.")
+
+            return "\n".join(response_parts)
+
+        except Exception as e:
+            logger.error(f"Error in enhanced search: {e}")
+            return f"Błąd podczas wyszukiwania: {e}"
+
+    async def _basic_search(self, query: str, max_results: int) -> str:
+        """Perform basic search without verification"""
+        try:
+            results = await web_search.search(query, max_results)
+            
+            if not results:
+                return "Nie znaleziono odpowiednich wyników wyszukiwania."
+
+            response_parts = []
+            response_parts.append(f"📊 **Wyniki wyszukiwania dla: '{query}'**\n")
+            
+            for i, result in enumerate(results[:3], 1):
+                response_parts.append(f"{i}. **{result['title']}**")
+                response_parts.append(f"   📝 {result['snippet'][:150]}...")
+                response_parts.append(f"   🔗 {result['url']}")
+                response_parts.append("")
+
+            return "\n".join(response_parts)
+
+        except Exception as e:
+            logger.error(f"Error in basic search: {e}")
+            return f"Błąd podczas wyszukiwania: {e}"
 
     async def _perform_search(
         self, query: str, model: str, max_results: int
@@ -198,28 +274,19 @@ class SearchAgent(BaseAgent):
             if not response or not isinstance(response, dict):
                 return polish_query
 
-            # Sprawdź różne możliwe struktury odpowiedzi
-            content = None
-            if "message" in response:
-                message = response["message"]
-                if isinstance(message, dict) and "content" in message:
-                    content = message["content"]
-                elif isinstance(message, list) and len(message) > 0:
-                    # Jeśli message jest listą, weź pierwszy element
-                    first_msg = message[0]
-                    if isinstance(first_msg, dict) and "content" in first_msg:
-                        content = first_msg["content"]
-
+            content = response.get("message", {}).get("content", "")
             if not content:
                 return polish_query
 
-            english_query = content.strip()
-            logger.info(
-                f"[SearchAgent] Translated '{polish_query}' to '{english_query}'"
-            )
-            return english_query
+            # Clean up the response
+            content = content.strip()
+            if content.startswith('"') and content.endswith('"'):
+                content = content[1:-1]
+
+            return content if content else polish_query
+
         except Exception as e:
-            logger.error(f"Error translating query: {e}")
+            logger.error(f"Translation error: {e}")
             return polish_query
 
     async def _translate_to_polish(self, english_content: str, model: str) -> str:
@@ -236,7 +303,7 @@ class SearchAgent(BaseAgent):
                 messages=[
                     {
                         "role": "system",
-                        "content": "Jesteś pomocnym asystentem, który tłumaczy treści z angielskiego na polski.",
+                        "content": "Jesteś pomocnym asystentem, który tłumaczy treść z angielskiego na polski.",
                     },
                     {"role": "user", "content": prompt},
                 ],
@@ -246,43 +313,67 @@ class SearchAgent(BaseAgent):
             if not response or not isinstance(response, dict):
                 return english_content
 
-            # Sprawdź różne możliwe struktury odpowiedzi
-            content = None
-            if "message" in response:
-                message = response["message"]
-                if isinstance(message, dict) and "content" in message:
-                    content = message["content"]
-                elif isinstance(message, list) and len(message) > 0:
-                    # Jeśli message jest listą, weź pierwszy element
-                    first_msg = message[0]
-                    if isinstance(first_msg, dict) and "content" in first_msg:
-                        content = first_msg["content"]
+            content = response.get("message", {}).get("content", "")
+            return content.strip() if content else english_content
 
-            if not content:
-                return english_content
-
-            polish_content = content.strip()
-            logger.info("[SearchAgent] Translated response to Polish")
-            return polish_content
         except Exception as e:
-            logger.error(f"Error translating response: {e}")
+            logger.error(f"Translation error: {e}")
             return english_content
 
     @handle_exceptions(max_retries=1)
     def get_dependencies(self) -> List[type]:
         """Return list of dependencies this agent requires"""
-        return ["httpx", "hybrid_llm_client", "perplexity_client"]
+        return ["httpx", "hybrid_llm_client", "perplexity_client", "web_search"]
 
     def get_metadata(self) -> Dict[str, Any]:
         """Return metadata about this agent"""
         return {
             "name": self.name,
-            "description": "Agent that performs web searches using Perplexity and DuckDuckGo",
-            "version": "1.0.0",
+            "description": "Agent that performs web searches using multiple sources with knowledge verification",
+            "version": "2.0.0",
             "search_url": self.search_url,
-            "capabilities": ["web_search", "translation", "fallback_search"],
+            "capabilities": [
+                "web_search", 
+                "translation", 
+                "fallback_search", 
+                "knowledge_verification",
+                "source_credibility_assessment"
+            ],
+            "knowledge_verification_threshold": self.knowledge_verification_threshold,
         }
 
     def is_healthy(self) -> bool:
         """Check if the agent is healthy and ready to process requests"""
         return True  # Simple health check - could be enhanced
+
+    async def verify_knowledge_claim(self, claim: str, context: str = "") -> Dict[str, Any]:
+        """Verify a specific knowledge claim against external sources"""
+        try:
+            # Search for the claim
+            search_query = f"{claim} {context}".strip()
+            search_response = await web_search.search_with_verification(search_query, max_results=3)
+            
+            # Analyze results for claim verification
+            verified_sources = [r for r in search_response["results"] if r["knowledge_verified"]]
+            high_confidence_sources = [r for r in search_response["results"] if r["confidence"] > 0.7]
+            
+            verification_result = {
+                "claim": claim,
+                "verified": len(verified_sources) > 0,
+                "confidence_score": search_response["knowledge_verification_score"],
+                "high_confidence_sources": len(high_confidence_sources),
+                "total_sources": len(search_response["results"]),
+                "supporting_evidence": [r["snippet"] for r in verified_sources[:2]],
+                "sources": [r["url"] for r in verified_sources[:2]]
+            }
+            
+            return verification_result
+            
+        except Exception as e:
+            logger.error(f"Error verifying knowledge claim: {e}")
+            return {
+                "claim": claim,
+                "verified": False,
+                "error": str(e),
+                "confidence_score": 0.0
+            }

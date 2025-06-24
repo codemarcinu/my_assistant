@@ -23,6 +23,10 @@ MAX_RETRIES = 3
 RETRY_DELAY = 1.0  # Start with 1 second delay, doubles each retry
 REQUEST_TIMEOUT = 10.0  # 10 seconds
 
+# Wikipedia API constants
+WIKIPEDIA_API_BASE = "https://pl.wikipedia.org/api/rest_v1"
+WIKIPEDIA_SEARCH_BASE = "https://pl.wikipedia.org/w/api.php"
+
 
 # Sources configuration
 class SourceConfig(BaseModel):
@@ -49,6 +53,7 @@ class SearchResult(BaseModel):
     source: str
     date: Optional[str] = None
     source_confidence: float = 1.0
+    knowledge_verified: bool = False
 
 
 class SearchResponse(BaseModel):
@@ -59,6 +64,78 @@ class SearchResponse(BaseModel):
     timestamp: str
     source: str
     cached: bool = False
+    knowledge_verification_score: float = 0.0
+
+
+class WikipediaSearchClient:
+    """Client for Wikipedia API searches with knowledge verification"""
+
+    def __init__(self, base_url: str = WIKIPEDIA_API_BASE):
+        self.base_url = base_url
+        self.client = httpx.AsyncClient(
+            timeout=REQUEST_TIMEOUT, 
+            headers={"User-Agent": settings.USER_AGENT}
+        )
+
+    async def search(self, query: str, max_results: int = 5) -> List[SearchResult]:
+        """Search Wikipedia for articles"""
+        try:
+            # Search for articles
+            search_url = f"{WIKIPEDIA_SEARCH_BASE}"
+            params = {
+                "action": "query",
+                "format": "json",
+                "list": "search",
+                "srsearch": query,
+                "srlimit": max_results,
+                "srnamespace": 0,  # Main namespace only
+                "srprop": "snippet|title|timestamp"
+            }
+
+            response = await self.client.get(search_url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            results = []
+            if "query" in data and "search" in data["query"]:
+                for item in data["query"]["search"]:
+                    # Get full article content for knowledge verification
+                    article_content = await self._get_article_content(item["title"])
+                    
+                    result = SearchResult(
+                        title=item["title"],
+                        url=f"https://pl.wikipedia.org/wiki/{item['title'].replace(' ', '_')}",
+                        snippet=item.get("snippet", ""),
+                        source="wikipedia",
+                        date=item.get("timestamp"),
+                        knowledge_verified=bool(article_content),
+                        source_confidence=0.9 if article_content else 0.5
+                    )
+                    results.append(result)
+
+            return results
+
+        except Exception as e:
+            logger.error(f"Wikipedia search error: {e}")
+            return []
+
+    async def _get_article_content(self, title: str) -> Optional[str]:
+        """Get full article content for knowledge verification"""
+        try:
+            # Get article summary
+            summary_url = f"{self.base_url}/page/summary/{title}"
+            response = await self.client.get(summary_url)
+            response.raise_for_status()
+            data = response.json()
+            
+            return data.get("extract", "")
+        except Exception as e:
+            logger.debug(f"Could not get article content for {title}: {e}")
+            return None
+
+    async def close(self) -> None:
+        """Close the client"""
+        await self.client.aclose()
 
 
 class WebSearchClient:
@@ -77,6 +154,7 @@ class WebSearchClient:
         self.client = httpx.AsyncClient(
             timeout=REQUEST_TIMEOUT, headers={"User-Agent": settings.USER_AGENT}
         )
+        self.wikipedia_client = WikipediaSearchClient()
 
         # Create cache directory if it doesn't exist
         os.makedirs(cache_dir, exist_ok=True)
@@ -90,12 +168,20 @@ class WebSearchClient:
         """Initialize search sources from config"""
         default_sources = [
             {
+                "name": "wikipedia",
+                "enabled": True,
+                "api_key_env_var": "WIKIPEDIA_API_KEY",  # Optional
+                "base_url": WIKIPEDIA_API_BASE,
+                "priority": 1,
+                "whitelist": ["wikipedia.org"],
+            },
+            {
                 "name": "newsapi",
                 "enabled": True,
                 "api_key_env_var": "NEWS_API_KEY",
                 "base_url": "https://newsapi.org/v2",
                 "quota_per_day": 100,
-                "priority": 1,
+                "priority": 2,
                 "whitelist": ["bbc.co.uk", "cnn.com", "reuters.com", "nytimes.com"],
             },
             {
@@ -104,7 +190,7 @@ class WebSearchClient:
                 "api_key_env_var": "BING_SEARCH_API_KEY",
                 "base_url": "https://api.bing.microsoft.com/v7.0/search",
                 "quota_per_minute": 3,
-                "priority": 2,
+                "priority": 3,
             },
         ]
 
@@ -113,13 +199,14 @@ class WebSearchClient:
         for src_config in config_to_use:
             source = SourceConfig(**src_config)
 
-            # Get API key from environment
-            if hasattr(settings, source.api_key_env_var):
+            # Get API key from environment (optional for Wikipedia)
+            if source.name != "wikipedia" and hasattr(settings, source.api_key_env_var):
                 source.api_key = getattr(settings, source.api_key_env_var)
-            else:
+            elif source.name != "wikipedia":
                 source.api_key = os.environ.get(source.api_key_env_var)
 
-            if source.api_key:
+            # Enable Wikipedia even without API key
+            if source.name == "wikipedia" or source.api_key:
                 self.sources.append(source)
                 # Initialize usage tracking
                 self.source_usage[source.name] = {
@@ -207,230 +294,215 @@ class WebSearchClient:
             source_stats["minute_count"] = 0
             source_stats["last_minute"] = current_minute
 
-        # Check quota limits
+        # Check quotas
         if source.quota_per_day and source_stats["daily_count"] >= source.quota_per_day:
             logger.warning(f"Daily quota exceeded for {source.name}")
             return None
 
-        if (
-            source.quota_per_minute
-            and source_stats["minute_count"] >= source.quota_per_minute
-        ):
+        if source.quota_per_minute and source_stats["minute_count"] >= source.quota_per_minute:
             logger.warning(f"Minute quota exceeded for {source.name}")
             return None
 
-        # Prepare request based on source type
-        if source.name == "newsapi":
-            url = f"{source.base_url}/everything"
-            params = {
-                "q": query,
-                "apiKey": source.api_key,
-                "language": "en",
-                "sortBy": "relevancy",
-                "pageSize": 10,
-            }
-            headers = {}
-        elif source.name == "bing":
-            url = source.base_url
-            params = {"q": query, "count": 10, "offset": 0, "mkt": "en-US"}
-            headers = {"Ocp-Apim-Subscription-Key": source.api_key}
-        else:
-            logger.error(f"Unknown source type: {source.name}")
-            return None
-
         # Make request with retries
-        attempt = 0
-        while attempt < retries:
+        for attempt in range(retries):
             try:
-                # Filter out None values from headers
-                filtered_headers = {k: v for k, v in headers.items() if v is not None}
-                response = await self.client.get(
-                    url, params=params, headers=filtered_headers
-                )
-                response.raise_for_status()
-
-                # Update usage counters
-                source_stats["daily_count"] += 1
-                source_stats["minute_count"] += 1
-
-                return response.json()
-
-            except httpx.HTTPStatusError as e:
-                logger.error(
-                    f"HTTP error {e.response.status_code} from {source.name}: {str(e)}"
-                )
-
-                # Special handling for rate limiting
-                if e.response.status_code == 429:
-                    wait_time = int(
-                        e.response.headers.get(
-                            "Retry-After", RETRY_DELAY * (2**attempt)
-                        )
-                    )
-                    logger.warning(
-                        f"Rate limited by {source.name}, waiting {wait_time}s"
-                    )
-                    await asyncio.sleep(wait_time)
-
-                source_stats["errors"] += 1
-                source_stats["last_error"] = str(e)
+                if source.name == "wikipedia":
+                    # Use Wikipedia client
+                    results = await self.wikipedia_client.search(query, max_results=5)
+                    return {
+                        "results": [result.dict() for result in results],
+                        "source": "wikipedia",
+                        "query": query
+                    }
+                elif source.name == "newsapi":
+                    return await self._make_newsapi_request(source, query)
+                elif source.name == "bing":
+                    return await self._make_bing_request(source, query)
+                else:
+                    logger.warning(f"Unknown source: {source.name}")
+                    return None
 
             except Exception as e:
-                logger.error(f"Error querying {source.name}: {str(e)}")
                 source_stats["errors"] += 1
                 source_stats["last_error"] = str(e)
+                logger.error(f"Request failed for {source.name} (attempt {attempt + 1}): {e}")
 
-            # Exponential backoff
-            wait_time = RETRY_DELAY * (2**attempt)
-            logger.info(
-                f"Retrying {source.name} in {wait_time}s (attempt {attempt+1}/{retries})"
-            )
-            await asyncio.sleep(wait_time)
-            attempt += 1
+                if attempt < retries - 1:
+                    await asyncio.sleep(RETRY_DELAY * (2 ** attempt))
+                else:
+                    return None
 
         return None
 
+    async def _make_newsapi_request(self, source: SourceConfig, query: str) -> Optional[Dict[str, Any]]:
+        """Make request to NewsAPI"""
+        url = f"{source.base_url}/everything"
+        params = {
+            "q": query,
+            "apiKey": source.api_key,
+            "language": "pl",
+            "sortBy": "relevancy",
+            "pageSize": 5
+        }
+
+        response = await self.client.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        return self._parse_newsapi_response(data, query)
+
+    async def _make_bing_request(self, source: SourceConfig, query: str) -> Optional[Dict[str, Any]]:
+        """Make request to Bing Search API"""
+        url = source.base_url
+        headers = {"Ocp-Apim-Subscription-Key": source.api_key}
+        params = {
+            "q": query,
+            "count": 5,
+            "mkt": "pl-PL",
+            "safesearch": "moderate"
+        }
+
+        response = await self.client.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        return self._parse_bing_response(data, query)
+
     def _parse_newsapi_response(
         self, data: Dict[str, Any], query: str
-    ) -> SearchResponse:
-        """Parse NewsAPI response into standard format"""
+    ) -> Dict[str, Any]:
+        """Parse NewsAPI response"""
         results = []
-
         for article in data.get("articles", []):
-            source_name = article.get("source", {}).get("name", "Unknown")
+            # Verify source credibility
+            source_url = article.get("url", "")
+            is_verified = self._verify_source(source_url, "newsapi")
 
-            # Apply source verification
-            if not self._verify_source(source_name, "newsapi"):
-                continue
-
-            results.append(
-                SearchResult(
-                    title=article.get("title", ""),
-                    url=article.get("url", ""),
-                    snippet=article.get("description", ""),
-                    source=source_name,
-                    date=article.get("publishedAt", ""),
-                    source_confidence=0.9,
-                )
+            result = SearchResult(
+                title=article.get("title", ""),
+                url=source_url,
+                snippet=article.get("description", ""),
+                source="newsapi",
+                date=article.get("publishedAt"),
+                knowledge_verified=is_verified,
+                source_confidence=0.8 if is_verified else 0.4
             )
+            results.append(result)
 
-        return SearchResponse(
-            query=query,
-            results=results,
-            timestamp=datetime.now().isoformat(),
-            source="newsapi",
-        )
+        return {
+            "results": [result.dict() for result in results],
+            "source": "newsapi",
+            "query": query
+        }
 
-    def _parse_bing_response(self, data: Dict[str, Any], query: str) -> SearchResponse:
-        """Parse Bing Search API response into standard format"""
+    def _parse_bing_response(self, data: Dict[str, Any], query: str) -> Dict[str, Any]:
+        """Parse Bing Search API response"""
         results = []
+        for item in data.get("webPages", {}).get("value", []):
+            # Verify source credibility
+            source_url = item.get("url", "")
+            is_verified = self._verify_source(source_url, "bing")
 
-        for page in data.get("webPages", {}).get("value", []):
-            # Extract domain from URL for source verification
-            url = page.get("url", "")
-            try:
-                from urllib.parse import urlparse
-
-                domain = urlparse(url).netloc
-            except Exception:
-                domain = "unknown"
-
-            # Apply source verification
-            if not self._verify_source(domain, "bing"):
-                continue
-
-            results.append(
-                SearchResult(
-                    title=page.get("name", ""),
-                    url=url,
-                    snippet=page.get("snippet", ""),
-                    source=domain,
-                    source_confidence=0.8,
-                )
+            result = SearchResult(
+                title=item.get("name", ""),
+                url=source_url,
+                snippet=item.get("snippet", ""),
+                source="bing",
+                knowledge_verified=is_verified,
+                source_confidence=0.7 if is_verified else 0.3
             )
+            results.append(result)
 
-        return SearchResponse(
-            query=query,
-            results=results,
-            timestamp=datetime.now().isoformat(),
-            source="bing",
-        )
+        return {
+            "results": [result.dict() for result in results],
+            "source": "bing",
+            "query": query
+        }
 
     def _verify_source(self, source: str, provider: str) -> bool:
-        """Verify if a source is trustworthy based on whitelist/blacklist"""
-        source = source.lower()
-        provider_config = next((s for s in self.sources if s.name == provider), None)
+        """Verify source credibility based on provider and domain"""
+        if not source:
+            return False
 
-        if not provider_config:
+        # Check against whitelist/blacklist for the provider
+        source_config = next((s for s in self.sources if s.name == provider), None)
+        if not source_config:
+            return False
+
+        # Extract domain from URL
+        try:
+            from urllib.parse import urlparse
+            domain = urlparse(source).netloc.lower()
+        except Exception:
             return False
 
         # Check blacklist
-        for blocked in provider_config.blacklist:
-            if blocked.lower() in source:
-                logger.debug(f"Source {source} blocked by blacklist rule: {blocked}")
-                return False
-
-        # If whitelist exists, only allow sources that match
-        if provider_config.whitelist:
-            for allowed in provider_config.whitelist:
-                if allowed.lower() in source:
-                    return True
-            logger.debug(f"Source {source} not in whitelist")
+        if any(blacklisted in domain for blacklisted in source_config.blacklist):
             return False
 
-        # If no whitelist, any non-blacklisted source is allowed
+        # Check whitelist (if empty, accept all)
+        if source_config.whitelist:
+            return any(whitelisted in domain for whitelisted in source_config.whitelist)
+
         return True
 
     async def search(self, query: str, force_refresh: bool = False) -> SearchResponse:
-        """Search for query across configured sources with caching"""
-        # Try cache first unless forced refresh
+        """Perform a search across all available sources"""
+        # Check cache first
         if not force_refresh:
-            cached = await self._load_from_cache(query)
-            if cached:
-                return cached
+            cached_response = await self._load_from_cache(query)
+            if cached_response:
+                return cached_response
 
-        # Try each source in priority order
+        all_results = []
+        knowledge_scores = []
+
+        # Search across all sources
         for source in self.sources:
             if not source.enabled:
                 continue
 
-            logger.info(f"Searching '{query}' using {source.name}")
-
             try:
-                raw_data = await self._make_request(source, query)
+                result = await self._make_request(source, query)
+                if result:
+                    # Update usage counters
+                    source_stats = self.source_usage[source.name]
+                    source_stats["daily_count"] += 1
+                    source_stats["minute_count"] += 1
 
-                if not raw_data:
-                    continue
-
-                # Parse based on source type
-                if source.name == "newsapi":
-                    response = self._parse_newsapi_response(raw_data, query)
-                elif source.name == "bing":
-                    response = self._parse_bing_response(raw_data, query)
-                else:
-                    logger.error(f"Unknown source type for parsing: {source.name}")
-                    continue
-
-                # Only return if we got meaningful results
-                if response.results:
-                    # Cache the results
-                    await self._save_to_cache(response)
-                    return response
-                else:
-                    logger.warning(f"No results from {source.name} for '{query}'")
+                    # Add results
+                    for item in result["results"]:
+                        search_result = SearchResult(**item)
+                        all_results.append(search_result)
+                        if search_result.knowledge_verified:
+                            knowledge_scores.append(search_result.source_confidence)
 
             except Exception as e:
-                logger.error(f"Error searching with {source.name}: {e}")
+                logger.error(f"Error searching {source.name}: {e}")
 
-        # If all sources failed, return empty results
-        logger.warning(f"All sources failed for query: '{query}'")
-        return SearchResponse(
-            query=query, results=[], timestamp=datetime.now().isoformat(), source="none"
+        # Calculate knowledge verification score
+        knowledge_verification_score = (
+            sum(knowledge_scores) / len(knowledge_scores) if knowledge_scores else 0.0
         )
 
+        # Create response
+        response = SearchResponse(
+            query=query,
+            results=all_results[:10],  # Limit to top 10 results
+            timestamp=datetime.now().isoformat(),
+            source="multi",
+            knowledge_verification_score=knowledge_verification_score
+        )
+
+        # Cache the response
+        await self._save_to_cache(response)
+
+        return response
+
     async def close(self) -> None:
-        """Close HTTP client"""
+        """Close all clients"""
         await self.client.aclose()
+        await self.wikipedia_client.close()
 
 
 class WebSearch:
@@ -443,15 +515,42 @@ class WebSearch:
         """Perform a web search and return simplified results"""
         response = await self.client.search(query)
         return [
-            {"title": r.title, "url": r.url, "snippet": r.snippet, "source": r.source}
+            {
+                "title": r.title, 
+                "url": r.url, 
+                "snippet": r.snippet, 
+                "source": r.source,
+                "knowledge_verified": r.knowledge_verified,
+                "confidence": r.source_confidence
+            }
             for r in response.results[:max_results]
         ]
+
+    async def search_with_verification(self, query: str, max_results: int = 5) -> Dict[str, Any]:
+        """Perform a search with knowledge verification details"""
+        response = await self.client.search(query)
+        return {
+            "query": query,
+            "results": [
+                {
+                    "title": r.title, 
+                    "url": r.url, 
+                    "snippet": r.snippet, 
+                    "source": r.source,
+                    "knowledge_verified": r.knowledge_verified,
+                    "confidence": r.source_confidence
+                }
+                for r in response.results[:max_results]
+            ],
+            "knowledge_verification_score": response.knowledge_verification_score,
+            "total_results": len(response.results),
+            "cached": response.cached
+        }
 
     async def close(self) -> None:
         """Close underlying client"""
         await self.client.close()
 
 
-# Singleton instances
-web_search_client = WebSearchClient()
-web_search = WebSearch(web_search_client)
+# Global instance
+web_search = WebSearch()

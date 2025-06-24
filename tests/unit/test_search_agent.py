@@ -374,3 +374,407 @@ class TestSearchAgent:
 
         # Then
         assert "Refined search results" in result_text
+
+    @pytest.mark.asyncio
+    async def test_search_agent_with_results() -> None:
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        mock_context = {"query": "test query", "model": "llama3"}
+
+        with patch(
+            "backend.agents.search_agent.perplexity_client.search"
+        ) as mock_web_search, patch(
+            "backend.agents.search_agent.hybrid_llm_client.chat"
+        ) as mock_chat:
+            mock_web_search.return_value = {
+                "success": True,
+                "content": "LLM summary: Test search results",
+            }
+            mock_chat.return_value = {
+                "message": {"content": "LLM summary: Test search results"}
+            }
+
+            response = await agent.process(mock_context)
+            assert isinstance(response, AgentResponse)
+            assert response.success is True
+
+            # Consume the stream to get the text
+            result_text = ""
+            async for chunk in response.text_stream:
+                result_text += chunk
+            assert "LLM summary: Test search results" in result_text
+
+    @pytest.mark.asyncio
+    async def test_search_agent_empty_results() -> None:
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        mock_context = {"query": "test query"}
+
+        with patch(
+            "backend.agents.search_agent.perplexity_client.search"
+        ) as mock_web_search:
+            mock_web_search.return_value = {
+                "success": True,
+                "content": "Nie znaleziono odpowiednich wyników.",
+            }
+
+            response = await agent.process(mock_context)
+            assert response.success is True  # Empty results are handled gracefully
+
+            # Consume the stream
+            result_text = ""
+            async for chunk in response.text_stream:
+                result_text += chunk
+            assert "Nie znaleziono" in result_text
+
+    @pytest.mark.asyncio
+    async def test_enhanced_search_with_verification() -> None:
+        """Test enhanced search with knowledge verification"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search_with_verification method
+        with patch("backend.agents.search_agent.web_search.search_with_verification") as mock_search:
+            mock_search.return_value = {
+                "query": "test query",
+                "results": [
+                    {
+                        "title": "Test Result 1",
+                        "url": "https://example.com/1",
+                        "snippet": "This is a verified test result",
+                        "source": "wikipedia",
+                        "knowledge_verified": True,
+                        "confidence": 0.9
+                    },
+                    {
+                        "title": "Test Result 2", 
+                        "url": "https://example.com/2",
+                        "snippet": "This is an unverified test result",
+                        "source": "newsapi",
+                        "knowledge_verified": False,
+                        "confidence": 0.3
+                    }
+                ],
+                "knowledge_verification_score": 0.6,
+                "total_results": 2,
+                "cached": False
+            }
+            
+            result = await agent._enhanced_search_with_verification("test query", 5)
+            
+            # Verify the response contains verification information
+            assert "Wyniki wyszukiwania dla: 'test query'" in result
+            assert "Znaleziono 2 wyników" in result
+            assert "Zweryfikowane źródła: 1/2" in result
+            assert "Wskaźnik wiarygodności: 0.60" in result
+            assert "✅" in result  # Verified result
+            assert "⚠️" in result  # Unverified result
+            assert "Wiarygodność: 0.90" in result
+            assert "Wiarygodność: 0.30" in result
+
+    @pytest.mark.asyncio
+    async def test_basic_search() -> None:
+        """Test basic search without verification"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search method
+        with patch("backend.agents.search_agent.web_search.search") as mock_search:
+            mock_search.return_value = [
+                {
+                    "title": "Test Result 1",
+                    "url": "https://example.com/1", 
+                    "snippet": "This is a test result",
+                    "source": "wikipedia",
+                    "knowledge_verified": True,
+                    "confidence": 0.8
+                }
+            ]
+            
+            result = await agent._basic_search("test query", 5)
+            
+            # Verify the response contains basic search results
+            assert "Wyniki wyszukiwania dla: 'test query'" in result
+            assert "Test Result 1" in result
+            assert "This is a test result" in result
+            assert "https://example.com/1" in result
+
+    @pytest.mark.asyncio
+    async def test_verify_knowledge_claim() -> None:
+        """Test knowledge claim verification"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search_with_verification method
+        with patch("backend.agents.search_agent.web_search.search_with_verification") as mock_search:
+            mock_search.return_value = {
+                "query": "test claim context",
+                "results": [
+                    {
+                        "title": "Supporting Evidence",
+                        "url": "https://example.com/evidence",
+                        "snippet": "This evidence supports the claim",
+                        "source": "wikipedia",
+                        "knowledge_verified": True,
+                        "confidence": 0.9
+                    }
+                ],
+                "knowledge_verification_score": 0.9,
+                "total_results": 1,
+                "cached": False
+            }
+            
+            result = await agent.verify_knowledge_claim("test claim", "context")
+            
+            # Verify the verification result
+            assert result["claim"] == "test claim"
+            assert result["verified"] is True
+            assert result["confidence_score"] == 0.9
+            assert result["high_confidence_sources"] == 1
+            assert result["total_sources"] == 1
+            assert len(result["supporting_evidence"]) == 1
+            assert len(result["sources"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_verify_knowledge_claim_no_evidence() -> None:
+        """Test knowledge claim verification with no supporting evidence"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search_with_verification method
+        with patch("backend.agents.search_agent.web_search.search_with_verification") as mock_search:
+            mock_search.return_value = {
+                "query": "test claim context",
+                "results": [
+                    {
+                        "title": "Contradicting Evidence",
+                        "url": "https://example.com/contradiction",
+                        "snippet": "This evidence contradicts the claim",
+                        "source": "newsapi",
+                        "knowledge_verified": False,
+                        "confidence": 0.2
+                    }
+                ],
+                "knowledge_verification_score": 0.2,
+                "total_results": 1,
+                "cached": False
+            }
+            
+            result = await agent.verify_knowledge_claim("test claim", "context")
+            
+            # Verify the verification result
+            assert result["claim"] == "test claim"
+            assert result["verified"] is False  # No verified sources
+            assert result["confidence_score"] == 0.2
+            assert result["high_confidence_sources"] == 0
+            assert result["total_sources"] == 1
+
+    @pytest.mark.asyncio
+    async def test_verify_knowledge_claim_error() -> None:
+        """Test knowledge claim verification with error"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search_with_verification method to raise an exception
+        with patch("backend.agents.search_agent.web_search.search_with_verification") as mock_search:
+            mock_search.side_effect = Exception("Search error")
+            
+            result = await agent.verify_knowledge_claim("test claim", "context")
+            
+            # Verify the error result
+            assert result["claim"] == "test claim"
+            assert result["verified"] is False
+            assert result["confidence_score"] == 0.0
+            assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_search_agent_with_knowledge_verification() -> None:
+        """Test SearchAgent with knowledge verification enabled"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search_with_verification method
+        with patch("backend.agents.search_agent.web_search.search_with_verification") as mock_search:
+            mock_search.return_value = {
+                "query": "test query",
+                "results": [
+                    {
+                        "title": "Verified Result",
+                        "url": "https://example.com/verified",
+                        "snippet": "This is a verified result",
+                        "source": "wikipedia",
+                        "knowledge_verified": True,
+                        "confidence": 0.9
+                    }
+                ],
+                "knowledge_verification_score": 0.9,
+                "total_results": 1,
+                "cached": False
+            }
+            
+            response = await agent.process({
+                "query": "test query",
+                "use_perplexity": False,
+                "verify_knowledge": True
+            })
+            
+            assert response.success is True
+            
+            # Consume the stream
+            result_text = ""
+            async for chunk in response.text_stream:
+                result_text += chunk
+            
+            # Verify the response contains verification information
+            assert "wyszukiwanie z weryfikacją wiedzy" in result_text
+            assert "Weryfikuję wiarygodność źródeł" in result_text
+            assert "Wskaźnik wiarygodności" in result_text
+            assert "✅" in result_text
+
+    @pytest.mark.asyncio
+    async def test_search_agent_without_knowledge_verification() -> None:
+        """Test SearchAgent with knowledge verification disabled"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search method
+        with patch("backend.agents.search_agent.web_search.search") as mock_search:
+            mock_search.return_value = [
+                {
+                    "title": "Basic Result",
+                    "url": "https://example.com/basic",
+                    "snippet": "This is a basic result",
+                    "source": "wikipedia",
+                    "knowledge_verified": True,
+                    "confidence": 0.8
+                }
+            ]
+            
+            response = await agent.process({
+                "query": "test query",
+                "use_perplexity": False,
+                "verify_knowledge": False
+            })
+            
+            assert response.success is True
+            
+            # Consume the stream
+            result_text = ""
+            async for chunk in response.text_stream:
+                result_text += chunk
+            
+            # Verify the response contains basic search results
+            assert "ulepszonego systemu wyszukiwania" in result_text
+            assert "Basic Result" in result_text
+            assert "Wskaźnik wiarygodności" not in result_text  # Should not contain verification info
+
+    @pytest.mark.asyncio
+    async def test_search_agent_metadata() -> None:
+        """Test SearchAgent metadata includes knowledge verification capabilities"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        metadata = agent.get_metadata()
+        
+        assert metadata["name"] == agent.name
+        assert metadata["version"] == "2.0.0"
+        assert "knowledge_verification" in metadata["capabilities"]
+        assert "source_credibility_assessment" in metadata["capabilities"]
+        assert "knowledge_verification_threshold" in metadata
+        assert metadata["knowledge_verification_threshold"] == 0.7
+
+    @pytest.mark.asyncio
+    async def test_search_agent_dependencies() -> None:
+        """Test SearchAgent dependencies include web_search"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        dependencies = agent.get_dependencies()
+        
+        assert "web_search" in dependencies
+        assert "httpx" in dependencies
+        assert "hybrid_llm_client" in dependencies
+        assert "perplexity_client" in dependencies
+
+    @pytest.mark.asyncio
+    async def test_enhanced_search_error_handling() -> None:
+        """Test error handling in enhanced search"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search_with_verification method to raise an exception
+        with patch("backend.agents.search_agent.web_search.search_with_verification") as mock_search:
+            mock_search.side_effect = Exception("Search error")
+            
+            result = await agent._enhanced_search_with_verification("test query", 5)
+            
+            # Verify error handling
+            assert "Błąd podczas wyszukiwania" in result
+            assert "Search error" in result
+
+    @pytest.mark.asyncio
+    async def test_basic_search_error_handling() -> None:
+        """Test error handling in basic search"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search method to raise an exception
+        with patch("backend.agents.search_agent.web_search.search") as mock_search:
+            mock_search.side_effect = Exception("Search error")
+            
+            result = await agent._basic_search("test query", 5)
+            
+            # Verify error handling
+            assert "Błąd podczas wyszukiwania" in result
+            assert "Search error" in result
+
+    @pytest.mark.asyncio
+    async def test_enhanced_search_empty_results() -> None:
+        """Test enhanced search with empty results"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search_with_verification method
+        with patch("backend.agents.search_agent.web_search.search_with_verification") as mock_search:
+            mock_search.return_value = {
+                "query": "test query",
+                "results": [],
+                "knowledge_verification_score": 0.0,
+                "total_results": 0,
+                "cached": False
+            }
+            
+            result = await agent._enhanced_search_with_verification("test query", 5)
+            
+            # Verify empty results handling
+            assert "Nie znaleziono odpowiednich wyników wyszukiwania" in result
+
+    @pytest.mark.asyncio
+    async def test_basic_search_empty_results() -> None:
+        """Test basic search with empty results"""
+        mock_vector_store = AsyncMock()
+        mock_llm_client = AsyncMock()
+        agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
+        
+        # Mock the web_search.search method
+        with patch("backend.agents.search_agent.web_search.search") as mock_search:
+            mock_search.return_value = []
+            
+            result = await agent._basic_search("test query", 5)
+            
+            # Verify empty results handling
+            assert "Nie znaleziono odpowiednich wyników wyszukiwania" in result

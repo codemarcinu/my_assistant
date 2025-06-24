@@ -1,369 +1,649 @@
 #!/bin/bash
 
-# FoodSave AI Manager - Niezawodny skrypt zarządzania
-# Wersja: 3.1 - Dodane zarządzanie profilami (monitoring)
+# FoodSave AI - Advanced Management Script
+# Comprehensive project management for development, testing, and production environments
 
-set -e  # Zatrzymaj na pierwszym błędzie
+set -euo pipefail
 
-# Kolory dla lepszej czytelności
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_NAME="foodsave-ai"
+VERSION="2.0.0"
+
+# Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
-# --- Funkcje Pomocnicze ---
-print_header() {
-    echo -e "${BLUE}===================================${NC}"
-    echo -e "${BLUE}    FoodSave AI Manager v3.1     ${NC}"
-    echo -e "${BLUE}===================================${NC}"
-    echo
+# Environment configurations
+ENVIRONMENTS=("dev" "test" "prod")
+DEFAULT_ENV="dev"
+
+# Service configurations
+SERVICES=("backend" "frontend" "ollama" "postgres" "redis" "prometheus" "grafana" "loki" "promtail" "nginx")
+
+# Port mappings
+declare -A PORTS=(
+    ["backend"]="8000"
+    ["frontend"]="5173"
+    ["ollama"]="11434"
+    ["postgres"]="5433"
+    ["redis"]="6379"
+    ["prometheus"]="9090"
+    ["grafana"]="3000"
+    ["loki"]="3100"
+    ["promtail"]="9080"
+    ["nginx"]="80"
+)
+
+# Logging
+LOG_DIR="$PROJECT_ROOT/logs"
+LOG_FILE="$LOG_DIR/manager.log"
+
+# Functions
+log() {
+    local level="$1"
+    shift
+    local message="$*"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
 }
 
-print_success() { echo -e "${GREEN}✓ $1${NC}"; }
-print_warning() { echo -e "${YELLOW}⚠ $1${NC}"; }
-print_error() { echo -e "${RED}✗ $1${NC}"; }
-print_info() { echo -e "${BLUE}ℹ $1${NC}"; }
+info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+    log "INFO" "$1"
+}
 
-# --- Weryfikacja Wymagań Wstępnych ---
-check_prerequisites() {
-    if ! command -v docker &> /dev/null; then
-        print_error "Docker nie jest zainstalowany. Zainstaluj go, aby kontynuować."
-        exit 1
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    log "SUCCESS" "$1"
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+    log "WARNING" "$1"
+}
+
+error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+    log "ERROR" "$1"
+}
+
+debug() {
+    if [[ "${DEBUG:-false}" == "true" ]]; then
+        echo -e "${PURPLE}[DEBUG]${NC} $1"
+        log "DEBUG" "$1"
     fi
+}
+
+# Ensure log directory exists
+mkdir -p "$LOG_DIR"
+
+# Check if Docker is running
+check_docker() {
     if ! docker info >/dev/null 2>&1; then
-        print_error "Docker nie jest uruchomiony! Uruchom Docker i spróbuj ponownie."
-        exit 1
-    fi
-    if [ ! -f "docker-compose.yaml" ]; then
-        print_error "Nie znaleziono pliku 'docker-compose.yaml'. Uruchom skrypt z głównego katalogu projektu."
+        error "Docker is not running. Please start Docker and try again."
         exit 1
     fi
 }
 
-# --- Główne Funkcje ---
+# Check if Docker Compose is available
+check_docker_compose() {
+    if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
+        error "Docker Compose is not available. Please install Docker Compose and try again."
+        exit 1
+    fi
+}
 
-# 1. Pokaż status
-show_status() {
-    print_header
-    print_info "Sprawdzanie statusu kontenerów..."
-    echo
-    if docker-compose ps | grep -q "Up"; then
-        print_success "Niektóre kontenery są uruchomione:"
-        docker-compose ps
+# Get Docker Compose command
+get_docker_compose_cmd() {
+    if docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
     else
-        print_warning "Wszystkie kontenery są zatrzymane."
+        echo "docker-compose"
     fi
-    echo
 }
 
-# 2. Uruchom środowisko produkcyjne (symulowane)
-start_environment() {
-    print_header
-    check_prerequisites
-    print_info "Uruchamianie środowiska FoodSave AI (tryb standardowy)..."
-    docker-compose up -d --build
-    print_success "Środowisko zostało uruchomione!"
-    echo
-    check_and_pull_models # Sprawdź modele po uruchomieniu
-    print_info "Frontend: http://localhost:3000"
-    echo
-}
-
-# 3. Uruchom środowisko z monitoringiem
-start_full_environment() {
-    print_header
-    check_prerequisites
-    print_info "Uruchamianie pełnego środowiska FoodSave AI (z monitoringiem)..."
-    docker-compose --profile monitoring --profile logging up -d --build
-    print_success "Pełne środowisko zostało uruchomione!"
-    echo
-    check_and_pull_models # Sprawdź modele po uruchomieniu
-    print_info "Frontend: http://localhost:3000"
-    print_info "Grafana: http://localhost:3001"
-    echo
-}
-
-# 4. Uruchom środowisko deweloperskie (z hot-reload)
-start_dev_environment() {
-    print_header
-    check_prerequisites
-    print_info "Uruchamianie środowiska FoodSave AI (tryb deweloperski z hot-reload)..."
-    export BACKEND_DOCKERFILE="src/backend/Dockerfile.dev"
-    export FRONTEND_DOCKERFILE="Dockerfile.dev"
-    docker-compose up -d --build
-    unset BACKEND_DOCKERFILE
-    unset FRONTEND_DOCKERFILE
-    print_success "Środowisko deweloperskie zostało uruchomione!"
-    echo
-    check_and_pull_models # Sprawdź modele po uruchomieniu
-    print_info "Frontend: http://localhost:3000"
-    echo
-}
-
-# 5. Uruchom środowisko deweloperskie z monitoringiem
-start_dev_full_environment() {
-    print_header
-    check_prerequisites
-    print_info "Uruchamianie pełnego środowiska deweloperskiego (z hot-reload i monitoringiem)..."
-    export BACKEND_DOCKERFILE="src/backend/Dockerfile.dev"
-    export FRONTEND_DOCKERFILE="Dockerfile.dev"
-    docker-compose --profile monitoring --profile logging up -d --build
-    unset BACKEND_DOCKERFILE
-    unset FRONTEND_DOCKERFILE
-    print_success "Pełne środowisko deweloperskie zostało uruchomione!"
-    echo
-    check_and_pull_models # Sprawdź modele po uruchomieniu
-    print_info "Frontend: http://localhost:3000"
-    print_info "Grafana: http://localhost:3001"
-    echo
-}
-
-# 6. Zatrzymaj środowisko
-stop_environment() {
-    print_header
-    print_info "Zatrzymywanie środowiska FoodSave AI..."
-    docker-compose down
-    print_success "Środowisko zostało zatrzymane!"
-    echo
-}
-
-# 7. Restartuj środowisko
-restart_environment() {
-    print_header
-    print_info "Restartowanie środowiska (tryb standardowy)..."
-    stop_environment
-    start_environment
-    print_success "Środowisko zostało zrestartowane!"
-    echo
-}
-
-# 8. Restartuj środowisko z monitoringiem
-restart_full_environment() {
-    print_header
-    print_info "Restartowanie pełnego środowiska (z monitoringiem)..."
-    stop_environment
-    start_full_environment
-    print_success "Pełne środowisko zostało zrestartowane!"
-    echo
-}
-
-# 9. Sprawdź i pobierz modele AI
-check_and_pull_models() {
-    print_header
-    print_info "Sprawdzanie i pobieranie modeli AI dla Ollama..."
-
-    if ! docker-compose ps ollama | grep -q "Up"; then
-        print_warning "Kontener Ollama nie jest uruchomiony. Uruchamiam..."
-        docker-compose up -d ollama
-        print_info "Oczekiwanie na start Ollama..."
-        sleep 15
+# Check port availability
+check_port() {
+    local port="$1"
+    local service="$2"
+    
+    if netstat -tuln 2>/dev/null | grep -q ":$port "; then
+        warning "Port $port is already in use by another process"
+        if command -v lsof >/dev/null 2>&1; then
+            lsof -i :$port 2>/dev/null || true
+        fi
+        return 1
     fi
+    return 0
+}
 
-    REQUIRED_MODELS=(
-        "nomic-embed-text:latest"
-        "gemma3:12b"
-        "speakleash/bielik-4.5b-v3.0-instruct:Q8_0"
-    )
-
-    print_info "Pobieranie listy zainstalowanych modeli..."
-    INSTALLED_MODELS=$(docker-compose exec -T ollama ollama list)
-
-    for model in "${REQUIRED_MODELS[@]}"; do
-        # Uproszczone sprawdzanie, szuka nazwy modelu bez taga
-        model_name=$(echo "$model" | cut -d':' -f1)
-        if echo "$INSTALLED_MODELS" | grep -q "$model_name"; then
-            print_success "Model '$model_name' jest już zainstalowany."
-        else
-            print_warning "Model '$model' nie znaleziony. Rozpoczynam pobieranie..."
-            if docker-compose exec -T ollama ollama pull "$model"; then
-                print_success "Model '$model' został pomyślnie pobrany."
-            else
-                print_error "Nie udało się pobrać modelu '$model'. Sprawdź logi kontenera ollama."
-            fi
+# Check all required ports
+check_ports() {
+    info "Checking port availability..."
+    local conflicts=()
+    
+    for service in "${SERVICES[@]}"; do
+        local port="${PORTS[$service]}"
+        if ! check_port "$port" "$service"; then
+            conflicts+=("$service:$port")
         fi
     done
-    print_success "Weryfikacja modeli zakończona."
-    echo
-}
-
-# 10. Napraw zależności backendu
-fix_backend_deps() {
-    print_header
-    print_info "Instalowanie/aktualizowanie zależności backendu z requirements.txt..."
-    check_prerequisites
-
-    if ! docker-compose ps backend | grep -q "Up"; then
-        print_warning "Backend nie jest uruchomiony. Uruchamiam..."
-        docker-compose up -d backend
-        sleep 5
+    
+    if [[ ${#conflicts[@]} -gt 0 ]]; then
+        error "Port conflicts detected:"
+        for conflict in "${conflicts[@]}"; do
+            echo "  - $conflict"
+        done
+        echo
+        echo "Options:"
+        echo "  1. Stop conflicting processes manually"
+        echo "  2. Use 'manager stop' to stop all containers"
+        echo "  3. Use 'manager clean' to clean up everything"
+        return 1
     fi
-
-    print_info "Instalowanie zależności..."
-    docker-compose exec -T backend pip install --no-cache-dir -r src/backend/requirements.txt
-
-    print_success "Zależności backendu zostały zaktualizowane!"
-    print_info "Zrestartuj backend, aby zmiany weszły w życie (użyj opcji 'restart')."
-    echo
+    
+    success "All ports are available"
+    return 0
 }
 
-# 11. Uruchom testy
-run_tests() {
-    print_header
-    print_info "Uruchamianie testów backendu..."
-    check_prerequisites
-    if ! docker-compose ps backend | grep -q "Up"; then
-        print_warning "Backend nie jest uruchomiony. Uruchamiam na potrzeby testów..."
-        docker-compose up -d backend
-        sleep 5
-    fi
-    docker-compose exec backend pytest src/tests
-    print_success "Testowanie zakończone."
-    echo
-}
-
-# 12. Pokaż logi
-show_logs() {
-    print_header
-    print_info "Wybierz kontener do wyświetlenia logów. Naciśnij Ctrl+C, aby powrócić do menu."
-    containers=($(docker-compose ps --services))
-
-    if [ ${#containers[@]} -eq 0 ]; then
-        print_warning "Brak uruchomionych kontenerów."
-        return
-    fi
-
-    select container in "${containers[@]}" "Wszystkie"; do
-        if [ "$container" == "Wszystkie" ]; then
-            print_info "Wyświetlanie logów wszystkich kontenerów... (Ctrl+C aby wyjść)"
-            docker-compose logs -f || true
-            break
-        elif [ -n "$container" ]; then
-            print_info "Wyświetlanie logów kontenera: $container (Ctrl+C aby wyjść)"
-            docker-compose logs -f "$container" || true
-            break
-        else
-            print_error "Nieprawidłowy wybór."
-        fi
-    done
-    echo
-}
-
-# 13. Wyczyść środowisko
-clean_environment() {
-    print_header
-    read -p "Czy na pewno chcesz usunąć WSZYSTKIE kontenery, sieci i wolumeny (dane DB!)? [t/N] " choice
-    if [[ "$choice" =~ ^[Tt]$ ]]; then
-        print_info "Zatrzymywanie i usuwanie kontenerów, sieci i wolumenów..."
-        docker-compose down -v --remove-orphans
-        print_info "Usuwanie nieużywanych obrazów i cache budowania..."
-        docker system prune -af
-        print_success "Środowisko zostało gruntownie wyczyszczone."
-    else
-        print_info "Anulowano czyszczenie."
-    fi
-    echo
-}
-
-# 14. Otwórz powłokę w kontenerze
-exec_shell() {
-    print_header
-    print_info "Wybierz kontener, w którym chcesz otworzyć powłokę bash:"
-    running_containers=($(docker-compose ps --services --filter "status=running"))
-
-    if [ ${#running_containers[@]} -eq 0 ]; then
-        print_warning "Brak uruchomionych kontenerów."
-        return
-    fi
-
-    select container in "${running_containers[@]}"; do
-        if [ -n "$container" ]; then
-            print_info "Otwieranie powłoki w kontenerze: $container..."
-            docker-compose exec "$container" /bin/bash
-            break
-        else
-            print_error "Nieprawidłowy wybór."
-        fi
-    done
-    echo
-}
-
-# --- Menu Główne ---
-show_menu() {
-    while true; do
-        print_header
-        echo "Wybierz opcję:"
-        echo " 1. Pokaż status"
-        echo
-        echo " 2. Uruchom środowisko (standard)"
-        echo " 3. Uruchom środowisko z monitoringiem"
-        echo " 4. Uruchom środowisko (deweloperskie, hot-reload)"
-        echo " 5. Uruchom środowisko deweloperskie z monitoringiem"
-        echo
-        echo " 6. Zatrzymaj środowisko"
-        echo " 7. Restartuj środowisko (standard)"
-        echo " 8. Restartuj środowisko z monitoringiem"
-        echo
-        echo " 9. Sprawdź/Pobierz modele AI"
-        echo " 10. Napraw zależności backendu"
-        echo " 11. Uruchom testy backendu"
-        echo
-        echo " 12. Pokaż logi"
-        echo " 13. Wyczyść środowisko (uwaga: usuwa dane!)"
-        echo " 14. Otwórz powłokę w kontenerze"
-        echo " 0. Wyjście"
-        echo
-
-        read -p "Twój wybór (0-14): " choice
-        echo
-
-        case $choice in
-            1) show_status ;;
-            2) start_environment ;;
-            3) start_full_environment ;;
-            4) start_dev_environment ;;
-            5) start_dev_full_environment ;;
-            6) stop_environment ;;
-            7) restart_environment ;;
-            8) restart_full_environment ;;
-            9) check_and_pull_models ;;
-            10) fix_backend_deps ;;
-            11) run_tests ;;
-            12) show_logs ;;
-            13) clean_environment ;;
-            14) exec_shell ;;
-            0) print_info "Do widzenia!"; exit 0 ;;
-            *) print_error "Nieprawidłowy wybór. Spróbuj ponownie." ;;
-        esac
-
-        echo; read -p "Naciśnij Enter, aby kontynuować..."; clear
-    done
-}
-
-# --- Obsługa Argumentów Wiersza Poleceń ---
-if [ $# -eq 0 ]; then
-    show_menu
-else
-    case "$1" in
-        status) show_status ;;
-        start) start_environment ;;
-        start-full) start_full_environment ;;
-        dev) start_dev_environment ;;
-        dev-full) start_dev_full_environment ;;
-        stop) stop_environment ;;
-        restart) restart_environment ;;
-        restart-full) restart_full_environment ;;
-        models) check_and_pull_models ;;
-        fix) fix_backend_deps ;;
-        test) run_tests ;;
-        logs) show_logs "${2:-}" ;;
-        clean) clean_environment ;;
-        exec) exec_shell ;;
-        menu) show_menu ;;
+# Get environment-specific compose file
+get_compose_file() {
+    local env="$1"
+    case "$env" in
+        "dev")
+            echo "docker-compose.dev.yaml"
+            ;;
+        "test")
+            echo "docker-compose.test.yaml"
+            ;;
+        "prod")
+            echo "docker-compose.yaml"
+            ;;
         *)
-            print_error "Nieznana opcja: $1"
-            echo "Użycie: $0 [status|start|start-full|dev|dev-full|stop|restart|restart-full|models|fix|test|logs|clean|exec|menu]"
+            error "Unknown environment: $env"
             exit 1
             ;;
     esac
-fi
+}
+
+# Start services
+start_services() {
+    local env="${1:-$DEFAULT_ENV}"
+    local compose_file=$(get_compose_file "$env")
+    
+    info "Starting FoodSave AI services in $env environment..."
+    
+    check_docker
+    check_docker_compose
+    
+    if [[ "$env" == "dev" ]]; then
+        check_ports
+    fi
+    
+    local compose_cmd=$(get_docker_compose_cmd)
+    
+    cd "$PROJECT_ROOT"
+    
+    # Build images if needed
+    if [[ "${2:-}" == "--build" ]]; then
+        info "Building images..."
+        $compose_cmd -f "$compose_file" build
+    fi
+    
+    # Start services
+    info "Starting services with $compose_file..."
+    $compose_cmd -f "$compose_file" up -d
+    
+    # Wait for services to be ready
+    wait_for_services "$env"
+    
+    success "FoodSave AI services started successfully in $env environment"
+    show_status "$env"
+}
+
+# Stop services
+stop_services() {
+    local env="${1:-$DEFAULT_ENV}"
+    local compose_file=$(get_compose_file "$env")
+    
+    info "Stopping FoodSave AI services in $env environment..."
+    
+    cd "$PROJECT_ROOT"
+    local compose_cmd=$(get_docker_compose_cmd)
+    $compose_cmd -f "$compose_file" down
+    
+    success "FoodSave AI services stopped successfully"
+}
+
+# Restart services
+restart_services() {
+    local env="${1:-$DEFAULT_ENV}"
+    local build="${2:-}"
+    
+    info "Restarting FoodSave AI services in $env environment..."
+    stop_services "$env"
+    sleep 2
+    start_services "$env" "$build"
+}
+
+# Show service status
+show_status() {
+    local env="${1:-$DEFAULT_ENV}"
+    local compose_file=$(get_compose_file "$env")
+    
+    echo
+    echo -e "${CYAN}=== FoodSave AI Status ($env environment) ===${NC}"
+    echo
+    
+    cd "$PROJECT_ROOT"
+    local compose_cmd=$(get_docker_compose_cmd)
+    
+    # Show container status
+    $compose_cmd -f "$compose_file" ps
+    
+    echo
+    echo -e "${CYAN}=== Service URLs ===${NC}"
+    echo "Frontend:     http://localhost:${PORTS[frontend]}"
+    echo "Backend API:  http://localhost:${PORTS[backend]}/docs"
+    echo "Grafana:      http://localhost:${PORTS[grafana]}"
+    echo "Prometheus:   http://localhost:${PORTS[prometheus]}"
+    echo "Ollama:       http://localhost:${PORTS[ollama]}"
+    echo
+    
+    # Show resource usage
+    show_resource_usage
+}
+
+# Show resource usage
+show_resource_usage() {
+    echo -e "${CYAN}=== Resource Usage ===${NC}"
+    docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}" 2>/dev/null || true
+    echo
+}
+
+# Wait for services to be ready
+wait_for_services() {
+    local env="$1"
+    local timeout=120
+    local interval=5
+    local elapsed=0
+    
+    info "Waiting for services to be ready..."
+    
+    while [[ $elapsed -lt $timeout ]]; do
+        local ready=true
+        
+        # Check if containers are running
+        local compose_file=$(get_compose_file "$env")
+        local compose_cmd=$(get_docker_compose_cmd)
+        
+        cd "$PROJECT_ROOT"
+        if ! $compose_cmd -f "$compose_file" ps | grep -q "Up"; then
+            ready=false
+        fi
+        
+        if [[ "$ready" == "true" ]]; then
+            success "All services are ready"
+            return 0
+        fi
+        
+        sleep $interval
+        elapsed=$((elapsed + interval))
+        echo -n "."
+    done
+    
+    warning "Timeout waiting for services to be ready"
+    return 1
+}
+
+# Show logs
+show_logs() {
+    local env="${1:-$DEFAULT_ENV}"
+    local service="${2:-}"
+    local compose_file=$(get_compose_file "$env")
+    
+    cd "$PROJECT_ROOT"
+    local compose_cmd=$(get_docker_compose_cmd)
+    
+    if [[ -n "$service" ]]; then
+        info "Showing logs for $service..."
+        $compose_cmd -f "$compose_file" logs -f "$service"
+    else
+        info "Showing logs for all services..."
+        $compose_cmd -f "$compose_file" logs -f
+    fi
+}
+
+# Build services
+build_services() {
+    local env="${1:-$DEFAULT_ENV}"
+    local compose_file=$(get_compose_file "$env")
+    
+    info "Building FoodSave AI services..."
+    
+    cd "$PROJECT_ROOT"
+    local compose_cmd=$(get_docker_compose_cmd)
+    $compose_cmd -f "$compose_file" build --no-cache
+    
+    success "Services built successfully"
+}
+
+# Clean up everything
+clean_environment() {
+    local env="${1:-$DEFAULT_ENV}"
+    local compose_file=$(get_compose_file "$env")
+    
+    warning "This will remove all containers, volumes, and images. Are you sure? (y/N)"
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        info "Cleanup cancelled"
+        return
+    fi
+    
+    info "Cleaning up FoodSave AI environment..."
+    
+    cd "$PROJECT_ROOT"
+    local compose_cmd=$(get_docker_compose_cmd)
+    
+    # Stop and remove containers
+    $compose_cmd -f "$compose_file" down -v --remove-orphans
+    
+    # Remove images
+    $compose_cmd -f "$compose_file" down --rmi all
+    
+    # Clean up dangling resources
+    docker system prune -f
+    
+    success "Environment cleaned successfully"
+}
+
+# Run tests
+run_tests() {
+    local test_type="${1:-all}"
+    local env="${2:-$DEFAULT_ENV}"
+    
+    info "Running tests: $test_type"
+    
+    case "$test_type" in
+        "unit")
+            run_unit_tests
+            ;;
+        "integration")
+            run_integration_tests
+            ;;
+        "e2e")
+            run_e2e_tests
+            ;;
+        "all")
+            run_unit_tests
+            run_integration_tests
+            run_e2e_tests
+            ;;
+        *)
+            error "Unknown test type: $test_type"
+            exit 1
+            ;;
+    esac
+}
+
+# Run unit tests
+run_unit_tests() {
+    info "Running unit tests..."
+    
+    # Backend unit tests
+    cd "$PROJECT_ROOT"
+    if [[ -f "pyproject.toml" ]]; then
+        python -m pytest tests/unit/ -v --tb=short
+    fi
+    
+    # Frontend unit tests
+    cd "$PROJECT_ROOT/myappassistant-chat-frontend"
+    if [[ -f "package.json" ]]; then
+        npm test -- --watchAll=false
+    fi
+}
+
+# Run integration tests
+run_integration_tests() {
+    info "Running integration tests..."
+    
+    cd "$PROJECT_ROOT"
+    if [[ -f "pyproject.toml" ]]; then
+        python -m pytest tests/integration/ -v --tb=short
+    fi
+}
+
+# Run E2E tests
+run_e2e_tests() {
+    info "Running E2E tests..."
+    
+    # Frontend E2E tests
+    cd "$PROJECT_ROOT/myappassistant-chat-frontend"
+    if [[ -f "package.json" ]]; then
+        npm run test:e2e
+    fi
+    
+    # Backend E2E tests
+    cd "$PROJECT_ROOT"
+    if [[ -f "pyproject.toml" ]]; then
+        python -m pytest tests/e2e/ -v --tb=short
+    fi
+}
+
+# Backup data
+backup_data() {
+    local backup_dir="$PROJECT_ROOT/data/backups"
+    local timestamp=$(date '+%Y%m%d_%H%M%S')
+    local backup_name="foodsave_backup_$timestamp"
+    
+    mkdir -p "$backup_dir"
+    
+    info "Creating backup: $backup_name"
+    
+    # Backup database
+    docker exec foodsave-postgres pg_dump -U foodsave_user foodsave_db > "$backup_dir/${backup_name}_db.sql" 2>/dev/null || warning "Database backup failed"
+    
+    # Backup configuration files
+    tar -czf "$backup_dir/${backup_name}_config.tar.gz" \
+        -C "$PROJECT_ROOT" \
+        data/config/ \
+        monitoring/ \
+        docker-compose*.yaml \
+        2>/dev/null || warning "Config backup failed"
+    
+    success "Backup created: $backup_name"
+}
+
+# Restore data
+restore_data() {
+    local backup_name="$1"
+    local backup_dir="$PROJECT_ROOT/data/backups"
+    
+    if [[ ! -f "$backup_dir/${backup_name}_db.sql" ]]; then
+        error "Backup not found: $backup_name"
+        exit 1
+    fi
+    
+    warning "This will overwrite current data. Are you sure? (y/N)"
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        info "Restore cancelled"
+        return
+    fi
+    
+    info "Restoring backup: $backup_name"
+    
+    # Restore database
+    docker exec -i foodsave-postgres psql -U foodsave_user foodsave_db < "$backup_dir/${backup_name}_db.sql" || warning "Database restore failed"
+    
+    # Restore configuration
+    if [[ -f "$backup_dir/${backup_name}_config.tar.gz" ]]; then
+        tar -xzf "$backup_dir/${backup_name}_config.tar.gz" -C "$PROJECT_ROOT" || warning "Config restore failed"
+    fi
+    
+    success "Backup restored: $backup_name"
+}
+
+# Health check
+health_check() {
+    local env="${1:-$DEFAULT_ENV}"
+    
+    info "Performing health check..."
+    
+    local healthy=true
+    
+    # Check if containers are running
+    local compose_file=$(get_compose_file "$env")
+    local compose_cmd=$(get_docker_compose_cmd)
+    
+    cd "$PROJECT_ROOT"
+    if ! $compose_cmd -f "$compose_file" ps | grep -q "Up"; then
+        error "Some containers are not running"
+        healthy=false
+    fi
+    
+    # Check service endpoints
+    for service in "${SERVICES[@]}"; do
+        local port="${PORTS[$service]}"
+        if [[ "$service" == "postgres" || "$service" == "redis" ]]; then
+            continue  # Skip internal services
+        fi
+        
+        if ! curl -s "http://localhost:$port" >/dev/null 2>&1; then
+            warning "Service $service is not responding on port $port"
+            healthy=false
+        fi
+    done
+    
+    if [[ "$healthy" == "true" ]]; then
+        success "All services are healthy"
+    else
+        error "Health check failed"
+        return 1
+    fi
+}
+
+# Monitor resources
+monitor_resources() {
+    info "Starting resource monitoring..."
+    
+    while true; do
+        clear
+        echo -e "${CYAN}=== FoodSave AI Resource Monitor ===${NC}"
+        echo
+        show_resource_usage
+        echo "Press Ctrl+C to stop monitoring"
+        sleep 5
+    done
+}
+
+# Show help
+show_help() {
+    echo -e "${CYAN}FoodSave AI Management Script v$VERSION${NC}"
+    echo
+    echo "Usage: $0 <command> [options]"
+    echo
+    echo "Commands:"
+    echo "  start [env] [--build]     Start services (default: dev)"
+    echo "  stop [env]                Stop services (default: dev)"
+    echo "  restart [env] [--build]   Restart services (default: dev)"
+    echo "  status [env]              Show service status (default: dev)"
+    echo "  logs [env] [service]      Show logs (default: all services)"
+    echo "  build [env]               Build services (default: dev)"
+    echo "  clean [env]               Clean up environment (default: dev)"
+    echo "  test [type] [env]         Run tests (unit|integration|e2e|all)"
+    echo "  backup                    Create backup"
+    echo "  restore <backup_name>     Restore backup"
+    echo "  health [env]              Health check (default: dev)"
+    echo "  monitor                   Monitor resources"
+    echo "  ports                     Check port availability"
+    echo "  help                      Show this help"
+    echo
+    echo "Environments:"
+    echo "  dev                       Development environment"
+    echo "  test                      Testing environment"
+    echo "  prod                      Production environment"
+    echo
+    echo "Examples:"
+    echo "  $0 start dev --build      Start dev environment with rebuild"
+    echo "  $0 logs dev backend       Show backend logs in dev"
+    echo "  $0 test all               Run all tests"
+    echo "  $0 health prod            Health check production"
+    echo
+    echo "Environment Variables:"
+    echo "  DEBUG=true                Enable debug output"
+    echo "  COMPOSE_FILE              Override compose file"
+}
+
+# Main script logic
+main() {
+    local command="${1:-help}"
+    local env="${2:-$DEFAULT_ENV}"
+    local option="${3:-}"
+    
+    case "$command" in
+        "start")
+            start_services "$env" "$option"
+            ;;
+        "stop")
+            stop_services "$env"
+            ;;
+        "restart")
+            restart_services "$env" "$option"
+            ;;
+        "status")
+            show_status "$env"
+            ;;
+        "logs")
+            show_logs "$env" "$option"
+            ;;
+        "build")
+            build_services "$env"
+            ;;
+        "clean")
+            clean_environment "$env"
+            ;;
+        "test")
+            run_tests "$env" "$option"
+            ;;
+        "backup")
+            backup_data
+            ;;
+        "restore")
+            if [[ -z "$env" ]]; then
+                error "Backup name required for restore"
+                exit 1
+            fi
+            restore_data "$env"
+            ;;
+        "health")
+            health_check "$env"
+            ;;
+        "monitor")
+            monitor_resources
+            ;;
+        "ports")
+            check_ports
+            ;;
+        "help"|"--help"|"-h")
+            show_help
+            ;;
+        *)
+            error "Unknown command: $command"
+            echo
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function with all arguments
+main "$@"

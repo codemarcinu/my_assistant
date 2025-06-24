@@ -196,7 +196,7 @@ class AgentFactory:
         agent_class = self.AGENT_REGISTRY[agent_type]
 
         # ✅ ALWAYS: Provide default dependencies for agents that require them
-        if agent_type == "search":
+        if agent_type in ("search", "Search"):
             # SearchAgent requires vector_store and llm_client
             if "vector_store" not in kwargs:
                 from backend.core.vector_store import VectorStore

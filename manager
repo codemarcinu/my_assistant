@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Simple alias for foodsave-manager.sh
+# Usage: ./manager <command> [options]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/foodsave-manager.sh" "$@" 

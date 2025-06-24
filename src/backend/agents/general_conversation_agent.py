@@ -201,7 +201,7 @@ class GeneralConversationAgent(BaseAgent):
 
     @cached_async(internet_cache)
     async def _get_internet_context(self, query: str, use_perplexity: bool) -> str:
-        """Pobiera informacje z internetu"""
+        """Pobiera informacje z internetu z weryfikacją wiedzy"""
         try:
             if use_perplexity:
                 # Użyj Perplexity dla lepszych wyników
@@ -214,25 +214,54 @@ class GeneralConversationAgent(BaseAgent):
                         ]
                     )
             else:
-                # Użyj lokalnego wyszukiwania
-                from backend.core.hybrid_llm_client import hybrid_llm_client
-                from backend.core.vector_store import vector_store
+                # Użyj ulepszonego systemu wyszukiwania z weryfikacją wiedzy
+                from backend.integrations.web_search import web_search
+                
+                try:
+                    # Pobierz wyniki z weryfikacją wiedzy
+                    search_response = await web_search.search_with_verification(query, max_results=3)
+                    
+                    if search_response["results"]:
+                        # Przygotuj kontekst z informacją o weryfikacji
+                        context_parts = []
+                        verified_results = [r for r in search_response["results"] if r["knowledge_verified"]]
+                        verification_score = search_response["knowledge_verification_score"]
+                        
+                        context_parts.append(f"🔍 Znaleziono {len(search_response['results'])} wyników")
+                        context_parts.append(f"✅ Zweryfikowane źródła: {len(verified_results)}/{len(search_response['results'])}")
+                        context_parts.append(f"📈 Wskaźnik wiarygodności: {verification_score:.2f}\n")
+                        
+                        # Dodaj najlepsze wyniki
+                        for i, result in enumerate(search_response["results"][:2], 1):
+                            verification_icon = "✅" if result["knowledge_verified"] else "⚠️"
+                            context_parts.append(f"{i}. {verification_icon} {result['title']}")
+                            context_parts.append(f"   {result['snippet'][:200]}...")
+                            context_parts.append(f"   Wiarygodność: {result['confidence']:.2f}")
+                            context_parts.append("")
+                        
+                        return "Informacje z internetu (z weryfikacją wiedzy):\n" + "\n".join(context_parts)
+                    
+                except Exception as e:
+                    logger.warning(f"Error with enhanced web search: {e}")
+                    # Fallback do starego systemu
+                    from backend.core.hybrid_llm_client import hybrid_llm_client
+                    from backend.core.vector_store import vector_store
 
-                from .search_agent import SearchAgent
+                    from .search_agent import SearchAgent
 
-                search_agent = SearchAgent(
-                    vector_store=vector_store, llm_client=hybrid_llm_client
-                )
-                search_result = await search_agent.process(
-                    {"query": query, "max_results": 3, "use_perplexity": False}
-                )
+                    search_agent = SearchAgent(
+                        vector_store=vector_store, llm_client=hybrid_llm_client
+                    )
+                    search_result = await search_agent.process(
+                        {"query": query, "max_results": 3, "use_perplexity": False}
+                    )
 
-                if search_result.success and search_result.data:
-                    results = search_result.data.get("results", [])
-                    if results:
-                        return "Informacje z internetu:\n" + "\n".join(
-                            [result.get("content", "") for result in results[:2]]
-                        )
+                    if search_result.success and search_result.data:
+                        results = search_result.data.get("results", [])
+                        if results:
+                            return "Informacje z internetu:\n" + "\n".join(
+                                [result.get("content", "") for result in results[:2]]
+                            )
 
             return ""
 
@@ -248,9 +277,9 @@ class GeneralConversationAgent(BaseAgent):
         use_perplexity: bool,
         use_bielik: bool,
     ) -> str:
-        """Generuje odpowiedź z wykorzystaniem wszystkich źródeł informacji"""
+        """Generuje odpowiedź z wykorzystaniem wszystkich źródeł informacji i weryfikacji wiedzy"""
 
-        # Buduj system prompt
+        # Buduj system prompt z uwzględnieniem weryfikacji wiedzy
         system_prompt = """Jesteś pomocnym asystentem AI prowadzącym swobodne konwersacje.
         Twoim zadaniem jest udzielanie dokładnych, pomocnych i aktualnych odpowiedzi na pytania użytkownika.
 
@@ -260,7 +289,13 @@ class GeneralConversationAgent(BaseAgent):
         3. Dane z bazy (jeśli dostępne)
         4. Informacje z internetu (jeśli dostępne)
 
-        Zawsze podawaj źródła informacji gdy to możliwe i odróżniaj fakty od opinii.
+        WAŻNE - Weryfikacja wiedzy:
+        - Jeśli informacje zawierają wskaźniki wiarygodności, uwzględnij je w odpowiedzi
+        - Oznacz informacje jako zweryfikowane (✅) lub niezweryfikowane (⚠️)
+        - Jeśli wskaźnik wiarygodności jest niski (< 0.4), zalecaj ostrożność
+        - Zawsze podawaj źródła informacji gdy to możliwe
+        - Odróżniaj fakty od opinii
+
         Odpowiadaj w języku polskim, chyba że użytkownik prosi o inną wersję językową."""
 
         # Buduj kontekst
@@ -279,7 +314,7 @@ class GeneralConversationAgent(BaseAgent):
             messages.append(
                 {
                     "role": "system",
-                    "content": f"DOSTĘPNE INFORMACJE:\n{context_text}\n\nUżyj tych informacji do udzielenia dokładnej odpowiedzi.",
+                    "content": f"DOSTĘPNE INFORMACJE:\n{context_text}\n\nUżyj tych informacji do udzielenia dokładnej odpowiedzi. Uwzględnij informacje o weryfikacji wiedzy jeśli są dostępne.",
                 }
             )
 

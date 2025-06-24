@@ -1,0 +1,40 @@
+# Development Dockerfile dla Frontendu (React + Vite)
+FROM node:18-alpine
+
+# Ustawienie zmiennych środowiskowych
+ENV NODE_ENV=development
+ENV VITE_DEV_SERVER_HOST=0.0.0.0
+ENV VITE_DEV_SERVER_PORT=5173
+
+# Instalacja curl dla health check
+RUN apk add --no-cache curl
+
+# Ustawienie katalogu roboczego
+WORKDIR /app
+
+# Kopiowanie plików konfiguracyjnych
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY tailwind.config.cjs ./
+COPY postcss.config.cjs ./
+COPY eslint.config.js ./
+
+# Instalacja zależności
+RUN npm ci
+
+# Kopiowanie kodu źródłowego
+COPY . .
+
+# Tworzenie katalogów dla logów
+RUN mkdir -p /app/logs
+
+# Ekspozycja portu
+EXPOSE 5173
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5173/ || exit 1
+
+# Komenda uruchomienia z hot reload
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"] 
