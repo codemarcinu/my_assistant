@@ -1,7 +1,7 @@
 // ✅ REQUIRED: Zustand store for application settings
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { UserSettings, AgentStatus } from '../types';
+import { UserSettings, AgentStatus } from '../types';
 
 interface SettingsState {
   // User settings
@@ -46,7 +46,7 @@ const defaultSettings: UserSettings = {
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Initial state
       settings: defaultSettings,
       agents: [],

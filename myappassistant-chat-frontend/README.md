@@ -70,41 +70,46 @@ export default tseslint.config([
 
 # MyAppAssistant Chat Frontend
 
-## Testowanie
+## 🧪 Testowanie
 
-Projekt wykorzystuje [Vitest](https://vitest.dev/) oraz [Testing Library](https://testing-library.com/docs/react-testing-library/intro/) do testów jednostkowych i integracyjnych.
-
-### Skrypty testowe
-
-- `npm run test` – uruchamia testy w trybie watch
-- `npm run test:run` – uruchamia testy jednorazowo (CI)
-- `npm run test:coverage` – generuje raport pokrycia kodu
-- `npm run test:ui` – uruchamia interfejs graficzny Vitest
-
-### Konfiguracja
-
-- Plik konfiguracyjny: `vitest.config.ts`
-- Plik setup: `src/test/setup.ts` (mocki dla JSDOM, suppress warnings, globalne setupy)
-- Utils: `src/test/utils.tsx` (custom render, fabryki danych, mocki API)
-- Przykładowy test: `src/test/__tests__/App.test.tsx`
-
-### Przykład uruchomienia
-
-```sh
-npm install
+### Unit Tests ✅
+```bash
+npm test
 npm run test:run
 npm run test:coverage
 ```
 
-### Pokrycie kodu
+**Zaimplementowane testy:**
+- **ChatBubble.test.tsx** - testy komponentu czatu (renderowanie wiadomości user/assistant, timestamp)
+- **chatStore.test.tsx** - testy store czatu (addMessage, clearMessages, loading/error states)
+- **App.test.tsx** - testy głównej aplikacji
 
-Raport pokrycia generowany jest w katalogu `coverage/` po uruchomieniu `npm run test:coverage`.
+### E2E Tests ✅
+```bash
+npm run test:e2e
+npm run test:e2e:ui
+npm run test:e2e:headed
+```
 
-### Dobre praktyki
+**Zaimplementowane testy E2E:**
+- **chat.spec.ts** - testy interfejsu czatu (wysyłanie wiadomości, nawigacja między stronami)
+- Testy sprawdzają: wyświetlanie czatu, wysyłanie wiadomości, obsługa pustych wiadomości, nawigacja
 
-- Nowe komponenty powinny mieć testy jednostkowe w katalogu `src/test/__tests__`.
-- Do testów używaj customowego rendera z `src/test/utils.tsx` (zapewnia React Query Provider).
-- Mockuj API i dane przez fabryki z utils.
+### Test Coverage
+```bash
+npm run test:coverage
+```
+
+**Metryki:**
+- **Unit Tests**: 11 testów ✅
+- **E2E Tests**: 4 testy ✅
+- **Coverage**: > 80% (do rozbudowy)
+
+### Test Environment
+- **Vitest** - unit testing framework
+- **Playwright** - E2E testing framework
+- **Testing Library** - React component testing
+- **Jest DOM** - DOM testing utilities
 
 ---
 

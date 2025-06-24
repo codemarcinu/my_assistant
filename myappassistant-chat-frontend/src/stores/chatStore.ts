@@ -1,7 +1,9 @@
 // ✅ REQUIRED: Zustand store for chat state management
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type { ChatMessage, FoodItem, ReceiptData, WeatherData } from '../types';
+import { ChatMessage, FoodItem, ReceiptData, WeatherData } from '../types';
+import { ChatStore, Message } from '../types/chat';
+import { sendChatMessage } from '../services/api';
 
 interface ChatState {
   // Chat messages
@@ -32,92 +34,60 @@ interface ChatState {
   updateWeather: (weather: WeatherData) => void;
 }
 
-export const useChatStore = create<ChatState>()(
-  devtools(
-    persist(
-      (set) => ({
-        // Initial state
-        messages: [],
+export const useChatStore = create<ChatStore & { sendMessage: (content: string) => Promise<void> }>((set, get) => ({
+  messages: [],
+  isLoading: false,
+  error: null,
+
+  addMessage: (messageData) => {
+    const message: Message = {
+      id: Date.now().toString(),
+      ...messageData,
+    };
+    set((state) => ({
+      messages: [...state.messages, message],
+    }));
+  },
+
+  clearMessages: () => {
+    set({ messages: [] });
+  },
+
+  setLoading: (loading) => {
+    set({ isLoading: loading });
+  },
+
+  setError: (error) => {
+    set({ error });
+  },
+
+  sendMessage: async (content: string) => {
+    if (!content.trim()) return;
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content,
+      role: 'user',
+      timestamp: new Date(),
+    };
+    set((state) => ({
+      messages: [...state.messages, userMessage],
+      isLoading: true,
+      error: null,
+    }));
+    try {
+      const response = await sendChatMessage({ content, role: 'user' });
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: response.content,
+        role: 'assistant',
+        timestamp: new Date(),
+      };
+      set((state) => ({
+        messages: [...state.messages, aiMessage],
         isLoading: false,
-        error: null,
-        suggestedActions: [],
-        recentQueries: [],
-        currentFoodItems: [],
-        recentReceipts: [],
-        weatherData: null,
-
-        // Actions
-        addMessage: (message: ChatMessage) =>
-          set((state) => ({
-            messages: [...state.messages, message],
-          })),
-
-        updateMessage: (id: string, updates: Partial<ChatMessage>) =>
-          set((state) => ({
-            messages: state.messages.map((msg) =>
-              msg.id === id ? { ...msg, ...updates } : msg
-            ),
-          })),
-
-        clearMessages: () =>
-          set({
-            messages: [],
-          }),
-
-        setLoading: (loading: boolean) =>
-          set({
-            isLoading: loading,
-          }),
-
-        setError: (error: string | null) =>
-          set({
-            error,
-          }),
-
-        addSuggestedAction: (action: string) =>
-          set((state) => ({
-            suggestedActions: [...state.suggestedActions, action],
-          })),
-
-        clearSuggestedActions: () =>
-          set({
-            suggestedActions: [],
-          }),
-
-        addRecentQuery: (query: string) =>
-          set((state) => ({
-            recentQueries: [
-              query,
-              ...state.recentQueries.filter((q) => q !== query),
-            ].slice(0, 10), // Keep only last 10 queries
-          })),
-
-        updateFoodItems: (items: FoodItem[]) =>
-          set({
-            currentFoodItems: items,
-          }),
-
-        updateReceipts: (receipts: ReceiptData[]) =>
-          set({
-            recentReceipts: receipts,
-          }),
-
-        updateWeather: (weather: WeatherData) =>
-          set({
-            weatherData: weather,
-          }),
-      }),
-      {
-        name: 'chat-store',
-        partialize: (state) => ({
-          messages: state.messages.slice(-50), // Keep only last 50 messages
-          recentQueries: state.recentQueries,
-          suggestedActions: state.suggestedActions,
-        }),
-      }
-    ),
-    {
-      name: 'chat-store',
+      }));
+    } catch (error: any) {
+      set({ isLoading: false, error: error.message || 'Chat error' });
     }
-  )
-); 
+  },
+})); 

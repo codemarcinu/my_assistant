@@ -44,23 +44,25 @@ export interface FoodItem {
   barcode?: string;
 }
 
-export type FoodCategory =
-  | 'produce'
-  | 'dairy'
-  | 'meat'
-  | 'bakery'
-  | 'canned'
-  | 'frozen'
-  | 'beverages'
-  | 'snacks'
-  | 'condiments'
-  | 'other';
+export enum FoodCategory {
+  PRODUCE = 'produce',
+  DAIRY = 'dairy',
+  MEAT = 'meat',
+  BAKERY = 'bakery',
+  CANNED = 'canned',
+  FROZEN = 'frozen',
+  BEVERAGES = 'beverages',
+  SNACKS = 'snacks',
+  CONDIMENTS = 'condiments',
+  OTHER = 'other'
+}
 
-export type FoodStatus =
-  | 'fresh'
-  | 'expiring_soon'
-  | 'expired'
-  | 'consumed';
+export enum FoodStatus {
+  FRESH = 'fresh',
+  EXPIRING_SOON = 'expiring_soon',
+  EXPIRED = 'expired',
+  CONSUMED = 'consumed'
+}
 
 // OCR and receipt processing
 export interface ReceiptData {
@@ -80,11 +82,12 @@ export interface ReceiptItem {
   category?: FoodCategory;
 }
 
-export type ReceiptStatus =
-  | 'processing'
-  | 'completed'
-  | 'failed'
-  | 'verified';
+export enum ReceiptStatus {
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  VERIFIED = 'verified'
+}
 
 // Weather widget types
 export interface WeatherData {
@@ -146,12 +149,13 @@ export interface AgentStatus {
   capabilities: string[];
 }
 
-export type AgentType =
-  | 'chat'
-  | 'ocr'
-  | 'classification'
-  | 'inventory'
-  | 'planning';
+export enum AgentType {
+  CHAT = 'chat',
+  OCR = 'ocr',
+  CLASSIFICATION = 'classification',
+  INVENTORY = 'inventory',
+  PLANNING = 'planning'
+}
 
 // Navigation and UI types
 export interface NavigationItem {
