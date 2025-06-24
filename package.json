@@ -13,7 +13,20 @@
     "build:frontend": "cd myappassistant/myappassistant-chat-frontend && npm run build",
     "clean": "rm -rf node_modules && cd myappassistant/myappassistant-chat-frontend && rm -rf node_modules"
   },
-  "keywords": ["ai", "food", "assistant", "react", "fastapi"],
+  "keywords": [
+    "ai",
+    "food",
+    "assistant",
+    "react",
+    "fastapi"
+  ],
   "author": "FoodSave AI Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.10",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3"
+  }
 }
