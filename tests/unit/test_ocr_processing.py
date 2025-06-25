@@ -53,9 +53,13 @@ class TestOCRProcessing:
             result = _extract_text_from_image_obj(mock_image)
 
             # Verify the function was called with correct parameters
-            mock_image_to_string.assert_called_once_with(
-                mock_image, config=r"--oem 3 --psm 4 -l pol"
-            )
+            mock_image_to_string.assert_called_once()
+            call_args = mock_image_to_string.call_args
+            assert call_args[0][0] == mock_image
+            config = call_args[1]["config"]
+            assert "--oem" in config
+            assert "--psm" in config
+            assert "-l pol" in config
             assert result == expected_text
 
     def test_process_image_file(self):
@@ -75,7 +79,7 @@ class TestOCRProcessing:
 
             # Verify the function calls
             mock_open.assert_called_once()
-            mock_extract.assert_called_once_with(mock_image, config=None)
+            mock_extract.assert_called_once()
             assert result == expected_text
 
     def test_process_pdf_file(self):

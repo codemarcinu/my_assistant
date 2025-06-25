@@ -71,11 +71,6 @@ LLM_MODEL_DEFAULT=gemma3:latest
 EMBEDDING_MODEL=nomic-embed-text
 OCR_ENGINE=tesseract
 
-# API keys dla testów (opcjonalne, można użyć mock'ów)
-WEATHER_API_KEY=test_key
-BING_SEARCH_API_KEY=test_key
-NEWS_API_KEY=test_key
-
 # Konfiguracja testów
 PYTEST_CURRENT_TEST=true
 TESTING=true

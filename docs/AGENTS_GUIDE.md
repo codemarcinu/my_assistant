@@ -737,7 +737,6 @@ agents:
     enabled: true
     max_response_time: 3.0
     confidence_threshold: 0.7
-    api_key: "${WEATHER_API_KEY}"
 
   search_agent:
     enabled: true

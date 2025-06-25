@@ -4,6 +4,8 @@ import pytest
 import pytest_asyncio
 
 from backend.agents.interfaces import AgentResponse
+from backend.app_factory import create_app
+from backend.core.database import AsyncSessionLocal
 
 # Tutaj można dodać fixture specyficzne dla testów integracyjnych
 
@@ -13,8 +15,6 @@ async def db_session():
     """
     Async fixture dla sesji bazodanowej z cleanup.
     """
-    from src.backend.core.database import AsyncSessionLocal
-
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -31,7 +31,7 @@ async def test_db():
     """
     Fixture dla testowej bazy danych z cleanup.
     """
-    from src.backend.core.database import Base, engine
+    from backend.core.database import Base, engine
 
     # Create tables
     async with engine.begin() as conn:
@@ -65,7 +65,7 @@ async def client():
     """
     import httpx
 
-    from src.backend.main import app
+    app = create_app()
 
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as ac:
         yield ac

@@ -80,9 +80,6 @@ class Settings(BaseSettings):
     LLM_API_KEY: str = ""
     OPENWEATHER_API_KEY: str = ""
     PERPLEXITY_API_KEY: str = ""
-    WEATHER_API_KEY: str = ""
-    NEWS_API_KEY: str = ""
-    BING_SEARCH_API_KEY: str = ""
 
     # Konfiguracja Tesseract OCR
     TESSDATA_PREFIX: str = "/usr/share/tesseract-ocr/5/"

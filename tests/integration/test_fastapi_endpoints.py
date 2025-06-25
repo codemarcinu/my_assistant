@@ -4,8 +4,10 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from src.backend.main import app  # Import main FastAPI instance
+from backend.app_factory import create_app  # Import main FastAPI instance
+from backend.api.agents import get_db_with_error_handling
 
+app = create_app()
 client = TestClient(app)
 
 
@@ -56,7 +58,7 @@ def test_database_connection_failure(test_app):
         )
 
     # Override the dependency
-    from src.backend.api.agents import get_db_with_error_handling
+    from backend.api.agents import get_db_with_error_handling
 
     test_app.app.dependency_overrides[get_db_with_error_handling] = mock_db_dependency
 

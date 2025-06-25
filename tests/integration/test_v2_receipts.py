@@ -6,11 +6,12 @@ import pytest
 from fastapi import UploadFile
 from fastapi.testclient import TestClient
 
-from src.backend.agents.base_agent import BaseAgent
-from src.backend.agents.interfaces import AgentResponse
-from src.backend.api.v2.exceptions import APIErrorCodes
-from src.backend.main import app
+from backend.agents.base_agent import BaseAgent
+from backend.agents.interfaces import AgentResponse
+from backend.api.v2.exceptions import APIErrorCodes
+from backend.app_factory import create_app
 
+app = create_app()
 client = TestClient(app)
 
 
@@ -47,7 +48,7 @@ async def test_upload_receipt_success_image(client, mock_ocr_agent_success):
     """Test successful receipt upload with image"""
     test_image = BytesIO(b"fake image data")
     response = await client.post(
-        "/api/v2/receipts/upload",
+        "/api/v2/receipts/receipts/upload",
         files={"file": ("receipt.jpg", test_image, "image/jpeg")},
     )
     assert response.status_code == 200
@@ -64,7 +65,7 @@ async def test_upload_receipt_success_image(client, mock_ocr_agent_success):
 async def test_upload_receipt_success_pdf(client, mock_ocr_agent_success):
     test_pdf = BytesIO(b"fake pdf data")
     response = await client.post(
-        "/api/v2/receipts/upload",
+        "/api/v2/receipts/receipts/upload",
         files={"file": ("receipt.pdf", test_pdf, "application/pdf")},
     )
     assert response.status_code == 200
@@ -78,7 +79,7 @@ async def test_upload_receipt_success_pdf(client, mock_ocr_agent_success):
 async def test_upload_receipt_missing_content_type(client):
     """Test unsupported file type (no extension)"""
     response = await client.post(
-        "/api/v2/receipts/upload",
+        "/api/v2/receipts/receipts/upload",
         files={"file": ("receipt", b"fake data")},  # Brak rozszerzenia pliku
     )
     assert response.status_code == 400
@@ -92,7 +93,7 @@ async def test_upload_receipt_unsupported_type(client):
     """Test unsupported file type"""
     test_file = BytesIO(b"fake data")
     response = await client.post(
-        "/api/v2/receipts/upload",
+        "/api/v2/receipts/receipts/upload",
         files={"file": ("receipt.txt", test_file, "text/plain")},
     )
     assert response.status_code == 400
@@ -111,7 +112,7 @@ async def test_upload_receipt_processing_error(client):
         )
         test_image = BytesIO(b"fake image data")
         response = await client.post(
-            "/api/v2/receipts/upload",
+            "/api/v2/receipts/receipts/upload",
             files={"file": ("receipt.jpg", test_image, "image/jpeg")},
         )
         assert response.status_code == 422
@@ -126,7 +127,7 @@ async def test_upload_receipt_internal_error(client):
         mock_process.side_effect = Exception("Unexpected error")
         test_image = BytesIO(b"fake image data")
         response = await client.post(
-            "/api/v2/receipts/upload",
+            "/api/v2/receipts/receipts/upload",
             files={"file": ("receipt.jpg", test_image, "image/jpeg")},
         )
         assert response.status_code == 500 or response.status_code == 422
@@ -140,7 +141,7 @@ def test_receipt_upload_ocr():
         pytest.skip("Brak pliku testowego paragonu.")
     with open(fixture_path, "rb") as f:
         response = client.post(
-            "/api/v2/receipts/upload", files={"file": ("receipt.jpg", f, "image/jpeg")}
+            "/api/v2/receipts/receipts/upload", files={"file": ("receipt.jpg", f, "image/jpeg")}
         )
     # Test może nie przejść z powodu braku Tesseract, ale to jest OK
     # Sprawdzamy czy endpoint odpowiada (nawet z błędem)
@@ -150,7 +151,7 @@ def test_receipt_upload_ocr():
 @pytest.mark.integration
 def test_receipt_analyze():
     ocr_text = """LIDL 2024-06-01\nChleb 4.99\nMleko 3.49\nSUMA 8.48"""
-    response = client.post("/api/v2/receipts/analyze", data={"ocr_text": ocr_text})
+    response = client.post("/api/v2/receipts/receipts/analyze", data={"ocr_text": ocr_text})
     assert response.status_code == 200
     data = response.json()
     assert "data" in data and "items" in data["data"]
@@ -182,7 +183,7 @@ def test_receipt_save():
             },
         ],
     }
-    response = client.post("/api/v2/receipts/save", json=payload)
+    response = client.post("/api/v2/receipts/receipts/save", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["data"]["products_count"] == 2
@@ -196,7 +197,7 @@ def test_receipt_full_flow():
         pytest.skip("Brak pliku testowego paragonu.")
     with open(fixture_path, "rb") as f:
         upload_resp = client.post(
-            "/api/v2/receipts/upload", files={"file": ("receipt.jpg", f, "image/jpeg")}
+            "/api/v2/receipts/receipts/upload", files={"file": ("receipt.jpg", f, "image/jpeg")}
         )
     # Test może nie przejść z powodu braku Tesseract, ale to jest OK
     # Sprawdzamy czy endpoint odpowiada (nawet z błędem)
@@ -207,7 +208,7 @@ def test_receipt_full_flow():
         ocr_text = upload_resp.json()["data"]["text"]
         # 2. Analiza
         analyze_resp = client.post(
-            "/api/v2/receipts/analyze", data={"ocr_text": ocr_text}
+            "/api/v2/receipts/receipts/analyze", data={"ocr_text": ocr_text}
         )
         assert analyze_resp.status_code == 200
         data = analyze_resp.json()["data"]
@@ -226,7 +227,7 @@ def test_receipt_full_flow():
                 for p in data.get("items", [])
             ],
         }
-        save_resp = client.post("/api/v2/receipts/save", json=payload)
+        save_resp = client.post("/api/v2/receipts/receipts/save", json=payload)
         assert save_resp.status_code == 200
         save_data = save_resp.json()["data"]
         assert save_data["products_count"] == len(payload["products"])

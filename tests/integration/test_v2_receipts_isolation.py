@@ -4,11 +4,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
+from fastapi.testclient import TestClient
 
-from src.backend.agents.base_agent import BaseAgent
-from src.backend.agents.interfaces import AgentResponse
-from src.backend.api.v2.endpoints.receipts import router
-from src.backend.api.v2.exceptions import APIErrorCodes
+from backend.agents.base_agent import BaseAgent
+from backend.agents.interfaces import AgentResponse
+from backend.api.v2.endpoints.receipts import router
+from backend.api.v2.exceptions import APIErrorCodes
 
 app = FastAPI()
 app.include_router(router)

@@ -4,8 +4,9 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from src.backend.main import app
+from backend.app_factory import create_app
 
+app = create_app()
 client = TestClient(app)
 
 
