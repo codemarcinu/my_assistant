@@ -409,49 +409,67 @@ The project is equipped with a monitoring stack available in the Docker setup.
 
 ## 📚 Documentation
 
-### Quick Start
-- **[📖 Documentation Hub](docs/README.md)** - Complete documentation overview
-- **[🚀 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment instructions
-- **[👨‍💻 Contributing Guide](docs/CONTRIBUTING_GUIDE.md)** - How to contribute to the project
+### 🚀 **Kompletna Dokumentacja**
+- **[📚 Dokumentacja Główna](docs/README.md)** - Kompletny przewodnik po wszystkich dokumentach
+- **[📖 Główny README](README.md)** - Ten dokument - przegląd projektu
+- **[🚀 Przewodnik Wdrażania](docs/DEPLOYMENT_GUIDE.md)** - Instrukcje wdrażania produkcyjnego
+- **[👨‍💻 Przewodnik Współpracy](docs/CONTRIBUTING_GUIDE.md)** - Jak współtworzyć projekt
 
-### Technical Documentation
+### 🏗️ **Architektura i Technologie**
+- **[🏗️ Dokumentacja Architektury](docs/ARCHITECTURE_DOCUMENTATION.md)** - Szczegółowy opis architektury systemu
+- **[🔧 Referencja API](docs/API_REFERENCE.md)** - Kompletna dokumentacja endpointów API
+- **[🗄️ Przewodnik Bazy Danych](docs/DATABASE_GUIDE.md)** - Struktura bazy danych i zarządzanie
+- **[💾 System Backup](docs/BACKUP_SYSTEM_GUIDE.md)** - Procedury backup i recovery
 
-- **[🏗️ System Architecture](docs/ARCHITECTURE_DOCUMENTATION.md)** - Detailed architecture description
-- **[🔧 API Reference](docs/API_REFERENCE.md)** - Complete API endpoints documentation
-- **[🤖 AI Agents Guide](docs/AGENTS_GUIDE.md)** - AI agents and orchestration
-- **[🗄️ Database Guide](docs/DATABASE_GUIDE.md)** - Database structure and management
-- **[🧪 Testing Guide](docs/TESTING_GUIDE.md)** - Testing strategies and best practices
-- **[🚀 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment instructions
-- **[🔒 Security Guide](docs/SECURITY_GUIDE.md)** - Security and privacy (coming soon)
+### 🤖 **AI i Machine Learning**
+- **[🤖 Przewodnik Agenty AI](docs/AGENTS_GUIDE.md)** - AI agenty i orkiestracja
+- **[🧠 System RAG](docs/RAG_SYSTEM_GUIDE.md)** - Retrieval-Augmented Generation
+- **[💬 Zwięzłe Odpowiedzi](docs/CONCISE_RESPONSES_IMPLEMENTATION.md)** - System zwięzłych odpowiedzi Perplexity.ai-style
+- **[⚡ Optymalizacja Modeli](docs/MODEL_OPTIMIZATION_GUIDE.md)** - Optymalizacja modeli AI
 
-### Specialized Guides
+### 📱 **Integracje i API**
+- **[📱 Integracja Telegram Bot](docs/TELEGRAM_BOT_INTEGRATION_REPORT.md)** - Szczegółowy raport integracji Telegram
+- **[🤖 Przewodnik Wdrażania Telegram Bot](docs/TELEGRAM_BOT_DEPLOYMENT_GUIDE.md)** - Instrukcje wdrażania bota
+- **[🔧 API Endpoints](docs/API_REFERENCE.md)** - Wszystkie endpointy API
 
-- **[📝 Concise Responses Implementation](docs/CONCISE_RESPONSES_IMPLEMENTATION.md)** - Perplexity.ai-style response system
-- **[🤖 RAG System Guide](docs/RAG_SYSTEM_GUIDE.md)** - Retrieval-Augmented Generation
-- **[📊 Model Optimization Guide](docs/MODEL_OPTIMIZATION_GUIDE.md)** - AI model optimization
-- **[💾 Backup System Guide](docs/BACKUP_SYSTEM_GUIDE.md)** - Backup and recovery procedures
+### 🧪 **Testowanie i Jakość**
+- **[🧪 Przewodnik Testowania](docs/TESTING_GUIDE.md)** - Strategie testowania i best practices
+- **[📊 Raport Testów](tests/TEST_RESULTS_SUMMARY.md)** - Podsumowanie wyników testów
+- **[🔍 Status Testów Końcowy](tests/FINAL_TEST_STATUS.md)** - Końcowy status testów
 
-### Archived Documentation
+### 📊 **Monitoring i Telemetria**
+- **[📊 Monitoring i Telemetria](docs/MONITORING_TELEMETRY_GUIDE.md)** - System monitoringu i metryk
+- **[📊 Grafana Dashboards](monitoring/grafana/dashboards/)** - Dashboardy monitoringu
+- **[📊 Prometheus Config](monitoring/prometheus.yml)** - Konfiguracja metryk
 
-- **[📋 MDC Setup Summary](docs/MDC_SETUP_SUMMARY.md)** - Model Development Cycle setup
-- **[📝 Frontend Implementation Plan](docs/frontend-implementation-plan.md)** - Frontend development roadmap
-- **[✅ Frontend Implementation Checklist](docs/frontend-implementation-checklist.md)** - Frontend development checklist
+### 📈 **Raporty i Podsumowania**
+- **[📊 Raport Końcowy](docs/FINAL_REPORT.md)** - Kompletny raport projektu
+- **[📋 Podsumowanie Implementacji](docs/IMPLEMENTATION_SUMMARY.md)** - Podsumowanie implementacji funkcji
+- **[🔍 Raport Audytu](docs/AUDIT_REPORT.md)** - Audyt bezpieczeństwa i jakości
+- **[📊 Podsumowanie Czyszczenia Projektu](PROJECT_CLEANUP_SUMMARY.md)** - Podsumowanie uporządkowania
+- **[📋 Podsumowanie Konwersacji](docs/KONWERSACJA_PODSUMOWANIE.md)** - Kompletny raport z konwersacji i wykonanych prac
 
-### Documentation by Role
+### 📱 **Frontend Development**
+- **[📋 Plan Implementacji Frontendu](docs/frontend-implementation-plan.md)** - Roadmapa rozwoju frontendu
+- **[✅ Checklista Implementacji Frontendu](docs/frontend-implementation-checklist.md)** - Lista kontrolna rozwoju UI
 
-**👨‍💻 Developers**: [Contributing Guide](docs/CONTRIBUTING_GUIDE.md) | [API Reference](docs/API_REFERENCE.md) | [Testing Guide](docs/TESTING_GUIDE.md)
+### 📋 **Dokumentacja Według Roli**
 
-**🚀 DevOps**: [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) | [Backup System Guide](docs/BACKUP_SYSTEM_GUIDE.md) | [Model Optimization Guide](docs/MODEL_OPTIMIZATION_GUIDE.md)
+**👨‍💻 Deweloperzy**: [Przewodnik Współpracy](docs/CONTRIBUTING_GUIDE.md) | [Referencja API](docs/API_REFERENCE.md) | [Przewodnik Testowania](docs/TESTING_GUIDE.md)
 
-**🤖 AI/ML Engineers**: [Agents Guide](docs/AGENTS_GUIDE.md) | [RAG System Guide](docs/RAG_SYSTEM_GUIDE.md) | [Concise Responses Guide](docs/CONCISE_RESPONSES_IMPLEMENTATION.md)
+**🚀 DevOps**: [Przewodnik Wdrażania](docs/DEPLOYMENT_GUIDE.md) | [System Backup](docs/BACKUP_SYSTEM_GUIDE.md) | [Monitoring i Telemetria](docs/MONITORING_TELEMETRY_GUIDE.md)
 
-**📊 Data Engineers**: [Database Guide](docs/DATABASE_GUIDE.md) | [Architecture Documentation](docs/ARCHITECTURE_DOCUMENTATION.md)
+**🤖 AI/ML Engineers**: [Przewodnik Agenty AI](docs/AGENTS_GUIDE.md) | [System RAG](docs/RAG_SYSTEM_GUIDE.md) | [Zwięzłe Odpowiedzi](docs/CONCISE_RESPONSES_IMPLEMENTATION.md)
 
-### 📖 Kompletna Dokumentacja
-Zobacz [Dokumentację Główną](docs/README.md) dla pełnego przeglądu wszystkich dostępnych dokumentów.
+**📊 Data Engineers**: [Przewodnik Bazy Danych](docs/DATABASE_GUIDE.md) | [Dokumentacja Architektury](docs/ARCHITECTURE_DOCUMENTATION.md)
 
-## 🔧 Funkcje Główne
+**📱 Frontend Developers**: [Plan Implementacji Frontendu](docs/frontend-implementation-plan.md) | [Checklista Implementacji Frontendu](docs/frontend-implementation-checklist.md) | [Referencja API](docs/API_REFERENCE.md)
 
+### 🔍 **Szybkie Wyszukiwanie**
+- **[📚 Dokumentacja Główna](docs/README.md)** - Kompletny przewodnik po wszystkich dokumentach
+- **[🚀 Szybki Start](docs/README.md#-szybki-start)** - Instrukcje szybkiego uruchomienia
+- **[🔧 Konfiguracja](docs/README.md#-konfiguracja)** - Pliki konfiguracyjne
+- **[🧪 Testowanie](docs/README.md#-testowanie)** - Strategie testowania
 ### 🛒 Zarządzanie Zakupami
 - **OCR paragonów** - Automatyczne rozpoznawanie produktów
 - **Klasyfikacja kategorii** - Inteligentne kategoryzowanie
