@@ -14,6 +14,7 @@ flowchart TD
         A3[PerformanceMonitoringMiddleware]
         A4[ErrorHandlingMiddleware]
         A5[RequestLoggingMiddleware]
+        A6[Telegram Bot API]
     end
 
     subgraph "Orchestration"
@@ -21,6 +22,7 @@ flowchart TD
         B2[Request Queue]
         B3[CircuitBreakerMonitor]
         B4[Agent Router]
+        B5[Telegram Bot Handler]
     end
 
     subgraph "Agents"
@@ -67,6 +69,7 @@ flowchart TD
     A3 --> A1
     A4 --> A1
     A5 --> A1
+    A6 --> A1
 
     B1 --> B2
     B2 --> B3
@@ -79,6 +82,7 @@ flowchart TD
     B4 --> C6
     B4 --> C7
     B4 --> C8
+    B5 --> A6
 
     C1 --> D1
     C2 --> D2
@@ -118,6 +122,13 @@ flowchart TD
 - **Weather API**: `/api/v2/weather` - informacje o pogodzie
 - **Backup API**: `/api/v2/backup` - zarządzanie backupami
 - **Concise Response API**: `/api/v2/concise` - zwięzłe odpowiedzi w stylu Perplexity.ai
+- **Telegram Bot API**: `/api/v2/telegram` - integracja z Telegram Bot API
+  - `/webhook` - endpoint webhook dla wiadomości Telegram
+  - `/set-webhook` - konfiguracja webhook
+  - `/webhook-info` - informacje o webhook
+  - `/send-message` - wysyłanie wiadomości
+  - `/test-connection` - test połączenia z botem
+  - `/settings` - zarządzanie ustawieniami bota
 - **Health API**: `/health` - sprawdzanie stanu systemu
 - **Metrics API**: `/metrics` - metryki Prometheus
 
@@ -147,6 +158,14 @@ app.add_middleware(MemoryMonitoringMiddleware)
 - **Failure Detection**: Wykrywanie awarii agentów i serwisów
 - **Automatic Recovery**: Automatyczne przywracanie po awarii
 - **Fallback Mechanisms**: Mechanizmy awaryjne
+
+#### Telegram Bot Handler
+- **Webhook Processing**: Przetwarzanie wiadomości z Telegram
+- **AI Integration**: Integracja z istniejącym orchestrator
+- **Rate Limiting**: Ochrona przed spamem (30 wiadomości/minutę)
+- **Message Splitting**: Automatyczne dzielenie długich wiadomości
+- **Database Storage**: Zapis konwersacji do bazy danych
+- **Error Handling**: Kompleksowa obsługa błędów
 
 ### 3. Agents Layer
 **Odpowiedzialność:** Specjalistyczne zadania AI
@@ -532,6 +551,6 @@ System jest gotowy do wdrożenia produkcyjnego i może obsłużyć wysokie obci�
 
 ---
 
-**Dokumentacja utworzona:** 2024-12-21
-**Ostatnia aktualizacja:** 2024-12-21
+**Dokumentacja utworzona:** 2025-06-25
+**Ostatnia aktualizacja:** 2025-06-25
 **Status:** ✅ Kompletna dokumentacja architektury

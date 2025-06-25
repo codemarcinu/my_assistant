@@ -87,6 +87,17 @@ class Settings(BaseSettings):
     # Konfiguracja Tesseract OCR
     TESSDATA_PREFIX: str = "/usr/share/tesseract-ocr/5/"
 
+    # Telegram Bot Configuration
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_WEBHOOK_URL: str = ""
+    TELEGRAM_WEBHOOK_SECRET: str = secrets.token_urlsafe(32)
+    
+    # Telegram Bot Settings
+    TELEGRAM_BOT_USERNAME: str = "foodsave_ai_bot"
+    TELEGRAM_BOT_NAME: str = "FoodSave AI Assistant"
+    TELEGRAM_MAX_MESSAGE_LENGTH: int = 4096
+    TELEGRAM_RATE_LIMIT_PER_MINUTE: int = 30
+
     # Ta linia mówi Pydantic, aby wczytał zmienne z pliku .env w głównym katalogu
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

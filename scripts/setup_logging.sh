@@ -2,7 +2,7 @@
 
 # Script to set up logging directories and configuration for FoodSave AI
 # Author: FoodSave AI Team
-# Date: 2024
+# Date: 2025
 
 echo "========================================"
 echo "Setting up logging infrastructure"

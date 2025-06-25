@@ -1,7 +1,7 @@
 // ✅ REQUIRED: Zustand store for application settings
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { UserSettings, AgentStatus } from '../types';
+import type { UserSettings, AgentStatus } from '../types';
 
 interface SettingsState {
   // User settings
@@ -35,6 +35,12 @@ const defaultSettings: UserSettings = {
   integrations: {
     telegram: {
       enabled: false,
+      botToken: '',
+      botUsername: '',
+      webhookUrl: '',
+      webhookSecret: '',
+      maxMessageLength: 4096,
+      rateLimitPerMinute: 30,
     },
     weather: {
       enabled: true,

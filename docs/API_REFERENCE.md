@@ -265,6 +265,175 @@ Get the status of the concise response agent.
 }
 ```
 
+## 📱 Telegram Bot API
+
+The Telegram Bot API provides full integration with Telegram Bot API for real-time messaging with the AI assistant.
+
+### POST `/api/v2/telegram/webhook`
+
+Webhook endpoint for receiving Telegram updates.
+
+**Headers:**
+- `X-Telegram-Bot-Api-Secret-Token`: Secret token for webhook validation
+
+**Request Body:** Telegram Update object
+```json
+{
+  "update_id": 123456789,
+  "message": {
+    "message_id": 1,
+    "from": {
+      "id": 123456789,
+      "first_name": "John",
+      "username": "john_doe"
+    },
+    "chat": {
+      "id": 123456789,
+      "type": "private"
+    },
+    "text": "Hello, how can you help me?",
+    "date": 1640995200
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "status": "ok"
+}
+```
+
+### POST `/api/v2/telegram/set-webhook`
+
+Configure webhook URL for the Telegram bot.
+
+**Request Body:**
+```json
+{
+  "webhook_url": "https://your-domain.com/api/v2/telegram/webhook"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "webhook_url": "https://your-domain.com/api/v2/telegram/webhook"
+}
+```
+
+### GET `/api/v2/telegram/webhook-info`
+
+Get information about the current webhook configuration.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "result": {
+    "url": "https://your-domain.com/api/v2/telegram/webhook",
+    "has_custom_certificate": false,
+    "pending_update_count": 0,
+    "last_error_date": null,
+    "last_error_message": null,
+    "max_connections": 40
+  }
+}
+```
+
+### POST `/api/v2/telegram/send-message`
+
+Send a message through Telegram Bot API.
+
+**Request Body:**
+```json
+{
+  "chat_id": 123456789,
+  "message": "Hello! I'm your AI assistant."
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Message sent"
+}
+```
+
+### GET `/api/v2/telegram/test-connection`
+
+Test connection with Telegram Bot API.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "bot_info": {
+    "id": 123456789,
+    "is_bot": true,
+    "first_name": "FoodSave AI Assistant",
+    "username": "foodsave_ai_bot",
+    "can_join_groups": false,
+    "can_read_all_group_messages": false,
+    "supports_inline_queries": false
+  }
+}
+```
+
+### GET `/api/v2/telegram/settings`
+
+Get current Telegram bot settings.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "enabled": true,
+    "bot_token": "***",
+    "bot_username": "foodsave_ai_bot",
+    "webhook_url": "https://your-domain.com/api/v2/telegram/webhook",
+    "webhook_secret": "***",
+    "max_message_length": 4096,
+    "rate_limit_per_minute": 30
+  }
+}
+```
+
+### PUT `/api/v2/telegram/settings`
+
+Update Telegram bot settings.
+
+**Request Body:**
+```json
+{
+  "enabled": true,
+  "bot_token": "your_bot_token",
+  "bot_username": "foodsave_ai_bot",
+  "webhook_url": "https://your-domain.com/api/v2/telegram/webhook",
+  "max_message_length": 4096,
+  "rate_limit_per_minute": 30
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "enabled": true,
+    "bot_token": "***",
+    "bot_username": "foodsave_ai_bot",
+    "webhook_url": "https://your-domain.com/api/v2/telegram/webhook",
+    "webhook_secret": "***",
+    "max_message_length": 4096,
+    "rate_limit_per_minute": 30
+  }
+}
+```
+
 ## 📤 File Upload API
 
 ### POST `/api/v2/upload/receipt`
@@ -733,5 +902,5 @@ For real-time communication, WebSocket endpoints are available:
 
 ---
 
-**Last Updated**: 2024-12-21
+**Last Updated**: 2025-06-25
 **API Version**: 2.0.0

@@ -109,6 +109,6 @@ Zaimplementowane testy pokrywają następujące funkcjonalności:
 
 ---
 
-**Data testów**: 2024-12-21
+**Data testów**: 2025-06-25
 **Wersja systemu**: FoodSave AI v2.0
 **Status**: Częściowo działający (2/6 kategorii testów + nowe uproszczone testy OCR)

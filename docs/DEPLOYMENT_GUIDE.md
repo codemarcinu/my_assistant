@@ -10,9 +10,10 @@ This guide covers all deployment scenarios for the FoodSave AI system, from loca
 2. [Docker Deployment](#docker-deployment)
 3. [Production Deployment](#production-deployment)
 4. [Environment Configuration](#environment-configuration)
-5. [Monitoring Setup](#monitoring-setup)
-6. [Backup and Recovery](#backup-and-recovery)
-7. [Troubleshooting](#troubleshooting-deployment)
+5. [Telegram Bot Setup](#telegram-bot-setup)
+6. [Monitoring Setup](#monitoring-setup)
+7. [Backup and Recovery](#backup-and-recovery)
+8. [Troubleshooting](#troubleshooting-deployment)
 
 ## Local Development Setup
 
@@ -191,6 +192,15 @@ OLLAMA_EMBED_MODEL=nomic-embed-text
 # --- External Services (Optional) ---
 PERPLEXITY_API_KEY=your_perplexity_api_key_if_used
 
+# --- Telegram Bot Configuration ---
+TELEGRAM_BOT_ENABLED=true
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_BOT_USERNAME=your_bot_username
+TELEGRAM_WEBHOOK_URL=https://your-domain.com/api/v2/telegram/webhook
+TELEGRAM_WEBHOOK_SECRET=your_webhook_secret_token
+TELEGRAM_MAX_MESSAGE_LENGTH=4096
+TELEGRAM_RATE_LIMIT_PER_MINUTE=30
+
 # --- Monitoring & Telemetry ---
 PROMETHEUS_ENABLED=true
 TELEMETRY_ENABLED=true
@@ -200,6 +210,140 @@ JAEGER_AGENT_HOST=jaeger # For Docker setup
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 > This is a sample configuration. Refer to `env.dev.example` for the complete list of variables used in development. Production deployments should use a separate, secured configuration.
+
+## Telegram Bot Setup
+
+### Prerequisites
+
+- **Telegram Bot Token**: Obtained from [@BotFather](https://t.me/botfather)
+- **Public HTTPS URL**: Required for webhook configuration
+- **SSL Certificate**: Valid SSL certificate for your domain
+
+### Bot Creation
+
+1. **Create Bot via BotFather**
+   ```bash
+   # Start conversation with @BotFather on Telegram
+   /newbot
+   
+   # Follow instructions to create your bot
+   # Save the bot token provided
+   ```
+
+2. **Configure Bot Settings**
+   ```bash
+   # Set bot description
+   /setdescription
+   
+   # Set bot commands
+   /setcommands
+   start - Start the bot
+   help - Show help information
+   ```
+
+### Environment Configuration
+
+Add the following variables to your `.env` file:
+
+```bash
+# Telegram Bot Configuration
+TELEGRAM_BOT_ENABLED=true
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_BOT_USERNAME=your_bot_username
+TELEGRAM_WEBHOOK_URL=https://your-domain.com/api/v2/telegram/webhook
+TELEGRAM_WEBHOOK_SECRET=your_secure_secret_token
+TELEGRAM_MAX_MESSAGE_LENGTH=4096
+TELEGRAM_RATE_LIMIT_PER_MINUTE=30
+```
+
+### Webhook Configuration
+
+1. **Set Webhook URL**
+   ```bash
+   # Using the API endpoint
+   curl -X POST "http://localhost:8000/api/v2/telegram/set-webhook" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "webhook_url": "https://your-domain.com/api/v2/telegram/webhook"
+        }'
+   ```
+
+2. **Verify Webhook Status**
+   ```bash
+   # Check webhook configuration
+   curl "http://localhost:8000/api/v2/telegram/webhook-info"
+   ```
+
+3. **Test Bot Connection**
+   ```bash
+   # Test bot connectivity
+   curl "http://localhost:8000/api/v2/telegram/test-connection"
+   ```
+
+### Frontend Configuration
+
+1. **Access Settings Panel**
+   - Navigate to the frontend application
+   - Go to Settings → Telegram Bot
+   - Configure bot settings through the UI
+
+2. **Test Bot Integration**
+   - Send a message to your bot on Telegram
+   - Verify that the bot responds with AI-generated content
+   - Check conversation history in the frontend
+
+### Security Considerations
+
+1. **Webhook Secret**
+   - Use a strong, unique secret token
+   - Keep the token secure and don't expose it in logs
+   - Rotate the token periodically
+
+2. **Rate Limiting**
+   - Default limit: 30 messages per minute per user
+   - Adjust based on your bot's usage patterns
+   - Monitor for abuse and adjust limits accordingly
+
+3. **Input Validation**
+   - All incoming messages are validated
+   - Malicious content is filtered out
+   - User input is sanitized before processing
+
+### Troubleshooting
+
+1. **Webhook Not Receiving Updates**
+   ```bash
+   # Check webhook status
+   curl "http://localhost:8000/api/v2/telegram/webhook-info"
+   
+   # Verify SSL certificate
+   curl -I "https://your-domain.com/api/v2/telegram/webhook"
+   ```
+
+2. **Bot Not Responding**
+   ```bash
+   # Check bot logs
+   docker-compose logs backend | grep telegram
+   
+   # Test bot connection
+   curl "http://localhost:8000/api/v2/telegram/test-connection"
+   ```
+
+3. **Rate Limiting Issues**
+   ```bash
+   # Check rate limit configuration
+   curl "http://localhost:8000/api/v2/telegram/settings"
+   ```
+
+### Production Deployment
+
+For production deployment, ensure:
+
+1. **HTTPS is properly configured**
+2. **Webhook URL is publicly accessible**
+3. **Bot token is securely stored**
+4. **Monitoring is enabled for bot metrics**
+5. **Backup system includes conversation data**
 
 ## Monitoring Setup
 The monitoring stack (Prometheus, Grafana, Loki) is pre-configured in the `docker-compose.dev.yml` file.
@@ -412,6 +556,6 @@ alembic upgrade head
 
 ---
 
-**Last Updated**: December 22, 2024
+**Last Updated**: June 25, 2025
 **Version**: 1.0
 **Maintainer**: FoodSave AI Team

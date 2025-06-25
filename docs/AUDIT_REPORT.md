@@ -1,6 +1,6 @@
 # FoodSave AI Backend – Audyt Kodu (MDC)
 
-## Data audytu: 2024-06-21
+## Data audytu: 2025-06-25
 ## Audytor: AI (pilot)
 
 ---

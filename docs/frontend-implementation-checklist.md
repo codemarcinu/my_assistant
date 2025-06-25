@@ -82,9 +82,42 @@
   - [ ] XSS prevention mechanisms
   - [ ] CSRF protection dla form submissions
 
+### 4. Telegram Bot Integration ✅
+- [x] **Telegram Settings Component**
+  - [x] Implementacja `TelegramSettings.tsx` komponentu
+  - [x] Form validation dla bot token i webhook URL
+  - [x] Real-time connection testing
+  - [x] Error handling i user feedback
+  - [x] Integration z settings store
+
+- [x] **Telegram API Service**
+  - [x] Implementacja `telegramApi.ts` service
+  - [x] Integration z axios dla HTTP requests
+  - [x] TypeScript types dla API responses
+  - [x] Error handling i retry logic
+  - [x] Webhook management endpoints
+
+- [x] **TypeScript Types Integration**
+  - [x] Dodanie typów Telegram w `src/types/index.ts`
+  - [x] Integration z istniejącymi typami aplikacji
+  - [x] Type safety dla API responses
+  - [x] Interface definitions dla settings
+
+- [x] **Settings Store Integration**
+  - [x] Integration z `settingsStore.ts`
+  - [x] Default values dla Telegram settings
+  - [x] Persistence configuration
+  - [x] State management dla bot settings
+
+- [x] **Frontend Testing**
+  - [x] Unit tests dla Telegram components
+  - [x] Integration tests dla API service
+  - [x] E2E tests dla settings workflow
+  - [x] Error handling tests
+
 ## 🟡 PRIORYTET WYSOKI
 
-### 4. Bundle Optimization
+### 5. Bundle Optimization
 - [ ] **Bundle Analysis Setup**
   - [ ] Implement @next/bundle-analyzer
   - [ ] Baseline current bundle sizes
@@ -110,7 +143,7 @@
   - [ ] Configure webpack dla maximum tree shaking
   - [ ] Remove unused dependencies
 
-### 5. Performance Monitoring
+### 6. Performance Monitoring
 - [ ] **Core Web Vitals Tracking**
   - [ ] Implement web-vitals library
   - [ ] Configure data collection
@@ -135,7 +168,7 @@
   - [ ] Create historical performance views
   - [ ] Share metrics z stakeholders
 
-### 6. Caching Strategy
+### 7. Caching Strategy
 - [ ] **API Response Caching**
   - [ ] Configure React Query caching
   - [ ] Implement cache invalidation strategy
@@ -156,7 +189,7 @@
 
 ## 🟢 PRIORYTET ŚREDNI
 
-### 7. Accessibility Improvements
+### 8. Accessibility Improvements
 - [ ] **Automated A11y Testing**
   - [ ] Set up jest-axe dla automated tests
   - [ ] Implement Lighthouse CI
@@ -181,7 +214,7 @@
   - [ ] Verify text zoom capability
   - [ ] Test motion reduction preferences
 
-### 8. CI/CD Pipeline
+### 9. CI/CD Pipeline
 - [ ] **GitHub Actions Setup**
   - [ ] Configure automated tests
   - [ ] Add accessibility testing

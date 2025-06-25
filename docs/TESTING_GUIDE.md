@@ -328,7 +328,106 @@ class TestConciseRAGProcessor:
         assert len(result) <= 200  # Final response should be concise
 ```
 
-### 3. Integration Tests - API Tests
+### 3. Unit Tests - Telegram Bot Tests
+
+```python
+# tests/unit/test_telegram_bot.py
+import pytest
+from unittest.mock import AsyncMock, patch
+from src.backend.integrations.telegram_bot import TelegramBotHandler, TelegramUpdate, TelegramMessage
+
+class TestTelegramBotHandler:
+    """Testy dla Telegram Bot Handler"""
+
+    @pytest.fixture
+    def telegram_handler(self):
+        return TelegramBotHandler()
+
+    @pytest.fixture
+    def sample_message_data(self):
+        return {
+            "message_id": 1,
+            "from_user": {"id": 123456, "first_name": "Test", "username": "testuser"},
+            "chat": {"id": 123456, "type": "private"},
+            "text": "Cześć! Jak się masz?",
+            "date": 1234567890
+        }
+
+    @pytest.mark.asyncio
+    async def test_process_webhook_with_message(self, telegram_handler, sample_message_data):
+        """Test przetwarzania webhook z wiadomością"""
+        with patch.object(telegram_handler, '_handle_message') as mock_handle:
+            mock_handle.return_value = {"status": "success"}
+            
+            update_data = {
+                "update_id": 987654321,
+                "message": sample_message_data
+            }
+            
+            result = await telegram_handler.process_webhook(update_data)
+            
+            assert result["status"] == "success"
+            mock_handle.assert_called_once_with(sample_message_data)
+
+    @pytest.mark.asyncio
+    async def test_rate_limiting(self, telegram_handler):
+        """Test rate limiting"""
+        user_id = 123
+        
+        # Pierwsza wiadomość powinna przejść
+        assert telegram_handler._check_rate_limit(user_id) == True
+        
+        # Druga wiadomość powinna być zablokowana
+        assert telegram_handler._check_rate_limit(user_id) == False
+
+    @pytest.mark.asyncio
+    async def test_message_splitting(self, telegram_handler):
+        """Test dzielenia długich wiadomości"""
+        long_text = "A" * 5000  # Dłuższy niż limit
+        
+        chunks = telegram_handler._split_message(long_text, max_length=1000)
+        
+        assert len(chunks) > 1
+        for chunk in chunks:
+            assert len(chunk) <= 1000
+
+    @pytest.mark.skip(reason="Test zapisu do bazy powinien być realizowany na poziomie testów integracyjnych")
+    @pytest.mark.asyncio
+    async def test_save_conversation(self, telegram_handler):
+        """Test zapisu konwersacji (pominięty - test integracyjny)"""
+        pass
+
+class TestTelegramModels:
+    """Testy dla modeli danych Telegram"""
+
+    def test_telegram_update_valid(self):
+        """Test walidacji TelegramUpdate"""
+        update_data = {
+            "update_id": 123,
+            "message": {"message_id": 1, "text": "test"}
+        }
+        
+        update = TelegramUpdate(**update_data)
+        assert update.update_id == 123
+        assert update.message is not None
+
+    def test_telegram_message_valid(self):
+        """Test walidacji TelegramMessage"""
+        message_data = {
+            "message_id": 1,
+            "from_user": {"id": 123, "first_name": "Test"},
+            "chat": {"id": 123, "type": "private"},
+            "text": "Hello",
+            "date": 1234567890
+        }
+        
+        message = TelegramMessage(**message_data)
+        assert message.message_id == 1
+        assert message.from_user["id"] == 123
+        assert message.text == "Hello"
+```
+
+### 4. Integration Tests - API Tests
 
 ```python
 # tests/integration/test_api_endpoints.py

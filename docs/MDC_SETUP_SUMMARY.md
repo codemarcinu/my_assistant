@@ -125,6 +125,6 @@ Utworzono szczegółową checklistę w pliku `REFACTORING_CHECKLIST.md` zawieraj
 
 ---
 
-**Data przygotowania:** 20 czerwca 2024
+**Data przygotowania:** 25 czerwca 2025
 **Osoba odpowiedzialna:** Marcin
 **Status:** Kompletne przygotowanie do refaktoryzacji

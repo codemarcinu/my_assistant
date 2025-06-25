@@ -2,7 +2,7 @@
 
 # Script to capture Ollama logs for monitoring
 # Author: FoodSave AI Team
-# Date: 2024
+# Date: 2025
 
 LOG_DIR="logs/ollama"
 LOG_FILE="${LOG_DIR}/ollama_$(date +%Y%m%d_%H%M%S).log"

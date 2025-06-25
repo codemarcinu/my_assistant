@@ -240,7 +240,148 @@ const IconLibrary = dynamic(() =>
 - [ ] Script optimization z next/script
 - [ ] Static asset optimization
 
-## Milestone 5: Monitoring & Observability (Tydzień 5-6)
+## Milestone 5: Telegram Bot Integration (Tydzień 5-6)
+
+### Checkpoint 4.1: Telegram Settings Component ✅
+**Czas**: 3 dni
+**Status**: Zaimplementowane
+
+**Zadania**:
+- [x] Implementacja `TelegramSettings.tsx` komponentu
+- [x] Integration z `settingsStore.ts` dla konfiguracji bota
+- [x] Form validation dla bot token i webhook URL
+- [x] Real-time connection testing
+- [x] Error handling i user feedback
+
+**Implementacja**:
+```typescript
+// TelegramSettings.tsx
+export const TelegramSettings: React.FC = () => {
+  const { telegramSettings, updateTelegramSettings } = useSettingsStore();
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    try {
+      const result = await telegramApi.testConnection();
+      setTestResult(result);
+    } catch (error) {
+      setTestResult({ success: false, error: error.message });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Telegram Bot Configuration</CardTitle>
+        <CardDescription>
+          Configure your Telegram bot for AI assistant integration
+        </CardDescription>
+      </CardHeader>
+      {/* Form implementation */}
+    </Card>
+  );
+};
+```
+
+### Checkpoint 4.2: Telegram API Service ✅
+**Czas**: 2 dni
+**Status**: Zaimplementowane
+
+**Zadania**:
+- [x] Implementacja `telegramApi.ts` service
+- [x] Integration z axios dla HTTP requests
+- [x] TypeScript types dla API responses
+- [x] Error handling i retry logic
+- [x] Webhook management endpoints
+
+**Implementacja**:
+```typescript
+// telegramApi.ts
+export const telegramApi = {
+  async testConnection(): Promise<TestResult> {
+    const response = await apiClient.get('/api/v2/telegram/test-connection');
+    return response.data;
+  },
+
+  async getSettings(): Promise<TelegramSettings> {
+    const response = await apiClient.get('/api/v2/telegram/settings');
+    return response.data.data;
+  },
+
+  async updateSettings(settings: Partial<TelegramSettings>): Promise<TelegramSettings> {
+    const response = await apiClient.put('/api/v2/telegram/settings', settings);
+    return response.data.data;
+  },
+
+  async setWebhook(webhookUrl: string): Promise<WebhookResult> {
+    const response = await apiClient.post('/api/v2/telegram/set-webhook', { webhook_url: webhookUrl });
+    return response.data;
+  }
+};
+```
+
+### Checkpoint 4.3: TypeScript Types Integration ✅
+**Czas**: 1 dzień
+**Status**: Zaimplementowane
+
+**Zadania**:
+- [x] Dodanie typów Telegram w `src/types/index.ts`
+- [x] Integration z istniejącymi typami aplikacji
+- [x] Type safety dla API responses
+- [x] Interface definitions dla settings
+
+**Implementacja**:
+```typescript
+// types/index.ts
+export interface TelegramSettings {
+  enabled: boolean;
+  bot_token: string;
+  bot_username: string;
+  webhook_url: string;
+  webhook_secret: string;
+  max_message_length: number;
+  rate_limit_per_minute: number;
+}
+
+export interface TestResult {
+  success: boolean;
+  bot_info?: BotInfo;
+  error?: string;
+}
+
+export interface BotInfo {
+  id: number;
+  is_bot: boolean;
+  first_name: string;
+  username: string;
+  can_join_groups: boolean;
+  can_read_all_group_messages: boolean;
+  supports_inline_queries: boolean;
+}
+```
+
+### Checkpoint 4.4: Settings Store Integration ✅
+**Czas**: 1 dzień
+**Status**: Zaimplementowane
+
+**Zadania**:
+- [x] Integration z `settingsStore.ts`
+- [x] Default values dla Telegram settings
+- [x] Persistence configuration
+- [x] State management dla bot settings
+
+**Kryteria Akceptacji**:
+- Complete Telegram bot configuration through UI
+- Real-time connection testing
+- Settings persistence across sessions
+- Comprehensive error handling
+- Type-safe implementation
+
+## Milestone 6: Monitoring & Observability (Tydzień 5-6)
 
 ### Checkpoint 5.1: Real User Monitoring Setup ✅
 **Czas**: 3 dni

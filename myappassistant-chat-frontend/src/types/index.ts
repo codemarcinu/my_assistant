@@ -124,6 +124,39 @@ export interface WeatherForecast {
   icon: string;
 }
 
+// Telegram Bot types
+export interface TelegramBotSettings {
+  enabled: boolean;
+  botToken: string;
+  botUsername: string;
+  webhookUrl: string;
+  webhookSecret: string;
+  maxMessageLength: number;
+  rateLimitPerMinute: number;
+}
+
+export interface TelegramMessage {
+  messageId: number;
+  fromUser: {
+    id: number;
+    username?: string;
+    firstName: string;
+    lastName?: string;
+  };
+  chat: {
+    id: number;
+    type: 'private' | 'group' | 'supergroup' | 'channel';
+  };
+  text?: string;
+  date: number;
+}
+
+export interface TelegramWebhookUpdate {
+  updateId: number;
+  message?: TelegramMessage;
+  callbackQuery?: any;
+}
+
 // Settings and configuration
 export interface UserSettings {
   theme: 'light' | 'dark' | 'system';
@@ -141,11 +174,7 @@ export interface NotificationSettings {
 }
 
 export interface IntegrationSettings {
-  telegram: {
-    enabled: boolean;
-    botToken?: string;
-    chatId?: string;
-  };
+  telegram: TelegramBotSettings;
   weather: {
     enabled: boolean;
     location: string;
@@ -198,7 +227,7 @@ export interface FormField {
 }
 
 export interface ValidationRule {
-  type: 'required' | 'min' | 'max' | 'pattern' | 'email';
+  type: 'required' | 'min' | 'max' | 'pattern' | 'custom';
   value?: any;
   message: string;
 }
@@ -209,7 +238,7 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-// Error handling types
+// Error and loading types
 export interface AppError {
   code: string;
   message: string;
@@ -218,14 +247,13 @@ export interface AppError {
   userFriendly?: boolean;
 }
 
-// Loading and state types
 export interface LoadingState {
   isLoading: boolean;
   error?: AppError;
   progress?: number;
 }
 
-// Pagination types
+// Pagination and search types
 export interface PaginationParams {
   page: number;
   size: number;
@@ -241,7 +269,6 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-// Search and filter types
 export interface SearchParams {
   query: string;
   filters: Record<string, any>;
@@ -249,7 +276,7 @@ export interface SearchParams {
   sortOrder?: 'asc' | 'desc';
 }
 
-// Analytics and metrics types
+// Analytics types
 export interface AnalyticsData {
   totalItems: number;
   expiringSoon: number;
