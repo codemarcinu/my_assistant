@@ -8,9 +8,9 @@ datasources:
     isDefault: true
     editable: true
     jsonData:
-      timeInterval: "15s"
-      queryTimeout: "60s"
-      httpMethod: "POST"
+      timeInterval: 15s
+      queryTimeout: 60s
+      httpMethod: POST
     secureJsonData: {}
 
   - name: Loki

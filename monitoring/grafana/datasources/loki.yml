@@ -3,15 +3,13 @@ apiVersion: 1
 datasources:
   - name: Loki
     type: loki
-    uid: loki_foodsave_logs
     access: proxy
-    url: http://foodsave-loki:3100
-    isDefault: true
-    editable: true
+    url: http://loki:3100
     jsonData:
-      maxLines: 5000
+      maxLines: 1000
       derivedFields:
-        - datasourceUid: loki_foodsave_logs
+        - datasourceUid: prometheus
           matcherRegex: "traceID=(\\w+)"
           name: TraceID
           url: "$${__value.raw}"
+    editable: true

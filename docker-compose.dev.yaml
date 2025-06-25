@@ -12,6 +12,7 @@ services:
     volumes:
       - ollama_data:/root/.ollama
       - ./logs/ollama:/var/log/ollama
+      - ./data/models:/root/.ollama/models:ro  # Udostępnienie modeli
     deploy:
       resources:
         reservations:
@@ -24,6 +25,7 @@ services:
     environment:
       - OLLAMA_HOST=${OLLAMA_HOST:-0.0.0.0}
       - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-24h}
+      - OLLAMA_DEBUG=true
     command: serve
     restart: unless-stopped
     healthcheck:
@@ -35,8 +37,8 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
   # Backend FastAPI w trybie development
@@ -52,7 +54,10 @@ services:
       - ./data:/app/data   # Dane aplikacji
       - ./logs/backend:/app/logs
       - ./scripts:/app/scripts:ro
+      - ./tests:/app/tests:ro  # Testy
       - backend_cache:/app/.cache  # Cache dla pip/poetry
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - ./poetry.lock:/app/poetry.lock:ro
     environment:
       - PYTHONPATH=/app:/app/src
       - ENVIRONMENT=development
@@ -71,12 +76,17 @@ services:
       - ENABLE_SQL_LOGGING=true
       - LOG_FORMAT=json
       - LOG_FILE_PATH=/app/logs/backend.log
+      - ENABLE_DEBUG_TOOLBAR=true
+      - ENABLE_METRICS=true
+      - PROMETHEUS_MULTIPROC_DIR=/tmp
     networks:
       - foodsave-dev-network
     depends_on:
       ollama:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     command: ["poetry", "run", "uvicorn", "src.backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level=debug"]
     restart: unless-stopped
@@ -89,8 +99,8 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
   # Frontend React/Vite w trybie development
@@ -112,6 +122,7 @@ services:
       - VITE_DEV_SERVER_HOST=0.0.0.0
       - VITE_DEV_SERVER_PORT=5173
       - NEXT_TELEMETRY_DISABLED=1
+      - VITE_LOG_LEVEL=debug
     networks:
       - foodsave-dev-network
     depends_on:
@@ -127,8 +138,8 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
   # PostgreSQL Database
@@ -142,6 +153,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-foodsave}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-foodsave_dev_password}
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+      - POSTGRES_LOG_STATEMENT=all
+      - POSTGRES_LOG_MIN_DURATION_STATEMENT=0
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./logs/postgres:/var/log/postgresql
@@ -158,8 +171,8 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
   # Redis for caching
@@ -171,7 +184,7 @@ services:
     volumes:
       - redis_data:/data
       - ./logs/redis:/var/log/redis
-    command: ["redis-server", "--save", "60", "1", "--loglevel", "notice", "--logfile", "/var/log/redis/redis.log", "--appendonly", "yes"]
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "debug", "--logfile", "/var/log/redis/redis.log", "--appendonly", "yes"]
     networks:
       - foodsave-dev-network
     restart: unless-stopped
@@ -183,8 +196,8 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
   # Prometheus for monitoring
@@ -204,24 +217,23 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
-    depends_on:
-      - backend
+      - '--log.level=debug'
     networks:
       - foodsave-dev-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:9090/-/healthy || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
-  # Grafana for visualization
+  # Grafana for dashboards
   grafana:
     image: grafana/grafana:latest
     container_name: foodsave-grafana-dev
@@ -229,79 +241,75 @@ services:
       - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
       - ./logs/grafana:/var/log/grafana
     environment:
+      - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_LOG_LEVEL=info
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_LOG_LEVEL=debug
+      - GF_SERVER_ROOT_URL=http://localhost:3001
     networks:
       - foodsave-dev-network
-    depends_on:
-      - prometheus
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
   # Loki for log aggregation
   loki:
-    image: grafana/loki:2.9.6
+    image: grafana/loki:latest
     container_name: foodsave-loki-dev
-    user: "0:0"
     ports:
       - "3100:3100"
     volumes:
-      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - ./logs/loki:/var/log/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - foodsave-dev-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD-SHELL", "curl -f http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
   # Promtail for log collection
   promtail:
-    image: grafana/promtail:2.9.6
+    image: grafana/promtail:latest
     container_name: foodsave-promtail-dev
     volumes:
       - ./monitoring/promtail-config.yaml:/etc/promtail/config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs:/var/log/app:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./logs:/logs:ro
     command: -config.file=/etc/promtail/config.yml
     networks:
       - foodsave-dev-network
-    depends_on:
-      loki:
-        condition: service_healthy
     restart: unless-stopped
+    depends_on:
+      - loki
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
   # Nginx reverse proxy (opcjonalny)
@@ -320,42 +328,41 @@ services:
       - frontend
       - backend
     restart: unless-stopped
-    profiles:
-      - with-proxy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
-        max-file: "5"
+        max-size: "100m"
+        max-file: "10"
         tag: "{{.Name}}/{{.ID}}"
 
-# Wolumeny dla trwałego przechowywania danych
 volumes:
   ollama_data:
-    name: foodsave-ollama-data-dev
+    driver: local
   postgres_data:
-    name: foodsave-postgres-data-dev
+    driver: local
   redis_data:
-    name: foodsave-redis-data-dev
-  frontend_node_modules:
-    name: foodsave-frontend-node-modules-dev
-  frontend_cache:
-    name: foodsave-frontend-cache-dev
-  backend_cache:
-    name: foodsave-backend-cache-dev
+    driver: local
   prometheus_data:
-    name: foodsave-prometheus-data-dev
+    driver: local
   grafana_data:
-    name: foodsave-grafana-data-dev
+    driver: local
   loki_data:
-    name: foodsave-loki-data-dev
+    driver: local
+  backend_cache:
+    driver: local
+  frontend_node_modules:
+    driver: local
+  frontend_cache:
+    driver: local
 
 networks:
   foodsave-dev-network:
-    name: foodsave-dev-network
-    driver: bridge 
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

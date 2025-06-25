@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # FoodSave AI - Development Setup Script
-# Skrypt do łatwego zarządzania środowiskiem developerskim z hot-reload
+# Skrypt do łatwego zarządzania środowiskiem developerskim z hot-reload i pełnym logowaniem
 
 set -e
 
@@ -54,20 +54,20 @@ check_docker() {
     log_success "Docker i Docker Compose są dostępne"
 }
 
-# Sprawdzenie czy plik .env.dev istnieje
+# Sprawdzenie czy plik .env istnieje
 check_env_file() {
-    if [ ! -f ".env.dev" ]; then
-        log_warning "Plik .env.dev nie istnieje. Tworzę z szablonu..."
+    if [ ! -f ".env" ]; then
+        log_warning "Plik .env nie istnieje. Tworzę z szablonu..."
         if [ -f "env.dev.example" ]; then
-            cp env.dev.example .env.dev
-            log_success "Utworzono .env.dev z szablonu env.dev.example"
-            log_info "Edytuj .env.dev i dostosuj wartości do swojego środowiska"
+            cp env.dev.example .env
+            log_success "Utworzono .env z szablonu env.dev.example"
+            log_info "Edytuj .env i dostosuj wartości do swojego środowiska"
         else
-            log_error "Nie znaleziono env.dev.example. Utwórz plik .env.dev ręcznie."
+            log_error "Nie znaleziono env.dev.example. Utwórz plik .env ręcznie."
             exit 1
         fi
     else
-        log_success "Plik .env.dev istnieje"
+        log_success "Plik .env istnieje"
     fi
 }
 
@@ -75,16 +75,28 @@ check_env_file() {
 create_directories() {
     log_step "Tworzenie katalogów dla aplikacji..."
 
-    mkdir -p data
-    mkdir -p logs/{backend,frontend,ollama,redis,postgres,nginx}
+    # Katalogi główne
+    mkdir -p data/{models,vector_store,backups}
+    mkdir -p logs/{backend,frontend,ollama,redis,postgres,nginx,grafana,prometheus,loki}
     mkdir -p backups/{config,database,files,vector_store}
     mkdir -p monitoring/{grafana/{dashboards,datasources},prometheus}
+    mkdir -p tests/{unit,integration,e2e,fixtures}
 
     # Ustawienie uprawnień
-    chmod 755 data logs backups monitoring
+    chmod 755 data logs backups monitoring tests
     chmod 777 logs/*
 
     log_success "Katalogi utworzone"
+}
+
+# Sprawdzenie GPU support
+check_gpu_support() {
+    if command -v nvidia-smi &> /dev/null; then
+        log_success "NVIDIA GPU wykryty - Ollama będzie używać GPU"
+        export NVIDIA_VISIBLE_DEVICES=all
+    else
+        log_warning "NVIDIA GPU nie wykryty - Ollama będzie używać CPU"
+    fi
 }
 
 # Funkcja do uruchamiania aplikacji w trybie development
@@ -93,11 +105,11 @@ start_dev() {
 
     # Budowanie obrazów z cache
     log_info "Budowanie obrazów..."
-    docker-compose -f docker-compose.dev.yml build --no-cache
+    docker-compose -f docker-compose.dev.yaml build --no-cache
 
     # Uruchomienie serwisów
     log_info "Uruchamianie serwisów..."
-    docker-compose -f docker-compose.dev.yml up -d
+    docker-compose -f docker-compose.dev.yaml up -d
 
     log_success "Aplikacja uruchomiona w trybie development"
 
@@ -108,7 +120,7 @@ start_dev() {
 # Funkcja do zatrzymywania aplikacji
 stop_dev() {
     log_step "Zatrzymywanie aplikacji..."
-    docker-compose -f docker-compose.dev.yml down
+    docker-compose -f docker-compose.dev.yaml down
     log_success "Aplikacja zatrzymana"
 }
 
@@ -127,15 +139,15 @@ show_logs() {
     log_info "Wyświetlanie ostatnich $lines linii logów dla serwisu: $service"
 
     case $service in
-        backend|frontend|ollama|redis|postgres|prometheus|grafana)
-            docker-compose -f docker-compose.dev.yml logs --tail=$lines -f "$service"
+        backend|frontend|ollama|redis|postgres|prometheus|grafana|loki|promtail|nginx)
+            docker-compose -f docker-compose.dev.yaml logs --tail=$lines -f "$service"
             ;;
         all)
-            docker-compose -f docker-compose.dev.yml logs --tail=$lines -f
+            docker-compose -f docker-compose.dev.yaml logs --tail=$lines -f
             ;;
         *)
             log_error "Nieznany serwis: $service"
-            log_info "Dostępne serwisy: backend, frontend, ollama, redis, postgres, prometheus, grafana, all"
+            log_info "Dostępne serwisy: backend, frontend, ollama, redis, postgres, prometheus, grafana, loki, promtail, nginx, all"
             ;;
     esac
 }
@@ -146,7 +158,7 @@ show_status() {
 
     echo ""
     log_info "Status kontenerów:"
-    docker-compose -f docker-compose.dev.yml ps
+    docker-compose -f docker-compose.dev.yaml ps
 
     echo ""
     log_info "Health checks:"
@@ -158,10 +170,10 @@ show_status() {
         log_error "Backend (FastAPI): FAILED"
     fi
 
-    if curl -s http://localhost:3000/ > /dev/null 2>&1; then
-        log_success "Frontend (Next.js): OK - http://localhost:3000"
+    if curl -s http://localhost:5173/ > /dev/null 2>&1; then
+        log_success "Frontend (React/Vite): OK - http://localhost:5173"
     else
-        log_error "Frontend (Next.js): FAILED"
+        log_error "Frontend (React/Vite): FAILED"
     fi
 
     if curl -s http://localhost:11434/api/version > /dev/null 2>&1; then
@@ -176,6 +188,12 @@ show_status() {
         log_error "Redis: FAILED"
     fi
 
+    if curl -s http://localhost:5433 > /dev/null 2>&1; then
+        log_success "PostgreSQL: OK - localhost:5433"
+    else
+        log_error "PostgreSQL: FAILED"
+    fi
+
     if curl -s http://localhost:9090/-/healthy > /dev/null 2>&1; then
         log_success "Prometheus: OK - http://localhost:9090"
     else
@@ -188,133 +206,127 @@ show_status() {
         log_error "Grafana: FAILED"
     fi
 
+    if curl -s http://localhost:3100/ready > /dev/null 2>&1; then
+        log_success "Loki: OK - http://localhost:3100"
+    else
+        log_error "Loki: FAILED"
+    fi
+
     echo ""
     log_info "Dostępne endpointy:"
-    echo "  🌐 Frontend:     http://localhost:3000"
+    echo "  🌐 Frontend:     http://localhost:5173"
     echo "  🔧 Backend API:  http://localhost:8000"
     echo "  📊 API Docs:     http://localhost:8000/docs"
     echo "  🤖 Ollama:       http://localhost:11434"
     echo "  📈 Prometheus:   http://localhost:9090"
     echo "  📊 Grafana:      http://localhost:3001 (admin/admin)"
+    echo "  📝 Loki:         http://localhost:3100"
     echo "  🗄️  Redis:        localhost:6379"
-    echo "  🐘 PostgreSQL:   localhost:5432"
+    echo "  🐘 PostgreSQL:   localhost:5433"
+    echo "  🌐 Nginx:        http://localhost:80"
+
+    echo ""
+    log_info "Logi aplikacji:"
+    echo "  📝 Backend:      ./logs/backend/"
+    echo "  📝 Frontend:     ./logs/frontend/"
+    echo "  📝 Ollama:       ./logs/ollama/"
+    echo "  📝 PostgreSQL:   ./logs/postgres/"
+    echo "  📝 Redis:        ./logs/redis/"
+    echo "  📝 Grafana:      ./logs/grafana/"
+    echo "  📝 Prometheus:   ./logs/prometheus/"
+    echo "  📝 Loki:         ./logs/loki/"
 }
 
 # Funkcja do czyszczenia
-cleanup_dev() {
-    log_warning "Czy na pewno chcesz usunąć wszystkie kontenery, obrazy i volumes? (y/N)"
-    read -r response
+cleanup() {
+    log_step "Czyszczenie środowiska..."
 
-    if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-        log_step "Czyszczenie środowiska development..."
+    # Zatrzymanie kontenerów
+    docker-compose -f docker-compose.dev.yaml down
 
-        # Zatrzymanie i usunięcie kontenerów
-        docker-compose -f docker-compose.dev.yml down -v
-
-        # Usunięcie obrazów
-        docker rmi $(docker images -q foodsave-*) 2>/dev/null || true
-
-        # Usunięcie volumes
-        docker volume prune -f
-
-        # Usunięcie danych development
-        rm -rf data/foodsave_dev.db
-        rm -rf data/vector_store_dev
-
-        log_success "Czyszczenie zakończone"
-    else
-        log_info "Czyszczenie anulowane"
+    # Usunięcie wolumenów (opcjonalne)
+    read -p "Czy chcesz usunąć wszystkie dane (wolumeny)? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        log_warning "Usuwanie wolumenów..."
+        docker volume rm $(docker volume ls -q | grep foodsave) 2>/dev/null || true
+        log_success "Wolumeny usunięte"
     fi
+
+    # Usunięcie obrazów (opcjonalne)
+    read -p "Czy chcesz usunąć obrazy Docker? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        log_warning "Usuwanie obrazów..."
+        docker rmi $(docker images -q | grep foodsave) 2>/dev/null || true
+        log_success "Obrazy usunięte"
+    fi
+
+    log_success "Czyszczenie zakończone"
 }
 
-# Funkcja do monitorowania logów w czasie rzeczywistym
-monitor_logs() {
-    local service=${1:-all}
+# Funkcja do instalacji modeli Ollama
+install_models() {
+    log_step "Instalacja modeli Ollama..."
 
-    log_info "Uruchamianie monitorowania logów dla: $service"
-    log_info "Naciśnij Ctrl+C aby zatrzymać monitorowanie"
+    local models=("gemma3:12b" "gemma3:8b" "nomic-embed-text")
+    
+    for model in "${models[@]}"; do
+        log_info "Instalacja modelu: $model"
+        curl -X POST http://localhost:11434/api/pull -d "{\"name\": \"$model\"}" &
+    done
 
-    show_logs "$service"
+    wait
+    log_success "Modele zainstalowane"
 }
 
-# Funkcja do debugowania
-debug_service() {
-    local service=${1:-backend}
+# Funkcja do uruchamiania testów
+run_tests() {
+    log_step "Uruchamianie testów..."
 
-    log_info "Uruchamianie debugowania dla serwisu: $service"
+    # Testy jednostkowe
+    log_info "Uruchamianie testów jednostkowych..."
+    docker-compose -f docker-compose.dev.yaml exec backend poetry run pytest tests/unit/ -v
 
-    case $service in
-        backend)
-            docker-compose -f docker-compose.dev.yml exec backend bash
-            ;;
-        frontend)
-            docker-compose -f docker-compose.dev.yml exec frontend sh
-            ;;
-        redis)
-            docker-compose -f docker-compose.dev.yml exec redis redis-cli
-            ;;
-        postgres)
-            docker-compose -f docker-compose.dev.yml exec postgres psql -U foodsave -d foodsave_dev
-            ;;
-        *)
-            log_error "Nieznany serwis: $service"
-            log_info "Dostępne serwisy: backend, frontend, redis, postgres"
-            ;;
-    esac
+    # Testy integracyjne
+    log_info "Uruchamianie testów integracyjnych..."
+    docker-compose -f docker-compose.dev.yaml exec backend poetry run pytest tests/integration/ -v
+
+    log_success "Testy zakończone"
 }
 
 # Funkcja do wyświetlania pomocy
 show_help() {
     echo "FoodSave AI - Development Setup Script"
     echo ""
-    echo "Użycie: $0 [COMMAND] [OPTIONS]"
+    echo "Użycie: $0 [OPCJA]"
     echo ""
-    echo "Komendy:"
-    echo "  setup              - Inicjalizacja środowiska development"
-    echo "  start              - Uruchomienie aplikacji w trybie development"
-    echo "  stop               - Zatrzymanie aplikacji"
-    echo "  restart            - Restart aplikacji"
-    echo "  logs [service]     - Wyświetlenie logów serwisu"
-    echo "  status             - Sprawdzenie statusu aplikacji"
-    echo "  monitor [service]  - Monitorowanie logów w czasie rzeczywistym"
-    echo "  debug [service]    - Debugowanie serwisu (shell access)"
-    echo "  cleanup            - Usunięcie wszystkich kontenerów i obrazów"
-    echo "  help               - Wyświetlenie tej pomocy"
-    echo ""
-    echo "Serwisy:"
-    echo "  backend, frontend, ollama, redis, postgres, prometheus, grafana, all"
+    echo "Opcje:"
+    echo "  start       - Uruchom aplikację w trybie development"
+    echo "  stop        - Zatrzymaj aplikację"
+    echo "  restart     - Restartuj aplikację"
+    echo "  status      - Pokaż status aplikacji"
+    echo "  logs [serwis] - Pokaż logi (domyślnie: backend)"
+    echo "  cleanup     - Wyczyść środowisko"
+    echo "  models      - Zainstaluj modele Ollama"
+    echo "  test        - Uruchom testy"
+    echo "  setup       - Konfiguracja początkowa"
+    echo "  help        - Pokaż tę pomoc"
     echo ""
     echo "Przykłady:"
-    echo "  $0 setup"
-    echo "  $0 start"
-    echo "  $0 logs backend"
-    echo "  $0 monitor frontend"
-    echo "  $0 debug backend"
-    echo "  $0 status"
-    echo ""
-    echo "Hot Reload:"
-    echo "  Backend:  Automatyczny reload przy zmianach w ./src/backend/"
-    echo "  Frontend: Automatyczny reload przy zmianach w ./foodsave-frontend/"
-    echo ""
-    echo "Logi:"
-    echo "  Logi są zapisywane w ./logs/ z rotacją (max 10MB, 5 plików)"
+    echo "  $0 setup     # Konfiguracja początkowa"
+    echo "  $0 start     # Uruchom aplikację"
+    echo "  $0 logs all  # Pokaż wszystkie logi"
+    echo "  $0 logs ollama # Pokaż logi Ollama"
 }
 
 # Główna logika
 main() {
-    local command=${1:-help}
-    local option=${2:-}
-
-    case $command in
-        setup)
-            check_docker
-            check_env_file
-            create_directories
-            log_success "Setup zakończony. Możesz teraz uruchomić aplikację: $0 start"
-            ;;
+    case "${1:-help}" in
         start)
             check_docker
             check_env_file
+            check_gpu_support
             start_dev
             ;;
         stop)
@@ -323,20 +335,28 @@ main() {
         restart)
             restart_dev
             ;;
-        logs)
-            show_logs "$option"
-            ;;
         status)
             show_status
             ;;
-        monitor)
-            monitor_logs "$option"
-            ;;
-        debug)
-            debug_service "$option"
+        logs)
+            show_logs "$2" "$3"
             ;;
         cleanup)
-            cleanup_dev
+            cleanup
+            ;;
+        models)
+            install_models
+            ;;
+        test)
+            run_tests
+            ;;
+        setup)
+            check_docker
+            check_env_file
+            create_directories
+            check_gpu_support
+            log_success "Konfiguracja początkowa zakończona"
+            log_info "Uruchom '$0 start' aby uruchomić aplikację"
             ;;
         help|*)
             show_help

@@ -12,68 +12,42 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # FoodSave Backend
-  - job_name: 'foodsave-backend'
+  # Backend FastAPI
+  - job_name: 'backend'
     static_configs:
       - targets: ['backend:8000']
     metrics_path: '/metrics'
     scrape_interval: 10s
-    scrape_timeout: 5s
 
-  # FoodSave Frontend (if metrics are available)
-  - job_name: 'foodsave-frontend'
+  # Ollama
+  - job_name: 'ollama'
     static_configs:
-      - targets: ['frontend:5173']
-    metrics_path: '/metrics'
+      - targets: ['ollama:11434']
+    metrics_path: '/api/metrics'
     scrape_interval: 30s
-    scrape_timeout: 10s
 
-  # PostgreSQL (if postgres_exporter is available)
+  # PostgreSQL (if using postgres_exporter)
   - job_name: 'postgres'
     static_configs:
       - targets: ['postgres:5432']
     scrape_interval: 30s
-    scrape_timeout: 10s
 
-  # Redis (if redis_exporter is available)
+  # Redis (if using redis_exporter)
   - job_name: 'redis'
     static_configs:
       - targets: ['redis:6379']
     scrape_interval: 30s
-    scrape_timeout: 10s
-
-  # Ollama (if metrics are available)
-  - job_name: 'ollama'
-    static_configs:
-      - targets: ['ollama:11434']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-    scrape_timeout: 10s
 
   # Node Exporter (system metrics)
-  - job_name: 'node-exporter'
+  - job_name: 'node'
     static_configs:
       - targets: ['localhost:9100']
-    scrape_interval: 15s
+    scrape_interval: 30s
 
   # Docker containers
   - job_name: 'docker'
     static_configs:
       - targets: ['localhost:9323']
-    scrape_interval: 15s
-
-  # Loki
-  - job_name: 'loki'
-    static_configs:
-      - targets: ['loki:3100']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-
-  # Grafana
-  - job_name: 'grafana'
-    static_configs:
-      - targets: ['grafana:3000']
-    metrics_path: '/metrics'
     scrape_interval: 30s
 
 # Alerting rules (optional)

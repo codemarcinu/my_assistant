@@ -45,7 +45,7 @@ FoodSave AI to zaawansowany system AI do zarządzania żywnością, który łąc
          │                       │                       │
          │              ┌─────────────────┐              │
          └──────────────►│   Database      │◄─────────────┘
-                        │   (SQLite)      │
+                        │   (PostgreSQL)  │
                         └─────────────────┘
 ```
 
@@ -53,27 +53,52 @@ FoodSave AI to zaawansowany system AI do zarządzania żywnością, który łąc
 
 This is the fastest and most reliable way to get the entire FoodSave AI system running.
 
+### 🚀 Szybki Start (Docker - Zalecane)
+
+To najszybszy i najbardziej niezawodny sposób uruchomienia całego systemu FoodSave AI.
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/yourusername/foodsave-ai.git
 cd foodsave-ai
 
-# 2. Create environment file from the example
+# 2. Quick start (automatyczna konfiguracja)
+./scripts/start-dev.sh
+
+# LUB ręczna konfiguracja:
+# 2a. Create environment file from the example
 cp env.dev.example .env
 
-# 3. Build and run all services in detached mode
-docker compose up --build -d
+# 2b. Setup development environment
+./scripts/dev-setup.sh setup
+
+# 2c. Build and run all services in detached mode
+./scripts/dev-setup.sh start
 ```
 
 **Application will be available at:**
-- 🌐 **Frontend**: http://localhost:3000
+- 🌐 **Frontend**: http://localhost:5173
 - 🔧 **Backend API**: http://localhost:8000
 - 📚 **API Docs**: http://localhost:8000/docs
-- 📊 **Monitoring (Grafana)**: http://localhost:3001
+- 🤖 **Ollama**: http://localhost:11434
+- 📈 **Prometheus**: http://localhost:9090
+- 📊 **Monitoring (Grafana)**: http://localhost:3001 (admin/admin)
+- 📝 **Logs (Loki)**: http://localhost:3100
 
 **To stop the application:**
 ```bash
-docker compose down
+./scripts/dev-setup.sh stop
+```
+
+**To view logs:**
+```bash
+# All logs
+./scripts/dev-setup.sh logs all
+
+# Specific service logs
+./scripts/dev-setup.sh logs backend
+./scripts/dev-setup.sh logs frontend
+./scripts/dev-setup.sh logs ollama
 ```
 
 ---
@@ -103,7 +128,7 @@ FoodSave AI is an advanced multi-agent AI system designed for managing household
   - **💾 Database Storage**: Conversation persistence
   - **🎛️ Frontend Settings**: Complete configuration panel
 
-- **⚡ Next.js Frontend**: Modern user interface with TypeScript
+- **⚡ React/Vite Frontend**: Modern user interface with TypeScript
 - **🧠 Advanced NLP**: Processing complex, multi-threaded commands
 - **🔒 Local LLM Integration**: Uses Ollama for privacy
 - **💾 Memory Management**: Enhanced conversation state tracking
@@ -112,6 +137,14 @@ FoodSave AI is an advanced multi-agent AI system designed for managing household
 - **📝 Concise Responses**: Perplexity.ai-style response length control
 
 ### 🆕 Latest Features (June 2025)
+
+#### **Complete Development Environment** 🆕
+- **🐳 Full Docker Setup**: Complete containerized development environment
+- **📊 Comprehensive Monitoring**: Prometheus, Grafana, Loki for logs and metrics
+- **🔍 Full Logging**: Structured logging for all services
+- **⚡ Hot Reload**: Automatic reload for backend and frontend
+- **🧪 Testing Framework**: Complete test suite with coverage
+- **🔧 Development Tools**: Automated setup and management scripts
 
 #### **Telegram Bot Integration** 🆕
 - **🤖 Full Telegram Bot API integration**: Real-time messaging with AI assistant
@@ -149,17 +182,20 @@ FoodSave AI is an advanced multi-agent AI system designed for managing household
 - **📱 Telegram Bot API** - Real-time messaging integration
 
 ### Frontend
-- **⚛️ Next.js 14** - React framework
+- **⚛️ React 18** - Modern UI framework
 - **🔷 TypeScript** - Type safety
 - **🎨 Tailwind CSS** - Styling
 - **🔗 TanStack Query** - State management
 - **🧪 Jest + Playwright** - Testing
 
-### DevOps
+### DevOps & Monitoring
 - **🐳 Docker** - Containerization
 - **📦 Poetry** - Python dependency management
 - **🧪 Pytest** - Testing framework
 - **📊 Grafana** - Monitoring dashboard
+- **📈 Prometheus** - Metrics collection
+- **📝 Loki** - Log aggregation
+- **🔄 Hot Reload** - Development efficiency
 
 ## 📦 Installation & Setup
 
@@ -173,436 +209,286 @@ This method ensures that all services (backend, frontend, databases, monitoring)
 - **🐳 Docker** and **Docker Compose**
 - **🌐 Git**
 
-#### Steps
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/yourusername/foodsave-ai.git
-    cd foodsave-ai
-    ```
+#### Quick Start
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/foodsave-ai.git
+cd foodsave-ai
 
-2.  **Create Environment File:**
-    Copy the development environment example file. No changes are needed to get started.
-    ```bash
-    cp env.dev.example .env
-    ```
+# 2. Quick start (automatyczna konfiguracja)
+./scripts/start-dev.sh
+```
 
-3.  **Build and Run:**
-    This command will build the necessary Docker images and start all services.
-    ```bash
-    docker compose up --build -d
-    ```
-    > **Note on PostgreSQL Port:** If you have a local PostgreSQL instance running, you might encounter a port conflict on `5432`. The configuration uses port **5433** for the container to avoid conflicts.
+#### Manual Setup
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/foodsave-ai.git
+cd foodsave-ai
 
-4.  **Verify Services:**
-    Check if all containers are running.
-    ```bash
-    docker ps
-    ```
-    You should see `foodsave-backend`, `foodsave-frontend`, `foodsave-ollama`, and others running.
+# 2. Create Environment File
+cp env.dev.example .env
 
-### Method 2: Manual Local Setup
+# 3. Setup development environment
+./scripts/dev-setup.sh setup
 
-Use this method if you prefer to run the services directly on your machine without Docker.
+# 4. Build and Run
+./scripts/dev-setup.sh start
+```
+
+> **Note on PostgreSQL Port:** If you have a local PostgreSQL instance running, you might encounter a port conflict on `5432`. The configuration uses port **5433** for the container to avoid conflicts.
+
+#### 5. Verify Services
+Check if all containers are running.
+```bash
+./scripts/dev-setup.sh status
+```
+
+### Method 2: Manual Setup (Advanced)
+
+For developers who prefer to run services locally without Docker.
 
 #### Prerequisites
 - **🐍 Python 3.12+**
 - **📦 Poetry**
-- **🟢 Node.js 20.x or higher**
-- **🤖 [Ollama](https://ollama.com/)** installed and running.
+- **🗄️ PostgreSQL 15+**
+- **🔴 Redis 7+**
+- **🤖 Ollama**
+- **🌐 Node.js 18+**
 
 #### Steps
-1.  **Clone and Setup Environment:**
-    ```bash
-    git clone https://github.com/yourusername/foodsave-ai.git
-    cd foodsave-ai
-    cp env.dev.example .env
-    ```
+1. **Install Python dependencies:**
+   ```bash
+   poetry install
+   ```
 
-2.  **Backend Setup:**
-    ```bash
-    # Install Python dependencies
-    poetry install
-    # Activate virtual environment
-    poetry shell
-    # Run database migrations (if applicable)
-    # poetry run alembic upgrade head
-    ```
+2. **Setup database:**
+   ```bash
+   # Create database
+   createdb foodsave_dev
+   
+   # Run migrations
+   poetry run alembic upgrade head
+   ```
 
-3.  **Frontend Setup:**
-    ```bash
-    # Navigate to frontend directory
-    cd myappassistant-chat-frontend
-    # Install Node.js dependencies
-    npm install
-    cd ..
-    ```
+3. **Install Ollama models:**
+   ```bash
+   ollama pull gemma3:12b
+   ollama pull nomic-embed-text
+   ```
 
-4.  **Run the Application:**
-    You can use the provided script to run all services locally.
-    ```bash
-    ./run_all.sh
-    ```
-    This script will start the backend, frontend, and check for Ollama.
+4. **Start services:**
+   ```bash
+   # Start Redis
+   redis-server
+   
+   # Start Ollama
+   ollama serve
+   
+   # Start backend
+   poetry run uvicorn src.backend.main:app --reload --host 0.0.0.0 --port 8000
+   
+   # Start frontend (in another terminal)
+   cd myappassistant-chat-frontend
+   npm install
+   npm run dev
+   ```
 
 ## 🚀 Usage
 
-### Starting the Application
+### Basic Usage
 
-- **Docker (Recommended):**
-  ```bash
-  docker compose up -d
-  ```
+1. **Open the application** at http://localhost:5173
+2. **Start a conversation** with the AI assistant
+3. **Upload receipts** for automatic product recognition
+4. **Manage your pantry** with intelligent suggestions
+5. **Plan meals** based on available ingredients
 
-- **Local Machine:**
-  ```bash
-  ./run_all.sh
-  ```
+### Advanced Features
 
-### Accessing the Application
+#### Telegram Bot
+1. **Configure bot** in the frontend settings
+2. **Set webhook** for real-time messaging
+3. **Start chatting** with your AI assistant
 
-- **🌐 Frontend**: http://localhost:3000
-- **🔧 Backend API**: http://localhost:8000
-- **📚 API Docs**: http://localhost:8000/docs / http://localhost:8000/redoc
-- **📊 Monitoring (Grafana)**: http://localhost:3001 (for Docker setup)
+#### Concise Responses
+1. **Select response length** (concise, standard, detailed)
+2. **Get quick answers** for fast decision making
+3. **Expand responses** for more details when needed
 
-### Using Concise Responses
-
-The system now supports Perplexity.ai-style concise responses:
-
-1. **Generate concise response:**
-   ```bash
-   curl -X POST "http://localhost:8000/api/v2/concise/generate" \
-        -H "Content-Type: application/json" \
-        -d '{"query": "What is the weather today?", "style": "concise"}'
-   ```
-
-2. **Expand response:**
-   ```bash
-   curl -X POST "http://localhost:8000/api/v2/concise/expand" \
-        -H "Content-Type: application/json" \
-        -d '{"concise_text": "Sunny, 25°C", "original_query": "What is the weather today?"}'
-   ```
-
-3. **Analyze conciseness:**
-   ```bash
-   curl -X GET "http://localhost:8000/api/v2/concise/analyze?text=Your text here"
-   ```
-
-### Stopping the Application
-
-- **Docker:**
-  ```bash
-  docker compose down
-  ```
-
-- **Local Machine:**
-  ```bash
-  ./stop_all.sh
-  ```
+#### Monitoring
+1. **View metrics** in Grafana (http://localhost:3001)
+2. **Check logs** in Loki (http://localhost:3100)
+3. **Monitor performance** in Prometheus (http://localhost:9090)
 
 ## 🧪 Testing
 
-### Running Backend Tests
+### Running Tests
 
 ```bash
-# Install dependencies (if not done yet)
-poetry install
-# Run all tests
-poetry run pytest tests/ -v
-```
+# All tests
+./scripts/dev-setup.sh test
 
-- To run a specific test type:
-```bash
-poetry run pytest tests/unit/ -v
-poetry run pytest tests/integration/ -v
-```
+# Unit tests
+docker-compose -f docker-compose.dev.yaml exec backend poetry run pytest tests/unit/ -v
 
-### Running Frontend Tests
-```bash
+# Integration tests
+docker-compose -f docker-compose.dev.yaml exec backend poetry run pytest tests/integration/ -v
+
+# Frontend tests
 cd myappassistant-chat-frontend
 npm test
-# For E2E tests
-npm run test:e2e
 ```
 
 ### Test Coverage
-- **Current coverage**: 38% (target: 90%)
-- **Test pass rate**: 98.2% (216/220 tests passing)
-- **Generate coverage report**:
-  ```bash
-  poetry run pytest --cov=src --cov-report=html tests/
-  ```
 
-### Recent Test Results
-- ✅ **216 tests passed** (98.2%)
-- ✅ **4 tests skipped** (infrastructure)
-- ✅ **0 tests failed**
-- ✅ **All critical functionality working**
+```bash
+# Generate coverage report
+docker-compose -f docker-compose.dev.yaml exec backend poetry run pytest --cov=src --cov-report=html
+
+# View coverage report
+open coverage/index.html
+```
 
 ## 📊 Monitoring
 
-The project is equipped with a monitoring stack available in the Docker setup.
+### Available Dashboards
 
-### Monitoring Dashboards
-- **Grafana**: http://localhost:3001 (user: `admin`, pass: `admin`)
-  - Pre-configured dashboards for application and log metrics.
+- **📈 System Overview**: General system health and performance
+- **🤖 AI Agents**: Agent performance and usage metrics
+- **🗄️ Database**: Database performance and query metrics
+- **📱 API Endpoints**: API usage and response times
+- **📝 Logs**: Centralized log viewing and analysis
+
+### Access Points
+
+- **Grafana**: http://localhost:3001 (admin/admin)
 - **Prometheus**: http://localhost:9090
-  - Scrapes metrics from the backend.
+- **Loki**: http://localhost:3100
 
-### Backend Health & Metric Endpoints
-- **💚 Health Check**: `http://localhost:8000/health`
-- **📊 Prometheus Metrics**: `http://localhost:8000/metrics`
-- **✅ Readiness Check**: `http://localhost:8000/ready`
-- **📋 System Status**: `http://localhost:8000/api/v1/status`
+### Key Metrics
 
-### System Metrics
-- **Memory usage**: Real-time monitoring
-- **API performance**: Response times, throughput
-- **Agent status**: Health checks for all agents
-- **Database**: Connection pool, query performance
-- **Ollama logs**: Run `docker logs foodsave-ollama`
-- **Combined logs**: Check Grafana's Loki data source.
+- **Response Times**: API endpoint performance
+- **Error Rates**: System reliability
+- **Resource Usage**: CPU, memory, disk usage
+- **AI Model Performance**: Inference times and accuracy
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
-1. **Missing dependencies (ModuleNotFoundError, e.g. numpy):**
-   ```bash
-   poetry install
-   ```
-2. **Port already in use:**
-   ```bash
-   ./stop_all.sh  # Stop existing processes
-   ./run_all.sh   # Start fresh
-   ```
-3. **Ollama not working:**
-   ```bash
-   ollama serve
-   ```
-4. **Permission error:**
-   ```bash
-   chmod +x run_all.sh stop_all.sh
-   ```
+#### 1. Port Conflicts
+```bash
+# Check what's using a port
+sudo lsof -i :8000
 
-### Recent Fixes Applied
+# Kill the process
+sudo kill -9 <PID>
+```
 
-#### Import Structure Issues
-- ✅ **Fixed**: Unified import paths across the project
-- ✅ **Fixed**: Resolved container import compatibility
-- ✅ **Fixed**: Updated Docker configuration for proper file mapping
+#### 2. Docker Issues
+```bash
+# Restart Docker
+sudo systemctl restart docker
 
-#### Dependency Issues
-- ✅ **Fixed**: Added missing dependencies (`aiofiles`, `slowapi`, `pybreaker`)
-- ✅ **Fixed**: Resolved version conflicts (`pytest-asyncio`)
-- ✅ **Fixed**: Updated Poetry configuration
+# Clean up containers
+docker system prune -a
+```
 
-#### Test Issues
-- ✅ **Fixed**: SQLAlchemy relationship errors
-- ✅ **Fixed**: Test isolation problems
-- ✅ **Fixed**: Agent factory initialization issues
+#### 3. Model Loading Issues
+```bash
+# Check Ollama status
+curl http://localhost:11434/api/version
 
-### Logs
-- **Backend logs**: `logs/backend/`
-- **Frontend logs**: `logs/frontend/`
-- **Ollama logs**: `journalctl -u ollama -f` (Linux)
+# Pull models manually
+ollama pull gemma3:12b
+```
+
+#### 4. Database Issues
+```bash
+# Reset database
+./scripts/dev-setup.sh cleanup
+./scripts/dev-setup.sh start
+```
+
+### Getting Help
+
+1. **Check logs**: `./scripts/dev-setup.sh logs all`
+2. **View status**: `./scripts/dev-setup.sh status`
+3. **Restart services**: `./scripts/dev-setup.sh restart`
+4. **Check documentation**: [Development Guide](README_DEVELOPMENT.md)
 
 ## 📚 Documentation
 
-### 🚀 **Kompletna Dokumentacja**
-- **[📚 Dokumentacja Główna](docs/README.md)** - Kompletny przewodnik po wszystkich dokumentach
-- **[📖 Główny README](README.md)** - Ten dokument - przegląd projektu
-- **[🚀 Przewodnik Wdrażania](docs/DEPLOYMENT_GUIDE.md)** - Instrukcje wdrażania produkcyjnego
-- **[👨‍💻 Przewodnik Współpracy](docs/CONTRIBUTING_GUIDE.md)** - Jak współtworzyć projekt
+### Core Documentation
+- **[📖 Development Guide](README_DEVELOPMENT.md)** - Complete development setup and workflow
+- **[🏗️ Architecture Documentation](docs/ARCHITECTURE_DOCUMENTATION.md)** - System architecture overview
+- **[🔧 API Reference](docs/API_REFERENCE.md)** - Complete API documentation
+- **[🤖 Agents Guide](docs/AGENTS_GUIDE.md)** - AI agents documentation
+- **[🧪 Testing Guide](docs/TESTING_GUIDE.md)** - Testing strategies and best practices
 
-### 🏗️ **Architektura i Technologie**
-- **[🏗️ Dokumentacja Architektury](docs/ARCHITECTURE_DOCUMENTATION.md)** - Szczegółowy opis architektury systemu
-- **[🔧 Referencja API](docs/API_REFERENCE.md)** - Kompletna dokumentacja endpointów API
-- **[🗄️ Przewodnik Bazy Danych](docs/DATABASE_GUIDE.md)** - Struktura bazy danych i zarządzanie
-- **[💾 System Backup](docs/BACKUP_SYSTEM_GUIDE.md)** - Procedury backup i recovery
+### Additional Resources
+- **[📊 Monitoring Guide](docs/MONITORING_TELEMETRY_GUIDE.md)** - Monitoring and observability
+- **[🔒 Security Guide](docs/AUDIT_REPORT.md)** - Security considerations
+- **[🚀 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment
+- **[📱 Telegram Bot Guide](docs/TELEGRAM_BOT_INTEGRATION_REPORT.md)** - Telegram integration
 
-### 🤖 **AI i Machine Learning**
-- **[🤖 Przewodnik Agenty AI](docs/AGENTS_GUIDE.md)** - AI agenty i orkiestracja
-- **[🧠 System RAG](docs/RAG_SYSTEM_GUIDE.md)** - Retrieval-Augmented Generation
-- **[💬 Zwięzłe Odpowiedzi](docs/CONCISE_RESPONSES_IMPLEMENTATION.md)** - System zwięzłych odpowiedzi Perplexity.ai-style
-- **[⚡ Optymalizacja Modeli](docs/MODEL_OPTIMIZATION_GUIDE.md)** - Optymalizacja modeli AI
+### API Documentation
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-### 📱 **Integracje i API**
-- **[📱 Integracja Telegram Bot](docs/TELEGRAM_BOT_INTEGRATION_REPORT.md)** - Szczegółowy raport integracji Telegram
-- **[🤖 Przewodnik Wdrażania Telegram Bot](docs/TELEGRAM_BOT_DEPLOYMENT_GUIDE.md)** - Instrukcje wdrażania bota
-- **[🔧 API Endpoints](docs/API_REFERENCE.md)** - Wszystkie endpointy API
+## 🤝 Contributing
 
-### 🧪 **Testowanie i Jakość**
-- **[🧪 Przewodnik Testowania](docs/TESTING_GUIDE.md)** - Strategie testowania i best practices
-- **[📊 Raport Testów](tests/TEST_RESULTS_SUMMARY.md)** - Podsumowanie wyników testów
-- **[🔍 Status Testów Końcowy](tests/FINAL_TEST_STATUS.md)** - Końcowy status testów
+We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING_GUIDE.md) for details.
 
-### 📊 **Monitoring i Telemetria**
-- **[📊 Monitoring i Telemetria](docs/MONITORING_TELEMETRY_GUIDE.md)** - System monitoringu i metryk
-- **[📊 Grafana Dashboards](monitoring/grafana/dashboards/)** - Dashboardy monitoringu
-- **[📊 Prometheus Config](monitoring/prometheus.yml)** - Konfiguracja metryk
+### Development Workflow
 
-### 📈 **Raporty i Podsumowania**
-- **[📊 Raport Końcowy](docs/FINAL_REPORT.md)** - Kompletny raport projektu
-- **[📋 Podsumowanie Implementacji](docs/IMPLEMENTATION_SUMMARY.md)** - Podsumowanie implementacji funkcji
-- **[🔍 Raport Audytu](docs/AUDIT_REPORT.md)** - Audyt bezpieczeństwa i jakości
-- **[📊 Podsumowanie Czyszczenia Projektu](PROJECT_CLEANUP_SUMMARY.md)** - Podsumowanie uporządkowania
-- **[📋 Podsumowanie Konwersacji](docs/KONWERSACJA_PODSUMOWANIE.md)** - Kompletny raport z konwersacji i wykonanych prac
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** following the [`.cursorrules`](.cursorrules)
+4. **Run tests**: `./scripts/dev-setup.sh test`
+5. **Commit your changes**: `git commit -m 'Add amazing feature'`
+6. **Push to the branch**: `git push origin feature/amazing-feature`
+7. **Open a Pull Request**
 
-### 📱 **Frontend Development**
-- **[📋 Plan Implementacji Frontendu](docs/frontend-implementation-plan.md)** - Roadmapa rozwoju frontendu
-- **[✅ Checklista Implementacji Frontendu](docs/frontend-implementation-checklist.md)** - Lista kontrolna rozwoju UI
+### Code Standards
 
-### 📋 **Dokumentacja Według Roli**
+- Follow the [`.cursorrules`](.cursorrules) for code quality
+- Write tests for new features
+- Update documentation as needed
+- Use conventional commit messages
 
-**👨‍💻 Deweloperzy**: [Przewodnik Współpracy](docs/CONTRIBUTING_GUIDE.md) | [Referencja API](docs/API_REFERENCE.md) | [Przewodnik Testowania](docs/TESTING_GUIDE.md)
+## 📄 License
 
-**🚀 DevOps**: [Przewodnik Wdrażania](docs/DEPLOYMENT_GUIDE.md) | [System Backup](docs/BACKUP_SYSTEM_GUIDE.md) | [Monitoring i Telemetria](docs/MONITORING_TELEMETRY_GUIDE.md)
-
-**🤖 AI/ML Engineers**: [Przewodnik Agenty AI](docs/AGENTS_GUIDE.md) | [System RAG](docs/RAG_SYSTEM_GUIDE.md) | [Zwięzłe Odpowiedzi](docs/CONCISE_RESPONSES_IMPLEMENTATION.md)
-
-**📊 Data Engineers**: [Przewodnik Bazy Danych](docs/DATABASE_GUIDE.md) | [Dokumentacja Architektury](docs/ARCHITECTURE_DOCUMENTATION.md)
-
-**📱 Frontend Developers**: [Plan Implementacji Frontendu](docs/frontend-implementation-plan.md) | [Checklista Implementacji Frontendu](docs/frontend-implementation-checklist.md) | [Referencja API](docs/API_REFERENCE.md)
-
-### 🔍 **Szybkie Wyszukiwanie**
-- **[📚 Dokumentacja Główna](docs/README.md)** - Kompletny przewodnik po wszystkich dokumentach
-- **[🚀 Szybki Start](docs/README.md#-szybki-start)** - Instrukcje szybkiego uruchomienia
-- **[🔧 Konfiguracja](docs/README.md#-konfiguracja)** - Pliki konfiguracyjne
-- **[🧪 Testowanie](docs/README.md#-testowanie)** - Strategie testowania
-### 🛒 Zarządzanie Zakupami
-- **OCR paragonów** - Automatyczne rozpoznawanie produktów
-- **Klasyfikacja kategorii** - Inteligentne kategoryzowanie
-- **Śledzenie wydatków** - Analiza wzorców zakupowych
-
-### 🥘 Planowanie Posiłków
-- **Inteligentne sugestie** - Na podstawie dostępnych składników
-- **Optymalizacja przepisów** - Minimalizacja marnowania
-- **Planowanie tygodniowe** - Zintegrowane z zapasami
-
-### 📦 Zarządzanie Zapasami
-- **Automatyczne aktualizacje** - Po każdych zakupach
-- **Predykcja dat ważności** - Alerty o zbliżającej się dacie
-- **Optymalizacja zapasów** - Sugestie zakupów
-
-### 🎁 Koordynacja Darowizn
-- **Automatyczne dopasowanie** - Produktów do organizacji
-- **Śledzenie statusu** - Od złożenia do dostarczenia
-- **Integracja z NGO** - Bezpośrednie połączenia
-
-### 💬 Zwięzłe Odpowiedzi
-- **Szybka komunikacja** - Skrócone odpowiedzi AI
-- **Kontekstowe odpowiedzi** - Dostosowane do sytuacji
-- **Optymalizacja wydajności** - Szybsze odpowiedzi
-
-## 🧪 Testowanie
-
-### Uruchomienie Testów
-```bash
-# Testy jednostkowe
-pytest tests/unit/
-
-# Testy integracyjne
-pytest tests/integration/
-
-# Testy e2e
-pytest tests/e2e/
-
-# Wszystkie testy
-pytest
-```
-
-### Pokrycie Kodu
-```bash
-pytest --cov=src --cov-report=html
-```
-
-## 🐳 Docker
-
-### Uruchomienie Produkcyjne
-```bash
-docker-compose up -d
-```
-
-### Uruchomienie Deweloperskie
-```bash
-docker-compose -f docker-compose.dev.yaml up -d
-```
-
-## 📊 Monitoring
-
-### Dashboardy Grafana
-- **FoodSave Dashboard** - Główne metryki aplikacji
-- **Chat Interactions** - Interakcje z AI
-- **System Logs** - Logi systemowe
-
-### Metryki Prometheus
-- **Wydajność API** - Response times, throughput
-- **Użycie zasobów** - CPU, memory, disk
-- **Błędy aplikacji** - Error rates, exceptions
-
-## 🔒 Bezpieczeństwo
-
-- **Autoryzacja JWT** - Bezpieczne uwierzytelnianie
-- **Rate limiting** - Ochrona przed nadużyciami
-- **Input validation** - Walidacja wszystkich danych wejściowych
-- **SQL injection protection** - Bezpieczne zapytania do bazy
-
-## 🤝 Współtworzenie
-
-Zobacz [Przewodnik Współpracy](docs/CONTRIBUTING_GUIDE.md) dla szczegółowych informacji o:
-- Konfiguracji środowiska deweloperskiego
-- Standardach kodowania
-- Procesie Pull Request
-- Zgłaszaniu błędów
-
-## 📈 Status Projektu
-
-- **✅ Backend API** - Kompletny i przetestowany
-- **✅ Frontend UI** - Responsywny i funkcjonalny
-- **✅ AI Agents** - Wszystkie agenty działają
-- **✅ System RAG** - Zintegrowany z dokumentacją
-- **✅ Monitoring** - Kompletny system monitoringu
-- **✅ Testy** - Pokrycie >90%
-- **✅ Dokumentacja** - Kompletna i aktualna
-
-## 📞 Wsparcie
-
-- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
-- **Documentation**: [Dokumentacja](docs/README.md)
-
-## 📄 Licencja
-
-Ten projekt jest licencjonowany na podstawie [LICENSE](LICENSE).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**FoodSave AI** - Inteligentne zarządzanie żywnością dla lepszego świata 🌍
+## 🎯 Quick Commands Reference
 
-## Recent Updates (June 2025)
+```bash
+# Quick start
+./scripts/start-dev.sh
 
-### ✅ **Concise Response System Implemented**
-- **Perplexity.ai-style responses**: Full implementation with response length control
-- **Map-reduce RAG processing**: Two-stage document processing for better summaries
-- **Frontend integration**: Beautiful UI components for concise responses
-- **API endpoints**: Complete REST API for concise response operations
-- **Metrics and monitoring**: Real-time conciseness scoring
+# Full setup
+./scripts/dev-setup.sh setup
+./scripts/dev-setup.sh start
 
-### ✅ **System Stability Improvements**
-- **Import structure unified**: All imports now use consistent `backend.*` format
-- **Docker configuration optimized**: Simplified container setup and management
-- **Dependency issues resolved**: All missing packages installed and version conflicts fixed
-- **Test suite stabilized**: 98.2% pass rate with zero critical failures
+# Management
+./scripts/dev-setup.sh status
+./scripts/dev-setup.sh logs all
+./scripts/dev-setup.sh stop
+./scripts/dev-setup.sh restart
 
-### ✅ **Performance Optimizations**
-- **Memory usage optimized**: Better resource management
-- **Response times improved**: Faster API responses
-- **Error handling enhanced**: Graceful degradation and recovery
-- **Monitoring expanded**: Comprehensive metrics and alerting
+# Development
+./scripts/dev-setup.sh test
+./scripts/dev-setup.sh models
 
-### 🔧 **Technical Debt Addressed**
-- **Code cleanup**: Removed redundant files and configurations
-- **Documentation updated**: All guides reflect current implementation
-- **Security improvements**: Better error handling and input validation
-- **Maintainability enhanced**: Consistent code patterns and structure
+# Cleanup
+./scripts/dev-setup.sh cleanup
+```
+
+---
+
+**🍽️ FoodSave AI** - Intelligent Culinary Assistant powered by AI 🚀
+
+*Built with ❤️ using FastAPI, React, and Ollama*
