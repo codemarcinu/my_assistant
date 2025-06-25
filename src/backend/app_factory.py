@@ -19,7 +19,7 @@ from backend.api.v2.api import api_router as api_v2_router
 from backend.api.v2.exceptions import APIErrorDetail, APIException
 from backend.config import settings
 from backend.core.cache_manager import CacheManager
-from backend.core.database import AsyncSessionLocal, Base, engine
+from backend.core.database import AsyncSessionLocal, Base, engine, get_db
 from backend.core.exceptions import (FoodSaveError, convert_system_exception,
                                      log_error_with_context)
 from backend.core.middleware import (ErrorHandlingMiddleware,
@@ -106,11 +106,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     logger.info("Initializing orchestrator pool and request queue...")
     # Initialize orchestrator pool with default orchestrator
-    async with AsyncSessionLocal() as db:
+    async for db in get_db():
         default_orchestrator = Orchestrator(db_session=db)
         await orchestrator_pool.add_instance("default", default_orchestrator)
         await orchestrator_pool.start_health_checks()
         logger.info("Orchestrator pool initialized with default instance")
+        break
 
     yield
 

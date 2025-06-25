@@ -88,6 +88,14 @@ class OrchestratorPool:
         self.current_index = (self.current_index + 1) % len(healthy_instances)
         return orchestrator_to_return
 
+    def release_orchestrator(self, orchestrator: Any) -> None:
+        """
+        Release orchestrator back to pool. Currently a no-op since we don't track usage.
+        """
+        logger.debug(f"Releasing orchestrator back to pool")
+        # In a more sophisticated implementation, this would track usage and availability
+        # For now, we just log the release
+
     async def _run_health_checks(self) -> None:
         """Cykl przeprowadzania testów zdrowia dla wszystkich instancji."""
         while True:
