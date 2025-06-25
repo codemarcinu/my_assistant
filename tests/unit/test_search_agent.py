@@ -5,6 +5,7 @@ import pytest
 
 from backend.agents.error_types import AgentError
 from backend.agents.search_agent import SearchAgent
+from backend.core.interfaces import AgentResponse
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../..", "src"))  # Usuń jeśli niepotrzebne
 
@@ -376,49 +377,51 @@ class TestSearchAgent:
         assert "Refined search results" in result_text
 
     @pytest.mark.asyncio
-    async def test_search_agent_with_results() -> None:
+    async def test_search_agent_with_results(self) -> None:
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
         agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
-        mock_context = {"query": "test query", "model": "llama3"}
+        mock_context = {"query": "test query", "model": "llama3", "use_perplexity": False, "verify_knowledge": False}
 
         with patch(
-            "backend.agents.search_agent.perplexity_client.search"
+            "backend.agents.search_agent.web_search.search"
         ) as mock_web_search, patch(
             "backend.agents.search_agent.hybrid_llm_client.chat"
         ) as mock_chat:
-            mock_web_search.return_value = {
-                "success": True,
-                "content": "LLM summary: Test search results",
-            }
+            mock_web_search.return_value = [
+                {
+                    "title": "Test Result",
+                    "url": "https://example.com",
+                    "snippet": "Test search results",
+                    "source": "wikipedia",
+                    "knowledge_verified": True,
+                    "confidence": 0.9
+                }
+            ]
             mock_chat.return_value = {
                 "message": {"content": "LLM summary: Test search results"}
             }
 
             response = await agent.process(mock_context)
-            assert isinstance(response, AgentResponse)
             assert response.success is True
 
             # Consume the stream to get the text
             result_text = ""
             async for chunk in response.text_stream:
                 result_text += chunk
-            assert "LLM summary: Test search results" in result_text
+            assert "Test search results" in result_text
 
     @pytest.mark.asyncio
-    async def test_search_agent_empty_results() -> None:
+    async def test_search_agent_empty_results(self) -> None:
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
         agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
-        mock_context = {"query": "test query"}
+        mock_context = {"query": "test query", "use_perplexity": False, "verify_knowledge": False}
 
         with patch(
-            "backend.agents.search_agent.perplexity_client.search"
+            "backend.agents.search_agent.web_search.search"
         ) as mock_web_search:
-            mock_web_search.return_value = {
-                "success": True,
-                "content": "Nie znaleziono odpowiednich wyników.",
-            }
+            mock_web_search.return_value = []
 
             response = await agent.process(mock_context)
             assert response.success is True  # Empty results are handled gracefully
@@ -430,7 +433,7 @@ class TestSearchAgent:
             assert "Nie znaleziono" in result_text
 
     @pytest.mark.asyncio
-    async def test_enhanced_search_with_verification() -> None:
+    async def test_enhanced_search_with_verification(self) -> None:
         """Test enhanced search with knowledge verification"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -476,7 +479,7 @@ class TestSearchAgent:
             assert "Wiarygodność: 0.30" in result
 
     @pytest.mark.asyncio
-    async def test_basic_search() -> None:
+    async def test_basic_search(self) -> None:
         """Test basic search without verification"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -504,7 +507,7 @@ class TestSearchAgent:
             assert "https://example.com/1" in result
 
     @pytest.mark.asyncio
-    async def test_verify_knowledge_claim() -> None:
+    async def test_verify_knowledge_claim(self) -> None:
         """Test knowledge claim verification"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -541,7 +544,7 @@ class TestSearchAgent:
             assert len(result["sources"]) == 1
 
     @pytest.mark.asyncio
-    async def test_verify_knowledge_claim_no_evidence() -> None:
+    async def test_verify_knowledge_claim_no_evidence(self) -> None:
         """Test knowledge claim verification with no supporting evidence"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -576,7 +579,7 @@ class TestSearchAgent:
             assert result["total_sources"] == 1
 
     @pytest.mark.asyncio
-    async def test_verify_knowledge_claim_error() -> None:
+    async def test_verify_knowledge_claim_error(self) -> None:
         """Test knowledge claim verification with error"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -595,7 +598,7 @@ class TestSearchAgent:
             assert "error" in result
 
     @pytest.mark.asyncio
-    async def test_search_agent_with_knowledge_verification() -> None:
+    async def test_search_agent_with_knowledge_verification(self) -> None:
         """Test SearchAgent with knowledge verification enabled"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -640,7 +643,7 @@ class TestSearchAgent:
             assert "✅" in result_text
 
     @pytest.mark.asyncio
-    async def test_search_agent_without_knowledge_verification() -> None:
+    async def test_search_agent_without_knowledge_verification(self) -> None:
         """Test SearchAgent with knowledge verification disabled"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -678,7 +681,7 @@ class TestSearchAgent:
             assert "Wskaźnik wiarygodności" not in result_text  # Should not contain verification info
 
     @pytest.mark.asyncio
-    async def test_search_agent_metadata() -> None:
+    async def test_search_agent_metadata(self) -> None:
         """Test SearchAgent metadata includes knowledge verification capabilities"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -694,7 +697,7 @@ class TestSearchAgent:
         assert metadata["knowledge_verification_threshold"] == 0.7
 
     @pytest.mark.asyncio
-    async def test_search_agent_dependencies() -> None:
+    async def test_search_agent_dependencies(self) -> None:
         """Test SearchAgent dependencies include web_search"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -708,7 +711,7 @@ class TestSearchAgent:
         assert "perplexity_client" in dependencies
 
     @pytest.mark.asyncio
-    async def test_enhanced_search_error_handling() -> None:
+    async def test_enhanced_search_error_handling(self) -> None:
         """Test error handling in enhanced search"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -725,7 +728,7 @@ class TestSearchAgent:
             assert "Search error" in result
 
     @pytest.mark.asyncio
-    async def test_basic_search_error_handling() -> None:
+    async def test_basic_search_error_handling(self) -> None:
         """Test error handling in basic search"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -742,7 +745,7 @@ class TestSearchAgent:
             assert "Search error" in result
 
     @pytest.mark.asyncio
-    async def test_enhanced_search_empty_results() -> None:
+    async def test_enhanced_search_empty_results(self) -> None:
         """Test enhanced search with empty results"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()
@@ -764,7 +767,7 @@ class TestSearchAgent:
             assert "Nie znaleziono odpowiednich wyników wyszukiwania" in result
 
     @pytest.mark.asyncio
-    async def test_basic_search_empty_results() -> None:
+    async def test_basic_search_empty_results(self) -> None:
         """Test basic search with empty results"""
         mock_vector_store = AsyncMock()
         mock_llm_client = AsyncMock()

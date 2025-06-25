@@ -31,6 +31,7 @@ flowchart TD
         C5[RAGAgent]
         C6[WeatherAgent]
         C7[GeneralConversationAgent]
+        C8[ConciseResponseAgent]
     end
 
     subgraph "Core Services"
@@ -41,6 +42,8 @@ flowchart TD
         D5[HybridLLMClient]
         D6[ProfileManager]
         D7[AlertManager]
+        D8[ConciseRAGProcessor]
+        D9[ResponseLengthConfig]
     end
 
     subgraph "Infrastructure"
@@ -75,6 +78,7 @@ flowchart TD
     B4 --> C5
     B4 --> C6
     B4 --> C7
+    B4 --> C8
 
     C1 --> D1
     C2 --> D2
@@ -83,6 +87,8 @@ flowchart TD
     C5 --> D5
     C6 --> D6
     C7 --> D7
+    C8 --> D8
+    C8 --> D9
 
     D1 --> E1
     D2 --> E3
@@ -91,6 +97,8 @@ flowchart TD
     D5 --> E4
     D6 --> E1
     D7 --> F2
+    D8 --> D2
+    D8 --> D5
 
     F1 --> E4
     F2 --> F3
@@ -109,6 +117,7 @@ flowchart TD
 - **RAG API**: `/api/v2/rag` - operacje na bazie wiedzy
 - **Weather API**: `/api/v2/weather` - informacje o pogodzie
 - **Backup API**: `/api/v2/backup` - zarządzanie backupami
+- **Concise Response API**: `/api/v2/concise` - zwięzłe odpowiedzi w stylu Perplexity.ai
 - **Health API**: `/health` - sprawdzanie stanu systemu
 - **Metrics API**: `/metrics` - metryki Prometheus
 
@@ -177,6 +186,13 @@ app.add_middleware(MemoryMonitoringMiddleware)
 - **Intent Detection**: Wykrywanie intencji użytkownika
 - **Fallback**: Obsługa niezrozumiałych żądań
 
+#### ConciseResponseAgent
+- **Concise Generation**: Generowanie zwięzłych odpowiedzi w stylu Perplexity.ai
+- **Response Expansion**: Rozszerzanie zwięzłych odpowiedzi na żądanie
+- **Map-Reduce RAG**: Dwustopniowe przetwarzanie dokumentów
+- **Conciseness Analysis**: Analiza zwięzłości tekstu
+- **Length Control**: Kontrola długości odpowiedzi (concise, standard, detailed)
+
 ### 4. Core Services Layer
 **Odpowiedzialność:** Podstawowe serwisy systemu
 
@@ -226,6 +242,47 @@ class RAGDocumentProcessor:
         async with self.context_manager():
             chunks = self._split_document(content)
             return [DocumentChunk(chunk) for chunk in chunks]
+```
+
+#### ConciseRAGProcessor
+```python
+class ConciseRAGProcessor:
+    """Dwustopniowe przetwarzanie RAG z map-reduce dla zwięzłych odpowiedzi"""
+
+    async def process_with_map_reduce(
+        self, 
+        query: str, 
+        chunks: List[Dict], 
+        max_summary_length: int = 200
+    ) -> str:
+        # 1. Map: Podsumuj każdy chunk
+        summaries = await self._summarize_chunks(chunks, max_summary_length)
+        
+        # 2. Reduce: Połącz podsumowania w zwięzłą odpowiedź
+        final_response = await self._generate_concise_response(query, summaries)
+        
+        return final_response
+```
+
+#### ResponseLengthConfig
+```python
+class ResponseLengthConfig:
+    """Konfiguracja długości odpowiedzi dla różnych stylów"""
+
+    def __init__(self, style: ResponseStyle):
+        self.style = style
+        self.max_tokens = self._get_max_tokens()
+        self.temperature = self._get_temperature()
+        self.num_predict = self._get_num_predict()
+
+    def get_ollama_options(self) -> Dict[str, Any]:
+        """Generuje opcje Ollama dla danego stylu"""
+        return {
+            "num_predict": self.num_predict,
+            "temperature": self.temperature,
+            "top_k": 40,
+            "top_p": 0.9
+        }
 ```
 
 ### 5. Infrastructure Layer

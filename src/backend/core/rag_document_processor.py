@@ -47,6 +47,15 @@ try:
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
+    # Define fallback types for when LangChain is not available
+    BaseLoader = type('BaseLoader', (), {})
+    RecursiveCharacterTextSplitter = type('RecursiveCharacterTextSplitter', (), {})
+    PyPDFLoader = type('PyPDFLoader', (), {})
+    WebBaseLoader = type('WebBaseLoader', (), {})
+    UnstructuredEmailLoader = type('UnstructuredEmailLoader', (), {})
+    UnstructuredMarkdownLoader = type('UnstructuredMarkdownLoader', (), {})
+    UnstructuredPowerPointLoader = type('UnstructuredPowerPointLoader', (), {})
+    UnstructuredWordDocumentLoader = type('UnstructuredWordDocumentLoader', (), {})
     logging.warning("LangChain not available, falling back to basic document loading")
 
 # SentenceTransformers imports (optional)
@@ -257,6 +266,9 @@ class RAGDocumentProcessor:
 
     def _get_loader_for_file(self, file_path: str) -> Optional[BaseLoader]:
         """Returns the appropriate loader based on the file extension."""
+        if not LANGCHAIN_AVAILABLE:
+            return None
+            
         path = Path(file_path)
         suffix = path.suffix.lower()
 

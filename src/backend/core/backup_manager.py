@@ -676,3 +676,7 @@ class BackupManager:
             "total_size_mb": total_size / (1024 * 1024),
             "last_backup_timestamp": backups[0]["timestamp"] if backups else None,
         }
+
+
+# Global instance for use in other modules
+backup_manager = BackupManager()

@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict
 from backend.core.language_detector import language_detector
 from backend.core.llm_client import LLMCache, llm_client
 from backend.core.model_selector import ModelTask, model_selector
+from .response_length_config import ResponseLengthConfig, ConciseMetrics, ResponseStyle
 
 logger = logging.getLogger(__name__)
 
@@ -391,10 +392,12 @@ class HybridLLMClient:
         use_perplexity: Optional[bool] = None,
         task: Optional[ModelTask] = None,  # Nowy parametr
         contains_images: bool = False,  # Nowy parametr
+        response_length: Optional[ResponseLengthConfig] = None,  # Nowy parametr dla kontroli długości
         **kwargs,
     ) -> Union[Dict[str, Any], AsyncGenerator[Dict[str, Any], None]]:
         """
-        Enhanced chat method with automatic model selection and explicit model toggling
+        Enhanced chat method with automatic model selection, explicit model toggling,
+        and response length control
         """
         start_time = time.time()
 
@@ -511,16 +514,52 @@ class HybridLLMClient:
             ):
                 messages = [{"role": "system", "content": system_prompt}] + messages
 
+            # Apply response length configuration if provided
+            if response_length:
+                # Merge response length options with existing options
+                if options is None:
+                    options = {}
+                
+                # Apply response length constraints
+                length_options = response_length.get_ollama_options()
+                options.update(length_options)
+                
+                # Add system prompt modifier for concise responses
+                if response_length.concise_mode:
+                    system_modifier = response_length.get_system_prompt_modifier()
+                    if system_prompt:
+                        system_prompt += "\n\n" + system_modifier
+                    else:
+                        # Add system message if none exists
+                        messages = [{"role": "system", "content": system_modifier}] + messages
+
             # Process with resource limiting
             async with self.semaphores[model]:
                 if stream:
                     # For streaming, we need to wrap the generator
-                    return self._wrap_streaming_response(model, messages, options)
+                    return self._wrap_streaming_response(model, messages, options, response_length)
                 else:
                     # For normal requests
                     response = await self.base_client.chat(
                         model=model, messages=messages, stream=False, options=options
                     )
+
+                    # Apply response length validation if configured
+                    if response_length and response and "message" in response:
+                        response_text = response["message"]["content"]
+                        if response_length.should_truncate_response(len(response_text)):
+                            truncation_point = response_length.get_truncation_point(response_text)
+                            truncated_text = response_text[:truncation_point].strip()
+                            if not truncated_text.endswith(('.', '!', '?')):
+                                truncated_text += "..."
+                            response["message"]["content"] = truncated_text
+                            
+                            # Add truncation metadata
+                            if "metadata" not in response:
+                                response["metadata"] = {}
+                            response["metadata"]["truncated"] = True
+                            response["metadata"]["original_length"] = len(response_text)
+                            response["metadata"]["truncated_length"] = len(truncated_text)
 
                     # Update success stats
                     if response and not isinstance(response, Exception):
@@ -570,11 +609,13 @@ class HybridLLMClient:
         model: str,
         messages: List[Dict[str, str]],
         options: Optional[Dict[str, Any]] = None,
+        response_length: Optional[ResponseLengthConfig] = None,
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        """Wrap streaming response with stats tracking"""
+        """Wrap streaming response with stats tracking and length control"""
         start_time = time.time()
         chunks_count = 0
         total_length = 0
+        accumulated_text = ""
 
         try:
             # Get streaming response from base client
@@ -590,7 +631,15 @@ class HybridLLMClient:
                     and "message" in chunk
                     and "content" in chunk["message"]
                 ):
-                    total_length += len(chunk["message"]["content"])
+                    chunk_content = chunk["message"]["content"]
+                    total_length += len(chunk_content)
+                    accumulated_text += chunk_content
+                    
+                    # Apply length control if configured
+                    if response_length and response_length.should_truncate_response(len(accumulated_text)):
+                        # Stop streaming if we've reached the limit
+                        break
+                
                 yield chunk
 
             # Update success stats
@@ -728,6 +777,7 @@ class HybridLLMClient:
         fallback_model: Optional[str] = None,
         max_retries: int = 2,
         stream: bool = False,
+        response_length: Optional[ResponseLengthConfig] = None,  # Nowy parametr
     ) -> Any:
         """Try with primary model, falling back to simpler model if necessary"""
 
@@ -762,7 +812,10 @@ class HybridLLMClient:
         for attempt in range(max_retries):
             try:
                 return await self.chat(
-                    messages=messages, model=primary_model, stream=stream
+                    messages=messages, 
+                    model=primary_model, 
+                    stream=stream,
+                    response_length=response_length,  # Przekaż konfigurację długości
                 )
             except Exception as e:
                 logger.warning(
@@ -770,44 +823,18 @@ class HybridLLMClient:
                 )
                 await asyncio.sleep(0.5 * (2**attempt))
 
-        # If fallback model not specified, choose one with model selector
+        # If primary model fails, try fallback model
         if not fallback_model:
-            # Wykryj język dla wyboru fallbacku
-            detected_language, _ = language_detector.detect_language(query)
+            fallback_model = self.default_model
 
-            # Dla polskich zapytań preferuj Bielika jako fallback
-            if detected_language == "pl":
-                fallback_model = self.default_model
-                logger.info(
-                    f"Using Polish-specific model {fallback_model} as fallback for Polish query"
-                )
-            else:
-                # Wybierz model z wyłączeniem primary_model
-                available_models = [
-                    name
-                    for name, config in self.model_configs.items()
-                    if config.is_enabled and name != primary_model
-                ]
-
-                if available_models:
-                    task = ModelTask.TEXT_ONLY  # Simplified task for fallback
-                    fallback_model = model_selector.select_model(
-                        query=query,
-                        task=task,
-                        complexity=0.3,  # Lower complexity for fallback
-                        available_models=available_models,
-                    )
-                else:
-                    fallback_model = self.default_model
-
-        # Try fallback model
-        logger.warning(
-            f"Falling back to {fallback_model} after {max_retries} failed attempts with {primary_model}"
-        )
+        logger.info(f"Falling back to {fallback_model}")
 
         try:
             return await self.chat(
-                messages=messages, model=fallback_model, stream=stream
+                messages=messages, 
+                model=fallback_model, 
+                stream=stream,
+                response_length=response_length,  # Przekaż konfigurację długości
             )
         except Exception as e:
             logger.error(f"Error with fallback model {fallback_model}: {str(e)}")
@@ -836,5 +863,5 @@ class HybridLLMClient:
         raise ValueError(f"Unknown model: {model_name}")
 
 
-# Initialize hybrid client
+# Global instance
 hybrid_llm_client = HybridLLMClient()

@@ -67,6 +67,7 @@ markers = [
     "memory: marks tests as memory profiling tests",
     "slow: marks tests as slow running",
     "integration: marks tests as integration tests",
+    "concise: marks tests as concise response tests",
 ]
 
 [tool.pytest-benchmark]
@@ -157,7 +158,177 @@ class TestChefAgent:
             await chef_agent.process("Pokaż mi przepis", {})
 ```
 
-### 2. Integration Tests - API Tests
+### 2. Unit Tests - Concise Response Tests
+
+```python
+# tests/unit/test_concise_responses.py
+import pytest
+from unittest.mock import AsyncMock, patch
+from src.backend.agents.concise_response_agent import ConciseResponseAgent
+from src.backend.core.response_length_config import ResponseLengthConfig, ResponseStyle
+from src.backend.core.concise_rag_processor import ConciseRAGProcessor
+
+class TestConciseResponseAgent:
+    """Testy dla Concise Response Agent"""
+
+    @pytest.fixture
+    def mock_llm_client(self):
+        return AsyncMock()
+
+    @pytest.fixture
+    def mock_vector_store(self):
+        return AsyncMock()
+
+    @pytest.fixture
+    def concise_agent(self, mock_llm_client, mock_vector_store):
+        return ConciseResponseAgent(mock_llm_client, mock_vector_store)
+
+    @pytest.mark.asyncio
+    async def test_concise_generation(self, concise_agent, mock_llm_client):
+        """Test generowania zwięzłej odpowiedzi"""
+        # Arrange
+        mock_llm_client.chat.return_value = {
+            "message": {"content": "Sunny, 25°C with light breeze."}
+        }
+
+        # Act
+        response = await concise_agent.process({
+            "query": "What is the weather today?",
+            "style": "concise"
+        })
+
+        # Assert
+        assert response.response is not None
+        assert response.style == "concise"
+        assert response.conciseness_score > 0.8
+        assert len(response.response.split()) <= 10
+
+    @pytest.mark.asyncio
+    async def test_response_expansion(self, concise_agent, mock_llm_client):
+        """Test rozszerzania zwięzłej odpowiedzi"""
+        # Arrange
+        concise_text = "Sunny, 25°C"
+        mock_llm_client.chat.return_value = {
+            "message": {"content": "Today's weather is sunny with a temperature of 25°C..."}
+        }
+
+        # Act
+        expanded = await concise_agent.expand_response(concise_text, "What is the weather?")
+
+        # Assert
+        assert len(expanded) > len(concise_text)
+        assert "25°C" in expanded
+        assert expanded.count(".") > 1
+
+    @pytest.mark.asyncio
+    async def test_rag_integration(self, concise_agent, mock_vector_store, mock_llm_client):
+        """Test integracji z RAG"""
+        # Arrange
+        mock_vector_store.search.return_value = [
+            {"content": "Weather data shows sunny conditions..."}
+        ]
+        mock_llm_client.chat.return_value = {
+            "message": {"content": "Based on weather data: Sunny, 25°C"}
+        }
+
+        # Act
+        response = await concise_agent.process({
+            "query": "What is the weather?",
+            "style": "concise",
+            "use_rag": True
+        })
+
+        # Assert
+        assert response.rag_used is True
+        mock_vector_store.search.assert_called_once()
+
+class TestResponseLengthConfig:
+    """Testy dla konfiguracji długości odpowiedzi"""
+
+    def test_concise_config(self):
+        """Test konfiguracji zwięzłego stylu"""
+        config = ResponseLengthConfig(ResponseStyle.CONCISE)
+        
+        assert config.max_tokens <= 100
+        assert config.temperature <= 0.3
+        assert config.num_predict <= 60
+
+    def test_standard_config(self):
+        """Test konfiguracji standardowego stylu"""
+        config = ResponseLengthConfig(ResponseStyle.STANDARD)
+        
+        assert 100 < config.max_tokens <= 500
+        assert 0.3 < config.temperature <= 0.6
+
+    def test_detailed_config(self):
+        """Test konfiguracji szczegółowego stylu"""
+        config = ResponseLengthConfig(ResponseStyle.DETAILED)
+        
+        assert config.max_tokens > 500
+        assert config.temperature > 0.6
+
+    def test_ollama_options(self):
+        """Test generowania opcji Ollama"""
+        config = ResponseLengthConfig(ResponseStyle.CONCISE)
+        options = config.get_ollama_options()
+        
+        assert "num_predict" in options
+        assert "temperature" in options
+        assert "top_k" in options
+        assert "top_p" in options
+
+class TestConciseRAGProcessor:
+    """Testy dla procesora RAG zwięzłych odpowiedzi"""
+
+    @pytest.fixture
+    def mock_llm_client(self):
+        return AsyncMock()
+
+    @pytest.fixture
+    def processor(self, mock_llm_client):
+        return ConciseRAGProcessor(mock_llm_client)
+
+    @pytest.mark.asyncio
+    async def test_map_reduce_processing(self, processor, mock_llm_client):
+        """Test dwustopniowego przetwarzania map-reduce"""
+        # Arrange
+        chunks = [
+            {"content": "Weather data shows sunny conditions"},
+            {"content": "Temperature is 25°C"},
+            {"content": "Light breeze from northwest"}
+        ]
+        mock_llm_client.chat.side_effect = [
+            {"message": {"content": "Sunny conditions"}},
+            {"message": {"content": "25°C temperature"}},
+            {"message": {"content": "Light breeze"}},
+            {"message": {"content": "Sunny, 25°C with light breeze"}}
+        ]
+
+        # Act
+        result = await processor.process_with_map_reduce("What is the weather?", chunks)
+
+        # Assert
+        assert "Sunny" in result
+        assert "25°C" in result
+        assert mock_llm_client.chat.call_count == 4  # 3 summaries + 1 final
+
+    @pytest.mark.asyncio
+    async def test_summary_length_control(self, processor, mock_llm_client):
+        """Test kontroli długości podsumowań"""
+        # Arrange
+        chunks = [{"content": "Very long weather description..." * 10}]
+        mock_llm_client.chat.return_value = {
+            "message": {"content": "Short summary"}
+        }
+
+        # Act
+        result = await processor.process_with_map_reduce("Weather?", chunks, max_summary_length=50)
+
+        # Assert
+        assert len(result) <= 200  # Final response should be concise
+```
+
+### 3. Integration Tests - API Tests
 
 ```python
 # tests/integration/test_api_endpoints.py
@@ -193,6 +364,90 @@ class TestAPIEndpoints:
         assert "confidence" in data
 
     @pytest.mark.asyncio
+    async def test_concise_generate_endpoint(self, client):
+        """Test endpointu generowania zwięzłych odpowiedzi"""
+        # Arrange
+        payload = {
+            "query": "What is the weather today?",
+            "style": "concise",
+            "use_rag": False
+        }
+
+        # Act
+        response = await client.post("/api/v2/concise/generate", json=payload)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "response" in data["data"]
+        assert "conciseness_score" in data["data"]
+        assert "stats" in data["data"]
+
+    @pytest.mark.asyncio
+    async def test_concise_expand_endpoint(self, client):
+        """Test endpointu rozszerzania odpowiedzi"""
+        # Arrange
+        payload = {
+            "concise_text": "Sunny, 25°C",
+            "original_query": "What is the weather today?"
+        }
+
+        # Act
+        response = await client.post("/api/v2/concise/expand", json=payload)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "expanded_response" in data["data"]
+        assert len(data["data"]["expanded_response"]) > len(payload["concise_text"])
+
+    @pytest.mark.asyncio
+    async def test_concise_analyze_endpoint(self, client):
+        """Test endpointu analizy zwięzłości"""
+        # Arrange
+        text = "Sunny, 25°C with light breeze."
+
+        # Act
+        response = await client.get(f"/api/v2/concise/analyze?text={text}")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "conciseness_score" in data["data"]
+        assert "stats" in data["data"]
+        assert data["data"]["stats"]["characters"] == 32
+
+    @pytest.mark.asyncio
+    async def test_concise_config_endpoint(self, client):
+        """Test endpointu konfiguracji stylu"""
+        # Act
+        response = await client.get("/api/v2/concise/config/concise")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "config" in data["data"]
+        assert data["data"]["style"] == "concise"
+
+    @pytest.mark.asyncio
+    async def test_concise_agent_status_endpoint(self, client):
+        """Test endpointu statusu agenta"""
+        # Act
+        response = await client.get("/api/v2/concise/agent/status")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "agent_name" in data["data"]
+        assert "status" in data["data"]
+        assert "capabilities" in data["data"]
+
+    @pytest.mark.asyncio
     async def test_upload_receipt_endpoint(self, client):
         """Test endpointu upload receipt"""
         # Arrange
@@ -208,25 +463,9 @@ class TestAPIEndpoints:
         assert "receipt_id" in data
         assert "items" in data
         assert "total_amount" in data
-
-    @pytest.mark.asyncio
-    async def test_weather_endpoint(self, client):
-        """Test endpointu weather"""
-        # Arrange
-        params = {"city": "Warszawa"}
-
-        # Act
-        response = await client.get("/api/v2/weather/current", params=params)
-
-        # Assert
-        assert response.status_code == 200
-        data = response.json()
-        assert "location" in data
-        assert "weather" in data
-        assert data["location"]["city"] == "Warszawa"
 ```
 
-### 3. Performance Tests
+### 4. Performance Tests
 
 ```python
 # tests/performance/test_agent_performance.py

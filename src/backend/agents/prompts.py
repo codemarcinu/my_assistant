@@ -15,6 +15,57 @@ Przeanalizuj poniższy tekst od użytkownika i zdecyduj, która z poniższych in
 najlepiej pasuje do jego prośby.
 """
 
+# Nowe prompty dla zwięzłych odpowiedzi w stylu Perplexity.ai
+CONCISE_SYSTEM_PROMPT = """
+Jesteś asystentem AI aplikacji FoodSave. Odpowiadaj zwięźle, maksymalnie w 2 zdaniach.
+Jeśli potrzebujesz więcej szczegółów, poproś o doprecyzowanie.
+Unikaj zbędnego formatowania, list i tabel.
+Zachowaj najważniejsze informacje w krótkiej formie.
+"""
+
+CONCISE_RAG_PROMPT = """
+Na podstawie poniższych informacji udziel zwięzłej odpowiedzi (max 2 zdania):
+
+KONTEKST:
+{context}
+
+PYTANIE: {query}
+
+ODPOWIEDŹ:"""
+
+CONCISE_SUMMARY_PROMPT = """
+Podsumuj poniższy fragment tekstu w kontekście pytania użytkownika.
+Maksymalnie {max_length} znaków. Zachowaj najważniejsze informacje.
+
+PYTANIE: {query}
+
+FRAGMENT:
+{chunk_content}
+
+PODSUMOWANIE:"""
+
+CONCISE_FINAL_PROMPT = """
+Na podstawie poniższych podsumowań udziel zwięzłej odpowiedzi na pytanie użytkownika.
+Maksymalnie 2 zdania. Unikaj zbędnego formatowania.
+
+PYTANIE: {query}
+
+PODSUMOWANIA:
+{summaries}
+
+ODPOWIEDŹ:"""
+
+# Prompt dla rozszerzania zwięzłych odpowiedzi
+EXPAND_RESPONSE_PROMPT = """
+Rozszerz poniższą zwięzłą odpowiedź o dodatkowe szczegóły i kontekst.
+Zachowaj strukturę i dodaj wyjaśnienia, przykłady lub dodatkowe informacje.
+
+ZWIĘZŁA ODPOWIEDŹ: {concise_response}
+
+PYTANIE: {original_query}
+
+ROZSZERZONA ODPOWIEDŹ:"""
+
 
 def get_intent_recognition_prompt(
     user_command: str, conversation_context: str = ""
@@ -144,27 +195,16 @@ def get_meal_plan_prompt(available_products: list[dict[str, Any]]) -> str:
     """
 
 
-def get_categorization_prompt(product_name: str) -> str:
-    """Generuje prompt do kategoryzacji produktu."""
+def get_concise_meal_plan_prompt(available_products: list[dict[str, Any]]) -> str:
+    """Generuje zwięzły prompt do planowania posiłków."""
+    product_list = ", ".join([p["name"] for p in available_products[:5]])  # Limit do 5 produktów
     return f"""
-    Jesteś inteligentnym asystentem kategoryzacji. Twoim zadaniem jest przypisanie
-    produktu do jednej z predefiniowanych kategorii.
+    Stwórz zwięzły plan posiłków (max 2 zdania) na podstawie dostępnych składników.
+    Jeśli brakuje składników, wymień tylko najważniejsze do kupienia.
 
-    Nazwa produktu: {product_name}
+    Składniki: {product_list}
 
-    Dostępne kategorie:
-    - Owoce i warzywa
-    - Nabiał
-    - Mięso i wędliny
-    - Pieczywo
-    - Produkty sypkie
-    - Słodycze i przekąski
-    - Napoje
-    - Inne
-
-    Zwróć odpowiedź w formacie JSON, zawierający:
-    - "category": wybrana kategoria
-    """
+    ZWIĘZŁY PLAN:"""
 
 
 def get_react_prompt(query: str) -> str:
@@ -186,4 +226,44 @@ Respond with a JSON object containing the "tool" and "tool_input". The "tool_inp
 User query: "{query}"
 
 JSON response:
+"""
+
+
+def get_concise_react_prompt(query: str) -> str:
+    """
+    Creates a concise ReAct-style prompt for the master agent.
+    """
+    return f"""
+Wybierz najlepsze narzędzie dla zapytania użytkownika. Odpowiedz tylko nazwą narzędzia.
+
+Narzędzia: weather, search, rag, date, conversation
+
+Zapytanie: "{query}"
+
+Narzędzie:"""
+
+
+def get_categorization_prompt(product_name: str) -> str:
+    """
+    Placeholder prompt for product categorization (required for CategorizationAgent).
+    Returns a JSON prompt for assigning a product to a category.
+    """
+    return f"""
+Jesteś inteligentnym asystentem kategoryzacji. Twoim zadaniem jest przypisanie
+produktu do jednej z predefiniowanych kategorii.
+
+Nazwa produktu: {product_name}
+
+Dostępne kategorie:
+- Owoce i warzywa
+- Nabiał
+- Mięso i wędliny
+- Pieczywo
+- Produkty sypkie
+- Słodycze i przekąski
+- Napoje
+- Inne
+
+Zwróć odpowiedź w formacie JSON, zawierający:
+- "category": wybrana kategoria
 """

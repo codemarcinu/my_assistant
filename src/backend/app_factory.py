@@ -15,9 +15,7 @@ from backend.api import agents, chat, food, monitoring, pantry
 from backend.api import settings as settings_router
 from backend.api import upload
 from backend.api.v1.endpoints import receipts
-from backend.api.v2.endpoints import rag as rag_v2
-from backend.api.v2.endpoints import receipts as receipts_v2
-from backend.api.v2.endpoints import weather as weather_v2
+from backend.api.v2.api import api_router as api_v2_router
 from backend.api.v2.exceptions import APIErrorDetail, APIException
 from backend.config import settings
 from backend.core.cache_manager import CacheManager
@@ -178,13 +176,6 @@ def create_app() -> FastAPI:
     api_v1_router = APIRouter()
     api_v1_router.include_router(receipts.router, tags=["Receipts V1"])
     api_v1_router.include_router(upload.router, tags=["Upload"])
-
-    api_v2_router = APIRouter()
-    api_v2_router.include_router(receipts_v2.router, tags=["Receipts V2"])
-    api_v2_router.include_router(
-        weather_v2.router, prefix="/weather", tags=["Weather V2"]
-    )
-    api_v2_router.include_router(rag_v2.router, prefix="/rag", tags=["RAG V2"])
 
     app.include_router(monitoring.router)
     app.include_router(api_router, prefix="/api")

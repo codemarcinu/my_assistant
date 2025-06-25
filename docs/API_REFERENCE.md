@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-The FoodSave AI API is a RESTful service built with FastAPI that provides endpoints for interacting with the multi-agent AI system. The API supports real-time chat, file uploads, RAG operations, weather data, and system monitoring.
+The FoodSave AI API is a RESTful service built with FastAPI that provides endpoints for interacting with the multi-agent AI system. The API supports real-time chat, file uploads, RAG operations, weather data, concise responses, and system monitoring.
 
 ## 🔗 Base URL
 
@@ -103,6 +103,167 @@ Streaming chat endpoint for real-time responses.
 ```
 
 **Response:** Server-Sent Events (SSE) stream
+
+## 📝 Concise Response API
+
+The Concise Response API provides Perplexity.ai-style response length control with map-reduce RAG processing.
+
+### POST `/api/v2/concise/generate`
+
+Generate concise responses with controlled length and style.
+
+**Request Body:**
+```json
+{
+  "query": "What is the weather today?",
+  "style": "concise",
+  "use_rag": true,
+  "context": {
+    "user_preferences": {
+      "location": "Warsaw, Poland"
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "response": "Sunny, 25°C with light breeze.",
+    "style": "concise",
+    "conciseness_score": 0.95,
+    "stats": {
+      "characters": 32,
+      "words": 7,
+      "sentences": 1
+    },
+    "metadata": {
+      "processing_time": 1.23,
+      "rag_used": true,
+      "sources": ["weather_api", "local_forecast"]
+    }
+  },
+  "message": "Concise response generated successfully"
+}
+```
+
+### POST `/api/v2/concise/expand`
+
+Expand a concise response with more details.
+
+**Request Body:**
+```json
+{
+  "concise_text": "Sunny, 25°C with light breeze.",
+  "original_query": "What is the weather today?",
+  "expansion_style": "detailed"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "expanded_response": "Today's weather in Warsaw is sunny with a temperature of 25°C (77°F). There's a light breeze from the northwest at 10 km/h. Humidity is at 45% and visibility is excellent at 10 km. Perfect weather for outdoor activities!",
+    "original_concise": "Sunny, 25°C with light breeze.",
+    "expansion_ratio": 4.2,
+    "stats": {
+      "characters": 245,
+      "words": 42,
+      "sentences": 3
+    }
+  },
+  "message": "Response expanded successfully"
+}
+```
+
+### GET `/api/v2/concise/analyze`
+
+Analyze the conciseness of a given text.
+
+**Query Parameters:**
+- `text`: The text to analyze (required)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "text": "Sunny, 25°C with light breeze.",
+    "conciseness_score": 0.95,
+    "stats": {
+      "characters": 32,
+      "words": 7,
+      "sentences": 1,
+      "avg_words_per_sentence": 7.0
+    },
+    "recommendations": [
+      "Text is very concise",
+      "Good for quick information"
+    ],
+    "category": "very_concise"
+  },
+  "message": "Text analysis completed"
+}
+```
+
+### GET `/api/v2/concise/config/{style}`
+
+Get configuration for a specific response style.
+
+**Path Parameters:**
+- `style`: Response style (concise, standard, detailed)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "style": "concise",
+    "config": {
+      "max_tokens": 60,
+      "num_predict": 60,
+      "temperature": 0.2,
+      "max_characters": 200,
+      "max_sentences": 2,
+      "system_prompt_modifier": "Be very concise. Maximum 2 sentences."
+    },
+    "description": "Very brief responses for quick information"
+  },
+  "message": "Configuration retrieved successfully"
+}
+```
+
+### GET `/api/v2/concise/agent/status`
+
+Get the status of the concise response agent.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "agent_name": "concise_response_agent",
+    "status": "active",
+    "model": "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M",
+    "capabilities": [
+      "concise_generation",
+      "response_expansion",
+      "rag_processing",
+      "conciseness_analysis"
+    ],
+    "metrics": {
+      "requests_processed": 1250,
+      "avg_response_time": 1.2,
+      "success_rate": 0.98
+    }
+  },
+  "message": "Agent status retrieved successfully"
+}
+```
 
 ## 📤 File Upload API
 
