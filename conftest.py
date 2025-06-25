@@ -10,6 +10,8 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
+from fastapi.testclient import TestClient
+from httpx import AsyncClient
 
 # Import test dependencies
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -20,6 +22,21 @@ from backend.agents.base_agent import BaseAgent
 
 # Import application components
 from backend.core.database import Base
+from main import app
+
+
+# ✅ REQUIRED: FastAPI test client fixtures
+@pytest.fixture
+def client() -> TestClient:
+    """✅ REQUIRED: Synchronous test client for FastAPI"""
+    return TestClient(app)
+
+
+@pytest_asyncio.fixture
+async def async_client() -> AsyncGenerator[AsyncClient, None]:
+    """✅ REQUIRED: Asynchronous test client for FastAPI"""
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        yield ac
 
 
 # ✅ ALWAYS: Use @pytest_asyncio.fixture for async fixtures
