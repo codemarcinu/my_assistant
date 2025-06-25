@@ -298,8 +298,16 @@ async def chat_with_memory(
 ) -> StreamingResponse:
     # Dodaj zadanie w tle, aby monitorować i usuwać stare sesje, jeśli to konieczne
     # background_tasks.add_task(cleanup_old_sessions, request.session_id)
+    
+    from starlette.concurrency import iterate_in_threadpool
+    
+    async def stream_generator():
+        generator = memory_chat_generator(request, db)
+        async for chunk in generator:
+            yield chunk
+    
     return StreamingResponse(
-        memory_chat_generator(request, db), media_type="application/x-ndjson"
+        iterate_in_threadpool(stream_generator()), media_type="application/x-ndjson"
     )
 
 
