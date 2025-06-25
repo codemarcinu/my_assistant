@@ -1,133 +1,115 @@
-import React, { useState } from 'react';
-import Button from '../ui/Button';
-import Card from '../ui/Card';
+import React from 'react';
+import { useTheme } from '../ThemeProvider';
 import { Badge } from '../ui/Badge';
-import { cn } from '../../utils/cn';
 
 interface ConciseResponseBubbleProps {
-  text: string;
-  conciseScore: number;
-  canExpand: boolean;
-  processingTime?: number;
-  chunksProcessed?: number;
-  responseStats?: {
-    char_count: number;
-    word_count: number;
-    sentence_count: number;
-    avg_words_per_sentence: number;
-  };
+  content: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  timestamp: Date;
   onExpand?: () => void;
-  className?: string;
 }
 
-export const ConciseResponseBubble: React.FC<ConciseResponseBubbleProps> = ({
-  text,
-  conciseScore,
-  canExpand,
-  processingTime,
-  chunksProcessed,
-  responseStats,
-  onExpand,
-  className,
+/**
+ * ConciseResponseBubble component for displaying short AI responses.
+ * 
+ * This component provides a compact way to display AI responses
+ * with different types and expandable content, following the .cursorrules guidelines.
+ */
+const ConciseResponseBubble: React.FC<ConciseResponseBubbleProps> = ({
+  content,
+  type,
+  timestamp,
+  onExpand
 }) => {
-  const [isExpanding, setIsExpanding] = useState(false);
+  const { resolvedTheme } = useTheme();
 
-  const handleExpand = async () => {
-    if (!onExpand) return;
-    
-    setIsExpanding(true);
-    try {
-      await onExpand();
-    } finally {
-      setIsExpanding(false);
+  const typeConfig = {
+    info: {
+      icon: 'ℹ️',
+      badgeVariant: 'info' as const,
+      bgColor: resolvedTheme === 'dark' ? 'bg-blue-900/20' : 'bg-blue-50',
+      borderColor: resolvedTheme === 'dark' ? 'border-blue-700' : 'border-blue-200'
+    },
+    success: {
+      icon: '✅',
+      badgeVariant: 'success' as const,
+      bgColor: resolvedTheme === 'dark' ? 'bg-green-900/20' : 'bg-green-50',
+      borderColor: resolvedTheme === 'dark' ? 'border-green-700' : 'border-green-200'
+    },
+    warning: {
+      icon: '⚠️',
+      badgeVariant: 'warning' as const,
+      bgColor: resolvedTheme === 'dark' ? 'bg-yellow-900/20' : 'bg-yellow-50',
+      borderColor: resolvedTheme === 'dark' ? 'border-yellow-700' : 'border-yellow-200'
+    },
+    error: {
+      icon: '❌',
+      badgeVariant: 'error' as const,
+      bgColor: resolvedTheme === 'dark' ? 'bg-red-900/20' : 'bg-red-50',
+      borderColor: resolvedTheme === 'dark' ? 'border-red-700' : 'border-red-200'
     }
   };
 
-  const getConcisenessColor = (score: number) => {
-    if (score >= 0.8) return 'bg-green-100 text-green-800';
-    if (score >= 0.6) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
+  const config = typeConfig[type];
 
-  const getConcisenessLabel = (score: number) => {
-    if (score >= 0.8) return 'Bardzo zwięzły';
-    if (score >= 0.6) return 'Zwięzły';
-    return 'Rozbudowany';
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('pl-PL', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
 
   return (
-    <Card className={cn('p-4 space-y-3', className)}>
-      {/* Main response text */}
-      <div className="text-sm leading-relaxed">
-        {text}
-      </div>
-
-      {/* Metrics and controls */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {/* Conciseness score */}
-          <Badge 
-            variant="success" 
-            className={cn('text-xs', getConcisenessColor(conciseScore))}
-          >
-            {getConcisenessLabel(conciseScore)} ({Math.round(conciseScore * 100)}%)
-          </Badge>
-
-          {/* Processing time */}
-          {processingTime && (
-            <Badge variant="info" className="text-xs">
-              {processingTime.toFixed(2)}s
+    <div className={`
+      flex justify-start mb-4
+    `}>
+      <div className={`
+        max-w-xs lg:max-w-md p-3 rounded-2xl border
+        ${config.bgColor} ${config.borderColor}
+        transition-all duration-200 hover:shadow-md
+      `}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">{config.icon}</span>
+            <Badge variant={config.badgeVariant} size="sm">
+              {type === 'info' && 'Informacja'}
+              {type === 'success' && 'Sukces'}
+              {type === 'warning' && 'Ostrzeżenie'}
+              {type === 'error' && 'Błąd'}
             </Badge>
-          )}
-
-          {/* Chunks processed */}
-          {chunksProcessed && (
-            <Badge variant="info" className="text-xs">
-              {chunksProcessed} fragmentów
-            </Badge>
-          )}
+          </div>
+          <span className={`
+            text-xs opacity-70
+            ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}
+          `}>
+            {formatTime(timestamp)}
+          </span>
         </div>
 
-        {/* Expand button */}
-        {canExpand && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleExpand}
-            disabled={isExpanding}
-            className="text-xs"
+        {/* Content */}
+        <div className={`
+          text-sm leading-relaxed
+          ${resolvedTheme === 'dark' ? 'text-gray-200' : 'text-gray-800'}
+        `}>
+          {content}
+        </div>
+
+        {/* Expand Button */}
+        {onExpand && (
+          <button
+            onClick={onExpand}
+            className={`
+              mt-2 text-xs font-medium hover:underline transition-colors
+              ${resolvedTheme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}
+            `}
           >
-            {isExpanding ? 'Rozszerzam...' : 'Rozszerz'}
-          </Button>
+            Rozwiń odpowiedź →
+          </button>
         )}
       </div>
-
-      {/* Detailed stats (collapsible) */}
-      {responseStats && (
-        <details className="text-xs text-gray-600">
-          <summary className="cursor-pointer hover:text-gray-800">
-            Szczegóły odpowiedzi
-          </summary>
-          <div className="mt-2 space-y-1">
-            <div className="flex justify-between">
-              <span>Znaki:</span>
-              <span>{responseStats.char_count}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Słowa:</span>
-              <span>{responseStats.word_count}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Zdania:</span>
-              <span>{responseStats.sentence_count}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Średnio słów/zdanie:</span>
-              <span>{responseStats.avg_words_per_sentence.toFixed(1)}</span>
-            </div>
-          </div>
-        </details>
-      )}
-    </Card>
+    </div>
   );
-}; 
+};
+
+export default ConciseResponseBubble; 

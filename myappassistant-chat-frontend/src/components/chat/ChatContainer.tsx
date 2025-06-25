@@ -1,26 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../ThemeProvider';
 import ChatBubble from './ChatBubble';
+import ConciseResponseBubble from './ConciseResponseBubble';
 import MessageInput from './MessageInput';
+import { useChatStore } from '../../stores/chatStore';
+import type { ChatMessage } from '../../types';
 
-export interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-  type?: 'text' | 'image' | 'file';
-}
-
+/**
+ * ChatContainer component for managing chat interface.
+ * 
+ * This component provides the main chat interface with message history,
+ * input handling, and AI responses, following the .cursorrules guidelines.
+ */
 export default function ChatContainer() {
   const { resolvedTheme } = useTheme();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: 'Cześć! Jestem FoodSave AI. Jak mogę Ci dzisiaj pomóc?',
-      sender: 'ai',
-      timestamp: new Date(),
-    }
-  ]);
+  const { messages, isLoading, sendMessage, loadChatHistory } = useChatStore();
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -32,30 +26,20 @@ export default function ChatContainer() {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async (content: string) => {
+  useEffect(() => {
+    // Load chat history on component mount
+    loadChatHistory();
+  }, [loadChatHistory]);
+
+  const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: content.trim(),
-      sender: 'user',
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: generateAIResponse(content),
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
+    try {
+      await sendMessage(content);
+    } finally {
       setIsTyping(false);
-    }, 1000 + Math.random() * 2000);
+    }
   };
 
   const generateAIResponse = (userMessage: string): string => {
@@ -67,6 +51,26 @@ export default function ChatContainer() {
       'Interesujące podejście. Sprawdźmy to razem.',
     ];
     return responses[Math.floor(Math.random() * responses.length)];
+  };
+
+  const renderMessage = (message: Message) => {
+    // Check if it's a concise response
+    if (message.sender === 'ai' && message.metadata?.isConcise) {
+      return (
+        <ConciseResponseBubble
+          key={message.id}
+          content={message.content}
+          type={message.metadata.responseType || 'info'}
+          timestamp={message.timestamp}
+          onExpand={() => {
+            // Handle expand functionality
+            console.log('Expand message:', message.id);
+          }}
+        />
+      );
+    }
+
+    return <ChatBubble key={message.id} message={message} />;
   };
 
   return (
@@ -89,7 +93,7 @@ export default function ChatContainer() {
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">FoodSave AI</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {isTyping ? 'Pisze...' : 'Online'}
+              {isTyping || isLoading ? 'Pisze...' : 'Online'}
             </p>
           </div>
         </div>
@@ -102,11 +106,22 @@ export default function ChatContainer() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <ChatBubble key={message.id} message={message} />
-        ))}
+        {messages.length === 0 && (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-4">🍽️</div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Witaj w FoodSave AI!
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Jestem Twoim asystentem do zarządzania spiżarnią i zakupami. 
+              Jak mogę Ci dzisiaj pomóc?
+            </p>
+          </div>
+        )}
         
-        {isTyping && (
+        {messages.map(renderMessage)}
+        
+        {(isTyping || isLoading) && (
           <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
             <div className="flex space-x-1">
               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
@@ -122,7 +137,10 @@ export default function ChatContainer() {
 
       {/* Message Input */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <MessageInput onSendMessage={sendMessage} isTyping={isTyping} />
+        <MessageInput 
+          onSendMessage={handleSendMessage} 
+          isTyping={isTyping || isLoading} 
+        />
       </div>
     </div>
   );

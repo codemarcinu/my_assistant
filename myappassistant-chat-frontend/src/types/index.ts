@@ -19,6 +19,8 @@ export interface ChatMessage {
     confidence?: number;
     suggestedActions?: string[];
     attachments?: Attachment[];
+    isConcise?: boolean;
+    responseType?: 'info' | 'success' | 'warning' | 'error';
   };
 }
 

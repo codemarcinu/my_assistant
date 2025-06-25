@@ -1,14 +1,20 @@
 import React from 'react';
 import { useTheme } from '../ThemeProvider';
-import type { Message } from './ChatContainer';
+import type { ChatMessage } from '../../types';
 
 interface ChatBubbleProps {
-  message: Message;
+  message: ChatMessage;
 }
 
+/**
+ * ChatBubble component for displaying individual chat messages.
+ * 
+ * This component provides a consistent way to display chat messages
+ * with proper styling and timestamps, following the .cursorrules guidelines.
+ */
 export default function ChatBubble({ message }: ChatBubbleProps) {
   const { resolvedTheme } = useTheme();
-  const isUser = message.sender === 'user';
+  const isUser = message.type === 'user';
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('pl-PL', { 
