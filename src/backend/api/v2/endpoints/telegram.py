@@ -14,7 +14,7 @@ import httpx
 from backend.integrations.telegram_bot import telegram_bot_handler
 from backend.config import settings
 
-router = APIRouter(prefix="/telegram", tags=["Telegram Bot"])
+router = APIRouter(tags=["Telegram Bot"])
 logger = logging.getLogger(__name__)
 
 
