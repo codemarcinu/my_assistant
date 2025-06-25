@@ -112,12 +112,6 @@ class WeatherAgent(BaseAgent):
                 priority=1,  # Najwyższy priorytet
             ),
             WeatherProvider(
-                name="weatherapi",
-                api_key_env_var="WEATHER_API_KEY",
-                base_url="https://api.weatherapi.com/v1",
-                priority=2,  # Fallback
-            ),
-            WeatherProvider(
                 name="mock",
                 base_url="",
                 priority=3,  # Najniższy priorytet - fallback
