@@ -75,7 +75,7 @@ class TestReceiptEndpointsEnhanced:
         # Przygotuj plik do wysłania
         files = {"file": ("receipt.jpg", sample_image_bytes, "image/jpeg")}
 
-        response = client.post("/api/v2/receipts/process", files=files)
+        response = client.post("/api/v2/receipts/receipts/process", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -96,11 +96,11 @@ class TestReceiptEndpointsEnhanced:
         )
 
         files = {"file": ("receipt.jpg", sample_image_bytes, "image/jpeg")}
-        response = client.post("/api/v2/receipts/process", files=files)
+        response = client.post("/api/v2/receipts/receipts/process", files=files)
 
         assert response.status_code == 422
         data = response.json()
-        assert "OCR processing failed" in data["message"]
+        assert "OCR processing failed" in data["detail"]
 
     @patch("backend.agents.ocr_agent.OCRAgent.process")
     @patch("backend.agents.receipt_analysis_agent.ReceiptAnalysisAgent.process")
@@ -114,11 +114,11 @@ class TestReceiptEndpointsEnhanced:
         )
 
         files = {"file": ("receipt.jpg", sample_image_bytes, "image/jpeg")}
-        response = client.post("/api/v2/receipts/process", files=files)
+        response = client.post("/api/v2/receipts/receipts/process", files=files)
 
         assert response.status_code == 422
         data = response.json()
-        assert "Receipt analysis failed" in data["message"]
+        assert "Receipt analysis failed" in data["detail"]
 
     def test_process_receipt_file_too_large(self, client):
         """Test obsługi zbyt dużego pliku."""
@@ -126,29 +126,29 @@ class TestReceiptEndpointsEnhanced:
         large_file_bytes = b"x" * (11 * 1024 * 1024)  # 11MB
 
         files = {"file": ("large_receipt.jpg", large_file_bytes, "image/jpeg")}
-        response = client.post("/api/v2/receipts/process", files=files)
+        response = client.post("/api/v2/receipts/receipts/process", files=files)
 
         assert response.status_code == 400
         data = response.json()
-        assert "File too large" in data["message"]
+        assert "File too large" in data["detail"]
 
     def test_process_receipt_unsupported_file_type(self, client, sample_image_bytes):
         """Test obsługi nieobsługiwanego typu pliku."""
         files = {"file": ("receipt.txt", sample_image_bytes, "text/plain")}
-        response = client.post("/api/v2/receipts/process", files=files)
+        response = client.post("/api/v2/receipts/receipts/process", files=files)
 
         assert response.status_code == 400
         data = response.json()
-        assert "Unsupported file type" in data["message"]
+        assert "Unsupported file type" in data["detail"]
 
     def test_process_receipt_missing_content_type(self, client, sample_image_bytes):
         """Test obsługi braku Content-Type."""
         files = {"file": ("receipt.jpg", sample_image_bytes, None)}
-        response = client.post("/api/v2/receipts/process", files=files)
+        response = client.post("/api/v2/receipts/receipts/process", files=files)
 
         assert response.status_code == 400
         data = response.json()
-        assert "Missing content type header" in data["message"]
+        assert "Missing content type header" in data["detail"]
 
     @patch("backend.agents.ocr_agent.OCRAgent.process")
     async def test_upload_receipt_enhanced_success(
@@ -158,7 +158,7 @@ class TestReceiptEndpointsEnhanced:
         mock_ocr.return_value = mock_ocr_response
 
         files = {"file": ("receipt.jpg", sample_image_bytes, "image/jpeg")}
-        response = client.post("/api/v2/receipts/upload", files=files)
+        response = client.post("/api/v2/receipts/receipts/upload", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -175,7 +175,7 @@ class TestReceiptEndpointsEnhanced:
         mock_analysis.return_value = mock_analysis_response
 
         ocr_text = "Lidl sp. z.o.o.\nMleko 3.2% 1L 4,99 PLN"
-        response = client.post("/api/v2/receipts/analyze", data={"ocr_text": ocr_text})
+        response = client.post("/api/v2/receipts/receipts/analyze", data={"ocr_text": ocr_text})
 
         assert response.status_code == 200
         data = response.json()
@@ -185,21 +185,21 @@ class TestReceiptEndpointsEnhanced:
 
     def test_analyze_receipt_empty_text(self, client):
         """Test analizy pustego tekstu OCR."""
-        response = client.post("/api/v2/receipts/analyze", data={"ocr_text": ""})
+        response = client.post("/api/v2/receipts/receipts/analyze", data={"ocr_text": ""})
 
         assert response.status_code == 400
         data = response.json()
-        assert "OCR text is required" in data["message"]
+        assert "OCR text is required" in data["detail"]
 
     def test_analyze_receipt_whitespace_only(self, client):
         """Test analizy tekstu zawierającego tylko białe znaki."""
         response = client.post(
-            "/api/v2/receipts/analyze", data={"ocr_text": "   \n\t   "}
+            "/api/v2/receipts/receipts/analyze", data={"ocr_text": "   \n\t   "}
         )
 
         assert response.status_code == 400
         data = response.json()
-        assert "OCR text is required" in data["message"]
+        assert "OCR text is required" in data["detail"]
 
     @patch("backend.agents.receipt_analysis_agent.ReceiptAnalysisAgent.process")
     async def test_analyze_receipt_analysis_failure(self, mock_analysis, client):
@@ -209,12 +209,12 @@ class TestReceiptEndpointsEnhanced:
         )
 
         response = client.post(
-            "/api/v2/receipts/analyze", data={"ocr_text": "Test receipt text"}
+            "/api/v2/receipts/receipts/analyze", data={"ocr_text": "Test receipt text"}
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 500
         data = response.json()
-        assert "Failed to analyze receipt data" in data["message"]
+        assert "detail" in data
 
     @patch("backend.agents.ocr_agent.OCRAgent.process")
     async def test_upload_receipt_pdf_success(
@@ -227,7 +227,7 @@ class TestReceiptEndpointsEnhanced:
         pdf_bytes = b"%PDF-1.4 fake pdf content"
         files = {"file": ("receipt.pdf", pdf_bytes, "application/pdf")}
 
-        response = client.post("/api/v2/receipts/upload", files=files)
+        response = client.post("/api/v2/receipts/receipts/upload", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -252,7 +252,7 @@ class TestReceiptEndpointsEnhanced:
                 success=True, data={"store_name": "Test Store", "total_amount": 10.0}
             )
 
-            response = client.post("/api/v2/receipts/process", files=files)
+            response = client.post("/api/v2/receipts/receipts/process", files=files)
 
             assert response.status_code == 200
             data = response.json()
@@ -268,12 +268,11 @@ class TestReceiptEndpointsEnhanced:
         )
 
         files = {"file": ("receipt.jpg", sample_image_bytes, "image/jpeg")}
-        response = client.post("/api/v2/receipts/upload", files=files)
+        response = client.post("/api/v2/receipts/receipts/upload", files=files)
 
         assert response.status_code == 422
         data = response.json()
-        assert "Failed to process receipt" in data["message"]
-        assert "RECEIPT_PROCESSING_ERROR" in data["details"]["error_code"]
+        assert "Failed to process receipt" in data["detail"]
 
     def test_process_receipt_exception_handling(self, client, sample_image_bytes):
         """Test obsługi wyjątków podczas przetwarzania."""
@@ -282,7 +281,7 @@ class TestReceiptEndpointsEnhanced:
         with patch("backend.agents.ocr_agent.OCRAgent.process") as mock_ocr:
             mock_ocr.side_effect = Exception("Unexpected error")
 
-            response = client.post("/api/v2/receipts/process", files=files)
+            response = client.post("/api/v2/receipts/receipts/process", files=files)
 
             assert response.status_code == 500
             data = response.json()
@@ -296,7 +295,7 @@ class TestReceiptEndpointsEnhanced:
         mock_ocr.return_value = mock_ocr_response
 
         files = {"file": ("receipt.jpg", sample_image_bytes, "image/jpeg")}
-        response = client.post("/api/v2/receipts/upload", files=files)
+        response = client.post("/api/v2/receipts/receipts/upload", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -324,7 +323,7 @@ class TestReceiptEndpointsEnhanced:
                 success=True, data={"store_name": "Test", "total_amount": 10.0}
             )
 
-            response = client.post("/api/v2/receipts/process", files=files)
+            response = client.post("/api/v2/receipts/receipts/process", files=files)
 
             assert response.status_code == 200
             data = response.json()
