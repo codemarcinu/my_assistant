@@ -255,11 +255,11 @@ def with_circuit_breaker(config: Optional[CircuitBreakerConfig] = None) -> None:
     return decorator
 
 
-def with_backpressure(max_concurrent: int = 100) -> None:
+def with_backpressure(max_concurrent: int = 100):
     """Decorator to add backpressure to functions"""
 
-    def decorator(func) -> None:
-        async def wrapper(*args, **kwargs) -> None:
+    def decorator(func):
+        async def wrapper(*args, **kwargs):
             async with BackpressureManager(max_concurrent).acquire_slot():
                 return await func(*args, **kwargs)
 

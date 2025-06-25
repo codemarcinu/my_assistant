@@ -89,7 +89,7 @@ llm_circuit_breaker = CircuitBreakerConfig(
 )
 
 
-@with_circuit_breaker(llm_circuit_breaker)
+@with_circuit_breaker
 @with_backpressure(max_concurrent=50)
 @with_backpressure(max_concurrent=20)  # Ograniczenie dla memory chat
 async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str, None]:
@@ -124,7 +124,6 @@ async def chat_with_model(request: Request) -> StreamingResponse:
     )
 
 
-@with_backpressure(max_concurrent=20)  # Ograniczenie dla memory chat
 async def memory_chat_generator(
     request: MemoryChatRequest, db: AsyncSession
 ) -> AsyncGenerator[str, None]:
@@ -299,15 +298,8 @@ async def chat_with_memory(
     # Dodaj zadanie w tle, aby monitorować i usuwać stare sesje, jeśli to konieczne
     # background_tasks.add_task(cleanup_old_sessions, request.session_id)
     
-    from starlette.concurrency import iterate_in_threadpool
-    
-    async def stream_generator():
-        generator = memory_chat_generator(request, db)
-        async for chunk in generator:
-            yield chunk
-    
     return StreamingResponse(
-        iterate_in_threadpool(stream_generator()), media_type="application/x-ndjson"
+        memory_chat_generator(request, db), media_type="application/x-ndjson"
     )
 
 

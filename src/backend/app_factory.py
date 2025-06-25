@@ -28,6 +28,8 @@ from backend.core.middleware import (ErrorHandlingMiddleware,
 from backend.core.migrations import run_migrations
 from backend.core.seed_data import seed_database
 from backend.core.telemetry import setup_telemetry
+from backend.orchestrator_management.orchestrator_pool import orchestrator_pool
+from backend.agents.orchestrator import Orchestrator
 
 logger = structlog.get_logger()
 limiter = Limiter(key_func=get_remote_address)
@@ -103,7 +105,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await cache_manager.connect()
 
     logger.info("Initializing orchestrator pool and request queue...")
-    # ... any other startup logic for orchestrator ...
+    # Initialize orchestrator pool with default orchestrator
+    async with AsyncSessionLocal() as db:
+        default_orchestrator = Orchestrator(db_session=db)
+        await orchestrator_pool.add_instance("default", default_orchestrator)
+        await orchestrator_pool.start_health_checks()
+        logger.info("Orchestrator pool initialized with default instance")
 
     yield
 
