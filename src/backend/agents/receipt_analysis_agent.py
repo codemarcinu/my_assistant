@@ -83,6 +83,11 @@ class ReceiptAnalysisAgent(BaseAgent):
             # Parsuj odpowiedź LLM aby wyciągnąć strukturalne dane
             content = response["message"]["content"]
             receipt_data = self._parse_llm_response(content)
+            
+            # Jeśli _parse_llm_response zwrócił None, użyj fallback parsera z oryginalnym OCR
+            if receipt_data is None:
+                logger.warning("LLM odpowiedź nie zawierała JSON, używam fallback parser")
+                receipt_data = self._fallback_parse(ocr_text)
 
         # Waliduj i popraw wyciągnięte dane
         receipt_data = self._validate_and_fix_data(receipt_data)
@@ -170,10 +175,12 @@ class ReceiptAnalysisAgent(BaseAgent):
             except json.JSONDecodeError as e:
                 logger.warning(f"Błąd parsowania JSON z LLM: {e}")
                 # Fallback do prostszego parsowania jeśli JSON jest uszkodzony
-                return self._fallback_parse(llm_response)
+                # Używamy oryginalnego tekstu OCR, nie odpowiedzi LLM
+                return None  # Zwróć None, żeby process() użył oryginalnego OCR
         else:
             logger.warning("Nie znaleziono JSON w odpowiedzi LLM, używam fallback")
-            return self._fallback_parse(llm_response)
+            # Używamy oryginalnego tekstu OCR, nie odpowiedzi LLM
+            return None  # Zwróć None, żeby process() użył oryginalnego OCR
 
     def _normalize_data_structure(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Normalizuje strukturę danych z LLM"""
@@ -233,55 +240,145 @@ class ReceiptAnalysisAgent(BaseAgent):
 
         # Rozpoznawanie dat (różne formaty polskie)
         date_patterns = [
-            r"(\d{2}[-.]?\d{2}[-.]?\d{4})",
-            r"(\d{4}[-.]?\d{2}[-.]?\d{2})",
-            r"(\d{1,2}[-.]?\d{1,2}[-.]?\d{4})",
+            r"data\s*:\s*(\d{2}[-./]?\d{2}[-./]?\d{4})",
+            r"data\s*:\s*(\d{4}[-./]?\d{2}[-./]?\d{2})",
+            r"(\d{2}[-./]?\d{2}[-./]?\d{4})",
+            r"(\d{4}[-./]?\d{2}[-./]?\d{2})",
+            r"(\d{1,2}[-./]?\d{1,2}[-./]?\d{4})",
         ]
 
         for pattern in date_patterns:
-            date_match = re.search(pattern, text)
+            date_match = re.search(pattern, text, re.IGNORECASE)
             if date_match:
                 date_str = date_match.group(1)
                 result["date"] = self._normalize_date(date_str)
                 break
 
-        # Rozpoznawanie produktów z cenami
+        # Rozpoznawanie produktów z cenami - rozszerzone wzorce
         item_patterns = [
+            # Format z myślnikiem: "MLEKO 3.2% 1L - 4.50 PLN"
+            r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s*-\s*(\d+[,.]?\d*)\s*(?:PLN|zł)?",
+            # Format z dwukropkiem: "PRODUKT 1: 10.99 zł"
+            r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s*:\s*(\d+[,.]?\d*)\s*(?:PLN|zł)?",
+            # Format z ilością: "PRODUKT 2 x2 - 15.50 PLN"
+            r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s+x?(\d+)\s*-\s*(\d+[,.]?\d*)\s*(?:PLN|zł)?",
+            # Format z jednostką: "PRODUKT 3 1szt - 5.00"
+            r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s+(\d+)(?:szt|kg|g|l)?\s*-\s*(\d+[,.]?\d*)",
+            # Format z listą: "- ITEM 1: 5.50"
+            r"[-•]\s*([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s*:\s*(\d+[,.]?\d*)",
+            # Standardowy format: "Nazwa produktu 1 * 4,99 4,99 A"
             r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s+(\d+[,.]?\d*)\s*x?\s*(\d+[,.]?\d*)\s*([A-C]?)",
-            r"([A-ZĄĆĘŁŃÓŚŹŻ][^0-9\n]{3,30})\s+(\d+[,.]?\d*)\s*([A-C]?)",
+            # Prosty format: "NAZWA PRODUKTU 3,50"
+            r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]{3,30})\s+(\d+[,.]?\d*)\s*([A-C]?)",
         ]
 
-        for pattern in item_patterns:
-            matches = re.findall(pattern, text, re.MULTILINE)
+        logger.info(f"Parsing text: {repr(text)}")
+        
+        for i, pattern in enumerate(item_patterns):
+            matches = re.findall(pattern, text, re.MULTILINE | re.IGNORECASE)
+            logger.info(f"Pattern {i}: {pattern} - found {len(matches)} matches")
             for match in matches:
-                if len(match) >= 3:
+                logger.info(f"Match: {match}")
+                if len(match) >= 2:
+                    # Wyciągnij nazwę produktu (pierwszy element)
+                    product_name = match[0].strip()
+                    
+                    # Filtruj nieprawidłowe nazwy produktów
+                    if len(product_name) < 3 or product_name.upper() in ['PLN', 'RAZEM', 'SUMA', 'KONIEC']:
+                        logger.info(f"Skipping invalid product name: {product_name}")
+                        continue
+                    
+                    # Wyciągnij cenę (ostatni element z liczbą)
+                    price_str = None
+                    for j in range(len(match) - 1, 0, -1):
+                        if re.match(r'\d+[,.]?\d*', str(match[j])):
+                            price_str = str(match[j])
+                            break
+                    
+                    if not price_str:
+                        logger.info(f"No price found in match: {match}")
+                        continue
+                    
+                    # Wyciągnij ilość (jeśli jest)
+                    quantity = 1.0
+                    if len(match) >= 3:
+                        try:
+                            qty_str = str(match[1])
+                            if re.match(r'^\d+$', qty_str):
+                                quantity = float(qty_str)
+                        except (ValueError, IndexError):
+                            pass
+                    
+                    # Wyciągnij stawkę VAT (jeśli jest)
+                    vat_rate = "A"
+                    for item in match:
+                        if str(item) in ["A", "B", "C"]:
+                            vat_rate = str(item)
+                            break
+                    
                     item = {
-                        "name": match[0].strip(),
-                        "original_name": match[0].strip(),
+                        "name": product_name,
+                        "original_name": product_name,
                         "product_code": "",
-                        "quantity": 1.0,
+                        "quantity": quantity,
                         "unit": "szt",
-                        "unit_price": float(match[-2].replace(",", ".")),
-                        "total_price": float(match[-2].replace(",", ".")),
-                        "vat_rate": match[-1] if match[-1] else "A",
+                        "unit_price": float(price_str.replace(",", ".")),
+                        "total_price": float(price_str.replace(",", ".")) * quantity,
+                        "vat_rate": vat_rate,
                         "discount": 0.0,
                         "category": "",
                     }
                     if isinstance(result["items"], list):
                         result["items"].append(item)
+                        logger.info(f"Added item: {product_name} - {price_str}")
 
-        # Rozpoznawanie sumy końcowej
+        # Rozpoznawanie sumy końcowej - rozszerzone wzorce
         total_patterns = [
             r"suma\s*pln\s*(\d+[,.]?\d*)",
+            r"razem\s*pln\s*(\d+[,.]?\d*)",
+            r"suma\s*:\s*(\d+[,.]?\d*)\s*(?:PLN|zł)?",
+            r"razem\s*:\s*(\d+[,.]?\d*)\s*(?:PLN|zł)?",
+            r"koniec\s*:\s*(\d+[,.]?\d*)\s*(?:PLN|zł)?",
             r"razem\s*(\d+[,.]?\d*)",
             r"suma\s*(\d+[,.]?\d*)",
+            r"(\d+[,.]?\d*)\s*PLN\s*$",
         ]
 
         for pattern in total_patterns:
-            total_match = re.search(pattern, text, re.IGNORECASE)
+            total_match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
             if total_match:
                 result["total_amount"] = float(total_match.group(1).replace(",", "."))
                 break
+
+        # Heurystyka: jeśli nie znaleziono sumy, spróbuj zsumować ceny produktów
+        if result["total_amount"] == 0.0 and result["items"]:
+            calculated_total = sum(item.get("total_price", 0.0) for item in result["items"])
+            if calculated_total > 0:
+                result["total_amount"] = calculated_total
+                logger.info(f"Obliczono sumę z produktów: {calculated_total}")
+
+        # Heurystyka: jeśli nie znaleziono produktów, spróbuj wyciągnąć z linii z cenami
+        if not result["items"]:
+            # Szukaj linii z cenami w formacie "NAZWA CENA"
+            price_lines = re.findall(r'([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]{3,30})\s+(\d+[,.]?\d*)', text, re.MULTILINE | re.IGNORECASE)
+            for name, price in price_lines:
+                # Pomiń linie które wyglądają na sumę
+                if re.search(r'(suma|razem|koniec|pln|zł)', name, re.IGNORECASE):
+                    continue
+                
+                item = {
+                    "name": name.strip(),
+                    "original_name": name.strip(),
+                    "product_code": "",
+                    "quantity": 1.0,
+                    "unit": "szt",
+                    "unit_price": float(price.replace(",", ".")),
+                    "total_price": float(price.replace(",", ".")),
+                    "vat_rate": "A",
+                    "discount": 0.0,
+                    "category": "",
+                }
+                result["items"].append(item)
 
         items_val = result.get("items", [])
         items_count = len(items_val) if isinstance(items_val, list) else 0
@@ -291,15 +388,32 @@ class ReceiptAnalysisAgent(BaseAgent):
     def _normalize_date(self, date_str: str) -> str:
         """Normalizuje format daty."""
         try:
+            # Usuń białe znaki
+            date_str = date_str.strip()
+            
             # Próba parsowania różnych formatów daty
-            if re.match(r"^\d{2}[-.]\d{2}[-.]\d{4}$", date_str):
-                return datetime.strptime(date_str, "%d.%m.%Y").strftime("%Y-%m-%d")
-            elif re.match(r"^\d{4}[-.]\d{2}[-.]\d{2}$", date_str):
-                return datetime.strptime(date_str, "%Y.%m.%d").strftime("%Y-%m-%d")
-            elif re.match(r"^\d{1,2}[-.]\d{1,2}[-.]\d{4}$", date_str):
-                return datetime.strptime(date_str, "%d.%m.%Y").strftime("%Y-%m-%d")
-            return date_str  # Zwróć oryginalny string, jeśli format nie pasuje
-        except ValueError:
+            formats_to_try = [
+                "%d.%m.%Y",    # 15.01.2024
+                "%d-%m-%Y",    # 15-01-2024
+                "%d/%m/%Y",    # 15/01/2024
+                "%Y.%m.%d",    # 2024.01.15
+                "%Y-%m-%d",    # 2024-01-15
+                "%Y/%m/%d",    # 2024/01/15
+                "%d.%m.%y",    # 15.01.24
+                "%d-%m-%y",    # 15-01-24
+                "%d/%m/%y",    # 15/01/24
+                "%Y.%m.%d",    # 2024.01.15
+            ]
+            
+            for fmt in formats_to_try:
+                try:
+                    return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
+                except ValueError:
+                    continue
+            
+            # Jeśli żaden format nie pasuje, zwróć oryginalny string
+            return date_str
+        except Exception:
             return date_str
 
     def _validate_and_fix_data(self, data: Dict[str, Any]) -> Dict[str, Any]:

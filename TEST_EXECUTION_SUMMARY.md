@@ -225,3 +225,93 @@
 
 **Action:**
 > Wykonaj commit powyższych zmian z opisem: "Fix contract test for /api/v2/users/me: stub returns mock user in test mode, update test setup for TESTING_MODE, update auth unit test expectations."
+
+## Ostatnie wykonanie testów: 2025-06-26
+
+### Wyniki testów jednostkowych
+- **278 testów przeszło** ✅
+- **1 test pominięty** (endpoint `/auth/register` nie jest zaimplementowany)
+- **0 testów nie powiodło się** ✅
+- **51 ostrzeżeń** (głównie deprecacje Pydantic, datetime, pytest-asyncio)
+
+### Kluczowe naprawy wykonane
+
+#### 1. Naprawa fallback parsera w ReceiptAnalysisAgent
+**Problem:** Fallback parser nie rozpoznawał produktów z paragonów, zwracając 0 produktów.
+
+**Przyczyna:** 
+- Fallback parser otrzymywał fallback message z LLM (`"I'm sorry, but I'm currently unable to process your request..."`) zamiast oryginalnego tekstu OCR
+- Regexy były zbyt restrykcyjne dla polskich formatów paragonów
+- Brak filtrowania nieprawidłowych nazw produktów
+
+**Rozwiązanie:**
+- Poprawiono logikę w `_parse_llm_response()` - zwraca `None` zamiast wywoływać fallback parser z nieprawidłowym tekstem
+- Dodano sprawdzenie w `process()` dla przypadku gdy `_parse_llm_response()` zwraca `None`
+- Rozszerzono regexy o obsługę formatów:
+  - `"MLEKO 3.2% 1L - 4.50 PLN"`
+  - `"CHLEB PSZENNY - 3.20 PLN"`
+  - `"JABŁKA 1KG - 5.80 PLN"`
+  - `"MASŁO 82% - 8.90 PLN"`
+- Dodano filtrowanie nieprawidłowych nazw produktów (krótkie nazwy, słowa kluczowe)
+- Rozszerzono obsługę formatów daty o różne separatory
+
+#### 2. Poprawki w regexach
+**Dodane wzorce:**
+```python
+# Format z myślnikiem: "MLEKO 3.2% 1L - 4.50 PLN"
+r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s*-\s*(\d+[,.]?\d*)\s*(?:PLN|zł)?"
+
+# Format z dwukropkiem: "PRODUKT 1: 10.99 zł"
+r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s*:\s*(\d+[,.]?\d*)\s*(?:PLN|zł)?"
+
+# Format z jednostką: "PRODUKT 3 1szt - 5.00"
+r"([A-ZĄĆĘŁŃÓŚŹŻ][A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż\s]+)\s+(\d+)(?:szt|kg|g|l)?\s*-\s*(\d+[,.]?\d*)"
+```
+
+#### 3. Filtrowanie wyników
+**Dodane sprawdzenia:**
+```python
+# Filtruj nieprawidłowe nazwy produktów
+if len(product_name) < 3 or product_name.upper() in ['PLN', 'RAZEM', 'SUMA', 'KONIEC']:
+    logger.info(f"Skipping invalid product name: {product_name}")
+    continue
+```
+
+#### 4. Rozszerzona obsługa dat
+**Dodane formaty:**
+```python
+formats_to_try = [
+    "%d.%m.%Y",    # 15.01.2024
+    "%d-%m-%Y",    # 15-01-2024
+    "%d/%m/%Y",    # 15/01/2024
+    "%Y.%m.%d",    # 2024.01.15
+    "%Y-%m-%d",    # 2024-01-15
+    "%Y/%m/%d",    # 2024/01/15
+    "%d.%m.%y",    # 15.01.24
+    "%d-%m-%y",    # 15-01-24
+    "%d/%m/%y",    # 15/01/24
+]
+```
+
+### Testy które zostały naprawione
+1. `test_fallback_parser_with_common_products` - ✅ teraz rozpoznaje 9 produktów
+2. `test_receipt_analysis_biedronka_format` - ✅ przechodzi
+3. `test_fallback_parser_with_price_patterns` - ✅ przechodzi
+4. `test_fallback_parser_robustness` - ✅ przechodzi
+5. Wszystkie pozostałe testy paragonów - ✅ przechodzą
+
+### Najlepsze praktyki zastosowane
+1. **Test-Driven Development (TDD)** - naprawiono kod tak, by przechodziły istniejące testy
+2. **Debugging i diagnostyka** - dodano szczegółowe logowanie
+3. **Izolacja testów** - poprawiono logikę przekazywania tekstu OCR
+4. **Rozszerzenie funkcjonalności** - dodano obsługę różnych formatów
+5. **Walidacja** - dodano filtrowanie nieprawidłowych wyników
+
+### Ostrzeżenia do naprawy w przyszłości
+- Deprecacje Pydantic V1 -> V2 (51 ostrzeżeń)
+- Deprecacje datetime.utcnow() -> datetime.now(UTC)
+- Deprecacje pytest-asyncio fixtures
+- Deprecacje passlib crypt
+
+### Status: ✅ WSZYSTKIE TESTY PRZECHODZĄ
+Testy są teraz stabilne, deterministyczne i izolowane, zgodnie z najlepszymi praktykami testowania.

@@ -1,28 +1,29 @@
-// ✅ REQUIRED: Main App component test
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '../utils';
 import App from '../../App';
+import { ThemeProvider } from '../../components/ThemeProvider';
+import { BrowserRouter } from 'react-router-dom';
+import { act } from 'react';
+
+vi.mock('../../pages/DashboardPage', () => ({
+  default: () => <div>Dashboard Page</div>,
+}));
 
 describe('App', () => {
-  it('renders without crashing', () => {
-    render(<App />);
-    expect(screen.getByText('Vite + React')).toBeInTheDocument();
-  });
+  const renderApp = () => {
+    return render(
+      <BrowserRouter>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </BrowserRouter>
+    );
+  };
 
-  it('displays counter button', () => {
-    render(<App />);
-    expect(screen.getByRole('button', { name: /count is 0/i })).toBeInTheDocument();
-  });
-
-  it('shows edit instructions', () => {
-    render(<App />);
-    expect(screen.getByText('Edit', { exact: false })).toBeInTheDocument();
-    expect(screen.getByText('and save to test HMR', { exact: false })).toBeInTheDocument();
-    expect(screen.getByText('src/App.tsx', { exact: false })).toBeInTheDocument();
-  });
-
-  it('has read the docs link', () => {
-    render(<App />);
-    expect(screen.getByText(/Click on the Vite and React logos to learn more/i)).toBeInTheDocument();
+  it('renders without crashing', async () => {
+    await act(async () => {
+      renderApp();
+    });
+    expect(await screen.findByText('Dashboard Page')).toBeInTheDocument();
   });
 }); 

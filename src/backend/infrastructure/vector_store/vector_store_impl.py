@@ -64,3 +64,20 @@ class EnhancedVectorStoreImpl:
         except Exception as e:
             logger.error(f"Error getting relevant documents: {e}")
             return []
+
+    async def get_stats(self) -> Dict[str, Any]:
+        """Get vector store statistics"""
+        try:
+            return await self.vector_store.get_stats()
+        except Exception as e:
+            logger.error(f"Error getting stats: {e}")
+            return {"error": str(e)}
+
+    async def clear_all(self) -> None:
+        """Clear all documents from vector store"""
+        try:
+            await self.vector_store.clear_all()
+            logger.info("Cleared all documents from vector store")
+        except Exception as e:
+            logger.error(f"Error clearing vector store: {e}")
+            raise

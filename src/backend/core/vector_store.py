@@ -210,7 +210,8 @@ class VectorStore:
                 # Import here to avoid circular imports
                 from backend.core.llm_client import llm_client
 
-                embedding_response = await llm_client.embed(text)
+                # Use default embedding model
+                embedding_response = await llm_client.embed(model="nomic-embed-text", text=text)
                 if embedding_response and "embedding" in embedding_response:
                     doc.embedding = np.array(
                         embedding_response["embedding"], dtype=np.float32
@@ -325,7 +326,7 @@ class VectorStore:
             from backend.core.llm_client import llm_client
 
             # Generate embedding for the query
-            embedding_response = await llm_client.embed(query)
+            embedding_response = await llm_client.embed(model="nomic-embed-text", text=query)
             if not embedding_response or "embedding" not in embedding_response:
                 logger.error("Failed to generate embedding for query")
                 return []

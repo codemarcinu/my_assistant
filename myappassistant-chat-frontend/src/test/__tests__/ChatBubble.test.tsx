@@ -1,9 +1,18 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ChatBubble } from '../../components/chat/ChatBubble';
+import ChatBubble from '../../components/chat/ChatBubble';
 import { Message } from '../../types/chat';
+import { ThemeProvider } from '../../components/ThemeProvider';
 
 describe('ChatBubble', () => {
+  const renderBubble = (message: Message) => {
+    return render(
+      <ThemeProvider>
+        <ChatBubble message={message} />
+      </ThemeProvider>
+    );
+  };
+
   it('renders user message correctly', () => {
     const message: Message = {
       id: '1',
@@ -11,7 +20,7 @@ describe('ChatBubble', () => {
       role: 'user',
       timestamp: new Date('2024-06-01T12:00:00Z'),
     };
-    render(<ChatBubble message={message} />);
+    renderBubble(message);
     expect(screen.getByText('Hello, AI!')).toBeInTheDocument();
     expect(screen.getByText('U')).toBeInTheDocument();
   });
@@ -23,7 +32,7 @@ describe('ChatBubble', () => {
       role: 'assistant',
       timestamp: new Date('2024-06-01T12:01:00Z'),
     };
-    render(<ChatBubble message={message} />);
+    renderBubble(message);
     expect(screen.getByText('Hello, user!')).toBeInTheDocument();
     expect(screen.getByText('AI')).toBeInTheDocument();
   });
@@ -35,7 +44,7 @@ describe('ChatBubble', () => {
       role: 'user',
       timestamp: new Date('2024-06-01T15:30:00Z'),
     };
-    render(<ChatBubble message={message} />);
+    renderBubble(message);
     // Should render hour:minute in local time
     expect(screen.getByText(/\d{2}:\d{2}/)).toBeInTheDocument();
   });

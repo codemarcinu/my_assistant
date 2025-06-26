@@ -55,7 +55,7 @@ export const useChatStore = create<ChatStore & ChatState>((set, get) => ({
     const message: ChatMessage = {
       id: Date.now().toString(),
       content: messageData.content,
-      type: messageData.type || 'user',
+      role: messageData.role || 'user',
       timestamp: new Date(),
       metadata: messageData.metadata,
     };

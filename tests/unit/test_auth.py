@@ -11,7 +11,7 @@ Zgodnie z regułami projektu:
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 import jwt
 from datetime import datetime, timedelta
 import passlib.exc
@@ -61,7 +61,7 @@ def auth_middleware():
 @pytest.fixture
 def client():
     """Fixture dla test client"""
-    from backend.main import app
+    from main import app
     return TestClient(app)
 
 @pytest.fixture
