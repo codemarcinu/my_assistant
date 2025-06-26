@@ -1,0 +1,43 @@
+FROM ollama/ollama:latest
+
+# Ustawienie zmiennych środowiskowych
+ENV OLLAMA_HOST=0.0.0.0
+ENV OLLAMA_KEEP_ALIVE=24h
+
+# Ekspozycja portu
+EXPOSE 11434
+
+# Skrypt do automatycznego pobierania modeli
+COPY <<EOF /usr/local/bin/init-models.sh
+#!/bin/bash
+set -e
+
+echo "🚀 Initializing Ollama models..."
+
+# Pobieranie głównych modeli
+echo "📥 Downloading Gemma 3 12B model..."
+ollama pull gemma3:12b
+
+echo "📥 Downloading Gemma 3 8B model..."
+ollama pull gemma3:8b
+
+echo "📥 Downloading Llama 3.2 3B model..."
+ollama pull llama3.2:3b
+
+echo "📥 Downloading Mistral 7B model..."
+ollama pull mistral:7b
+
+echo "📥 Downloading Nomic Embed Text model..."
+ollama pull nomic-embed-text
+
+echo "✅ All models downloaded successfully!"
+
+# Uruchomienie Ollama
+exec ollama serve
+EOF
+
+# Nadanie uprawnień do wykonywania skryptu
+RUN chmod +x /usr/local/bin/init-models.sh
+
+# Uruchomienie skryptu inicjalizacji
+CMD ["/usr/local/bin/init-models.sh"] 

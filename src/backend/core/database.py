@@ -16,15 +16,11 @@ DATABASE_URL = settings.DATABASE_URL
 # Create async SQLAlchemy engine with optimized connection pooling
 engine = create_async_engine(
     DATABASE_URL,
-    connect_args={
-        "check_same_thread": False,
-        "timeout": 30,  # Connection timeout
-        "isolation_level": "EXCLUSIVE",  # Better concurrency for SQLite
-    },
     echo=False,  # Disable SQL logging in production
-    poolclass=StaticPool,  # Use StaticPool for SQLite async engine
     pool_pre_ping=True,  # Verify connections before use
     pool_recycle=3600,  # Recycle connections after 1 hour
+    pool_size=10,  # Connection pool size
+    max_overflow=20,  # Maximum overflow connections
 )
 
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)

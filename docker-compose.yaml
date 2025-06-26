@@ -52,6 +52,7 @@ services:
       - PYTHONPATH=/app:/app/src
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - TESTING_MODE=true
       - DATABASE_URL=${DATABASE_URL:-postgresql://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev}
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_BASE_URL=http://ollama:11434
@@ -147,11 +148,10 @@ services:
     image: redis:7-alpine
     container_name: foodsave-redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
-      - ./logs/redis:/var/log/redis
-    command: ["redis-server", "--save", "60", "1", "--loglevel", "notice", "--logfile", "/var/log/redis/redis.log"]
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "notice"]
     networks:
       - foodsave-network
     restart: unless-stopped

@@ -26,7 +26,7 @@ COPY pyproject.toml poetry.lock /app/
 # Install core dependencies first
 RUN pip install --retries 3 --timeout 300 fastapi uvicorn python-multipart httpx pydantic pydantic-settings python-dotenv \
     sqlalchemy aiosqlite pytz psutil structlog==24.1.0 langdetect==1.0.9 redis==5.2.0 pybreaker==1.3.0 \
-    dependency_injector>=4.41.0 slowapi==0.1.9 alembic asyncpg
+    dependency_injector>=4.41.0 slowapi==0.1.9 alembic asyncpg aiofiles PyJWT passlib email-validator
 
 # Install ML dependencies in smaller groups with alternatives to problematic packages
 RUN pip install --retries 5 --timeout 600 \

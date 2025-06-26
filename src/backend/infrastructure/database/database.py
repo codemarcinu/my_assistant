@@ -68,9 +68,10 @@ class DatabaseMetrics:
                     "checked_in": pool._pool.qsize(),
                     "checked_out": pool.size() - pool._pool.qsize(),
                     "overflow": pool.overflow(),
-                    "invalid": pool.invalid(),
                 }
             )
+            # Usuń klucz 'invalid' jeśli istnieje
+            self.connection_pool_stats.pop("invalid", None)
 
     def get_stats(self) -> dict:
         """Get comprehensive database statistics"""

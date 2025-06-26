@@ -427,6 +427,7 @@ class EnhancedLLMClient:
         Async version of generate_stream_from_prompt for FastAPI compatibility.
         Converts synchronous generator to asynchronous generator.
         """
+        import inspect
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -436,19 +437,19 @@ class EnhancedLLMClient:
         sync_generator = self._stream_response(model, messages, options or {})
         
         # Convert to async generator using asyncio event loop
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         
         try:
             while True:
-                # Run the next iteration of the sync generator in a thread
                 chunk = await loop.run_in_executor(None, lambda: next(sync_generator))
+                # Extra safety: if chunk is coroutine, raise
+                if inspect.iscoroutine(chunk) or inspect.isawaitable(chunk):
+                    raise RuntimeError("LLM generator yielded coroutine instead of value!")
                 yield chunk
         except StopIteration:
-            # Generator is exhausted
             pass
         except Exception as e:
             logger.error(f"Error in async streaming: {e}")
-            # Yield error response
             yield {
                 "message": {
                     "role": "assistant",

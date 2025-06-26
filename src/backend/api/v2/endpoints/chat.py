@@ -8,6 +8,7 @@ import logging
 import os
 from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, cast, Generator
+import inspect
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import StreamingResponse
@@ -91,9 +92,6 @@ llm_circuit_breaker = CircuitBreakerConfig(
 )
 
 
-@with_circuit_breaker()
-@with_backpressure(max_concurrent=50)
-@with_backpressure(max_concurrent=20)
 async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str, None]:
     """
     Asynchroniczny generator streamujący odpowiedzi LLM do FastAPI (zgodny z najlepszymi praktykami).
@@ -156,9 +154,11 @@ async def chat_with_model_stream(request: Request) -> StreamingResponse:
     body = await request.json()
     prompt = body.get("message", "")
     model = body.get("model") or get_selected_model()
-    
+    gen = chat_response_generator(prompt, model)
+    if inspect.iscoroutine(gen) or inspect.isawaitable(gen):
+        raise RuntimeError("chat_response_generator returned coroutine instead of async generator! Popraw implementację generatora.")
     return StreamingResponse(
-        chat_response_generator(prompt, model), 
+        gen, 
         media_type="text/plain"
     )
 
