@@ -18,9 +18,9 @@ async def test_search_agent_with_results() -> None:
     mock_context = {"query": "test query", "model": "llama3"}
 
     with patch(
-        "backend.agents.search_agent.perplexity_client.search"
+        "backend.core.perplexity_client.perplexity_client.search"
     ) as mock_web_search, patch(
-        "backend.agents.search_agent.hybrid_llm_client.chat"
+        "backend.core.hybrid_llm_client.hybrid_llm_client.chat"
     ) as mock_chat:
         mock_web_search.return_value = {
             "success": True,
@@ -49,7 +49,7 @@ async def test_search_agent_empty_results() -> None:
     mock_context = {"query": "test query"}
 
     with patch(
-        "backend.agents.search_agent.perplexity_client.search"
+        "backend.core.perplexity_client.perplexity_client.search"
     ) as mock_web_search:
         mock_web_search.return_value = {
             "success": True,
@@ -92,14 +92,14 @@ async def test_search_agent_llm_error() -> None:
     agent = SearchAgent(vector_store=mock_vector_store, llm_client=mock_llm_client)
     mock_input = {"query": "test query"}
 
-    with patch("backend.agents.search_agent.perplexity_client.search") as mock_search:
+    with patch("backend.core.perplexity_client.perplexity_client.search") as mock_search:
         mock_search.return_value = {
             "success": False,
             "error": "LLM Error",
             "content": "Błąd podczas generowania odpowiedzi",
         }
 
-        with patch("backend.agents.search_agent.hybrid_llm_client.chat") as mock_chat:
+        with patch("backend.core.hybrid_llm_client.hybrid_llm_client.chat") as mock_chat:
             mock_chat.side_effect = Exception("LLM Error")
 
             response = await agent.process(mock_input)
