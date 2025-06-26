@@ -436,27 +436,39 @@ class EnhancedLLMClient:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        # Get the synchronous generator
-        sync_generator = self._stream_response(model, messages, options or {})
+        # Debug: sprawdź typ obiektu zwracanego przez _stream_response
+        logger.debug(f"Calling _stream_response with model={model}, messages={messages}")
+        logger.debug(f"Self object: {self}")
+        logger.debug(f"Self type: {type(self)}")
         
-        # Validate that we got a generator
-        if not inspect.isgenerator(sync_generator):
-            logger.error(f"Expected generator, got {type(sync_generator)}")
-            yield {"error": "Internal error: invalid generator type"}
-            return
-
-        # Convert to async generator
         try:
-            loop = asyncio.get_running_loop()
-            for chunk in sync_generator:
-                # Run the synchronous iteration in a thread pool
-                yield await loop.run_in_executor(None, lambda: chunk)
-        except StopIteration:
-            # Handle normal generator completion
-            return
+            # Get the synchronous generator
+            sync_generator = self._stream_response(model, messages, options or {})
+            
+            # Debug: sprawdź typ zwracanego obiektu
+            logger.debug(f"_stream_response returned: {type(sync_generator)}")
+            logger.debug(f"Is generator: {inspect.isgenerator(sync_generator)}")
+            
+            # Validate that we got a generator
+            if not inspect.isgenerator(sync_generator):
+                logger.error(f"Expected generator, got {type(sync_generator)}")
+                yield {"error": "Internal error: invalid generator type"}
+                return
+
+            # Convert to async generator - simpler approach
+            try:
+                for chunk in sync_generator:
+                    yield chunk
+            except StopIteration:
+                # Handle normal generator completion
+                return
+            except Exception as e:
+                logger.error(f"Error in async streaming: {e}")
+                yield {"error": f"Streaming error: {str(e)}"}
+                
         except Exception as e:
-            logger.error(f"Error in async streaming: {e}")
-            yield {"error": f"Streaming error: {str(e)}"}
+            logger.error(f"Error in generate_stream_from_prompt_async: {e}")
+            yield {"error": f"LLM client error: {str(e)}"}
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the LLM client"""

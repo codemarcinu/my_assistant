@@ -43,8 +43,8 @@ class Settings(BaseSettings):
     REDIS_USE_CACHE: bool = True
 
     # Konfiguracja dla klienta Ollama
-    OLLAMA_URL: str = "http://ollama:11434"
-    OLLAMA_BASE_URL: str = "http://ollama:11434"
+    OLLAMA_URL: str = "http://localhost:11434"
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Modele językowe - z fallback na działające modele
     OLLAMA_MODEL: str = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Główny model
