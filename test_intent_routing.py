@@ -20,7 +20,7 @@ sys.path.append('src')
 from backend.agents.intent_detector import SimpleIntentDetector
 from backend.agents.orchestrator import Orchestrator
 from backend.agents.interfaces import MemoryContext
-from backend.core.config import settings
+from backend.config import settings
 
 
 class IntentRoutingTester:
