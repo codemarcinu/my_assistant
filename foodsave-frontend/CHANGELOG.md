@@ -55,6 +55,8 @@
 - `README.md` – pełna aktualizacja opisu architektury, funkcji, testowania, roadmapy.
 - `FRONTEND_IMPLEMENTATION.md` – szczegółowa dokumentacja implementacji, struktury projektu, UI/UX, testowania, integracji.
 
+## [Unreleased]
+- Dodano integracyjny test backendu dla endpointu /api/v2/chat/stream (FastAPI)
 ---
 
 **Uwaga:**  

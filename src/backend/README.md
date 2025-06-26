@@ -110,4 +110,38 @@ Backend obsługuje streaming responses dla czatu AI z następującymi endpointam
 async def chat_stream_generator():
     async for chunk in llm_client.stream_chat(messages):
         yield f"data: {chunk}\n\n"
+```
+
+## Testowanie endpointów API v2
+
+Aby przetestować streamingowy endpoint `/api/v2/chat/stream`, dodaj test integracyjny w pliku `src/backend/tests/test_chat_endpoint.py`:
+
+```python
+from fastapi.testclient import TestClient
+from fastapi import status
+from src.backend.main import app
+
+def test_chat_stream_basic():
+    client = TestClient(app)
+    payload = {"message": "Hello, how are you?", "session_id": "test-session"}
+    response = client.post("/api/v2/chat/stream", json=payload)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.text
+    assert "błąd" not in response.text.lower()
+```
+
+### Wymagane zależności
+- pytest
+- pytest-asyncio
+- httpx
+- email-validator
+- passlib
+- slowapi
+- aiofiles
+- pyjwt
+
+Testy uruchamiaj poleceniem:
+
+```
+docker compose exec backend poetry run pytest src/backend/tests/test_chat_endpoint.py -v
 ``` 

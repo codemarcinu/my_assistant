@@ -101,6 +101,13 @@ async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str
             if not isinstance(chunk, dict):
                 continue
             chunk_dict = cast(Dict[str, Any], chunk)
+            
+            # Obsługa błędów z LLM client
+            if "error" in chunk_dict:
+                logger.error(f"LLM client error: {chunk_dict['error']}")
+                yield f"Przepraszam, wystąpił błąd: {chunk_dict['error']}"
+                return
+            
             if "response" in chunk_dict:
                 yield chunk_dict["response"]
     except Exception as e:
@@ -112,6 +119,14 @@ async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str
 async def chat_with_model(request: Request) -> StreamingResponse:
     body = await request.json()
     prompt = body.get("prompt")
+    
+    # Walidacja prompt
+    if not prompt or prompt.strip() == "":
+        return StreamingResponse(
+            iter([json.dumps({"error": "Prompt cannot be empty or null"})]),
+            media_type="application/json"
+        )
+    
     model = body.get("model") or get_selected_model()
     gen = chat_response_generator(prompt, model)
     if inspect.iscoroutine(gen) or inspect.isawaitable(gen):

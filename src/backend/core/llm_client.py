@@ -8,18 +8,18 @@ import ollama
 import requests  # type: ignore
 import structlog
 
+from ..config import settings
+
 logger = structlog.get_logger()
 
-# Configure ollama client to use the correct host
-ollama_host = os.getenv("OLLAMA_HOST", "localhost")
-ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+# Configure ollama client to use the correct host from settings
+ollama_url = settings.OLLAMA_URL
+ollama_host = ollama_url.replace("http://", "").replace("https://", "").split(":")[0]
 
 # Set the host for the ollama library
-if ollama_host != "localhost":
-    # The ollama library uses OLLAMA_HOST environment variable
-    os.environ["OLLAMA_HOST"] = ollama_host
-    logger.info(f"Configured ollama client to use host: {ollama_host}")
-    logger.info(f"Ollama URL: {ollama_url}")
+os.environ["OLLAMA_HOST"] = ollama_host
+logger.info(f"Configured ollama client to use host: {ollama_host}")
+logger.info(f"Ollama URL: {ollama_url}")
 
 # Create a configured ollama client instance
 ollama_client = ollama.Client()
@@ -32,7 +32,7 @@ logger.info(
 def test_ollama_connection() -> bool:
     """Test if Ollama server is accessible"""
     try:
-        response = requests.get(f"{ollama_url}/api/version", timeout=5)
+        response = requests.get(f"{settings.OLLAMA_URL}/api/version", timeout=5)
         if response.status_code == 200:
             logger.info("Ollama server is accessible")
             return True
@@ -118,7 +118,7 @@ class EnhancedLLMClient:
         """Check if Ollama is available with retries"""
         for attempt in range(self.connection_retries):
             try:
-                response = requests.get(f"{ollama_url}/api/version", timeout=5)
+                response = requests.get(f"{settings.OLLAMA_URL}/api/version", timeout=5)
                 if response.status_code == 200:
                     return True
             except Exception as e:
@@ -428,6 +428,13 @@ class EnhancedLLMClient:
         Converts synchronous generator to asynchronous generator.
         """
         import inspect
+        
+        # Walidacja prompt
+        if not prompt or prompt.strip() == "":
+            logger.error("Empty or null prompt provided to generate_stream_from_prompt_async")
+            yield {"error": "Prompt cannot be empty or null"}
+            return
+        
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -436,28 +443,24 @@ class EnhancedLLMClient:
         # Get the synchronous generator
         sync_generator = self._stream_response(model, messages, options or {})
         
-        # Convert to async generator using asyncio event loop
-        loop = asyncio.get_running_loop()
-        
+        # Validate that we got a generator
+        if not inspect.isgenerator(sync_generator):
+            logger.error(f"Expected generator, got {type(sync_generator)}")
+            yield {"error": "Internal error: invalid generator type"}
+            return
+
+        # Convert to async generator
         try:
-            while True:
-                chunk = await loop.run_in_executor(None, lambda: next(sync_generator))
-                # Extra safety: if chunk is coroutine, raise
-                if inspect.iscoroutine(chunk) or inspect.isawaitable(chunk):
-                    raise RuntimeError("LLM generator yielded coroutine instead of value!")
-                yield chunk
+            loop = asyncio.get_running_loop()
+            for chunk in sync_generator:
+                # Run the synchronous iteration in a thread pool
+                yield await loop.run_in_executor(None, lambda: chunk)
         except StopIteration:
-            pass
+            # Handle normal generator completion
+            return
         except Exception as e:
             logger.error(f"Error in async streaming: {e}")
-            yield {
-                "message": {
-                    "role": "assistant",
-                    "content": "Przepraszam, wystąpił błąd podczas przetwarzania odpowiedzi.",
-                },
-                "response": "Przepraszam, wystąpił błąd podczas przetwarzania odpowiedzi.",
-                "error": str(e),
-            }
+            yield {"error": f"Streaming error: {str(e)}"}
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the LLM client"""
