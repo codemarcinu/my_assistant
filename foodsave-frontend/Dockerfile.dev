@@ -1,5 +1,5 @@
 # Development Dockerfile dla Frontendu (React + Vite)
-FROM node:18-alpine
+FROM node:18-bullseye
 
 # Ustawienie zmiennych środowiskowych
 ENV NODE_ENV=development
@@ -7,7 +7,7 @@ ENV VITE_DEV_SERVER_HOST=0.0.0.0
 ENV VITE_DEV_SERVER_PORT=3000
 
 # Instalacja curl dla health check
-RUN apk add --no-cache curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Ustawienie katalogu roboczego
 WORKDIR /app
@@ -22,6 +22,9 @@ COPY eslint.config.js ./
 
 # Instalacja zależności
 RUN npm ci
+
+# Instalacja browserów Playwright (E2E ready)
+RUN npx playwright install --with-deps
 
 # Kopiowanie kodu źródłowego
 COPY . .
