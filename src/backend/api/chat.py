@@ -4,8 +4,9 @@ import logging
 import os
 from typing import Any, AsyncGenerator, Dict, cast, Generator
 import inspect
+from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -105,35 +106,49 @@ async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str
             # Obsługa błędów z LLM client
             if "error" in chunk_dict:
                 logger.error(f"LLM client error: {chunk_dict['error']}")
-                yield f"Przepraszam, wystąpił błąd: {chunk_dict['error']}"
-                return
+                raise Exception(f"LLM client error: {chunk_dict['error']}")
             
             if "response" in chunk_dict:
                 yield chunk_dict["response"]
     except Exception as e:
         logger.error(f"Error in chat response generator: {e}")
-        yield f"Przepraszam, wystąpił błąd podczas przetwarzania odpowiedzi: {str(e)}"
+        raise e
 
 
 @router.post("/chat")
-async def chat_with_model(request: Request) -> StreamingResponse:
+async def chat_with_model(request: Request) -> Dict[str, Any]:
     body = await request.json()
     prompt = body.get("prompt")
     
     # Walidacja prompt
     if not prompt or prompt.strip() == "":
-        return StreamingResponse(
-            iter([json.dumps({"error": "Prompt cannot be empty or null"})]),
-            media_type="application/json"
-        )
+        raise HTTPException(status_code=422, detail="Prompt cannot be empty or null")
     
     model = body.get("model") or get_selected_model()
-    gen = chat_response_generator(prompt, model)
-    if inspect.iscoroutine(gen) or inspect.isawaitable(gen):
-        raise RuntimeError("chat_response_generator returned coroutine instead of async generator! Popraw implementację generatora.")
-    return StreamingResponse(
-        gen, media_type="text/plain"
-    )
+    logger.info(f"[DEBUG] Selected model for chat: {model}")
+    
+    try:
+        # Collect all chunks from the generator
+        response_text = ""
+        async for chunk in chat_response_generator(prompt, model):
+            response_text += chunk
+        
+        # Return JSON response compatible with frontend expectations
+        return {
+            "data": response_text,
+            "status": "success",
+            "message": "Chat response generated successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {e}")
+        return {
+            "data": f"Przepraszam, wystąpił błąd: {str(e)}",
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 
 async def memory_chat_generator(
@@ -324,3 +339,92 @@ async def test_simple_chat() -> Dict[str, Any]:
 async def test_chat_simple(request: ChatRequest) -> Dict[str, Any]:
     # Placeholder for actual chat logic
     return {"reply": f"You said: {request.prompt}", "model": request.model}
+
+
+@router.get("/memory_chat")
+async def get_chat_history(
+    session_id: str = "default",
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Get chat history for a session"""
+    try:
+        # Get orchestrator to access memory manager
+        orchestrator = await orchestrator_pool.get_healthy_orchestrator()
+        if not orchestrator:
+            return {
+                "success": False,
+                "error": "No healthy orchestrator available",
+                "data": []
+            }
+        
+        # Get context from memory manager
+        context = await orchestrator.memory_manager.get_context(session_id)
+        
+        # Extract chat history from context
+        history = []
+        if hasattr(context, 'history') and context.history:
+            # Take last 'limit' items
+            recent_history = context.history[-limit:] if limit > 0 else context.history
+            
+            for i, entry in enumerate(recent_history):
+                if isinstance(entry, dict) and 'data' in entry:
+                    data = entry['data']
+                    if isinstance(data, dict):
+                        # Extract message content from various possible formats
+                        content = data.get('message') or data.get('content') or data.get('text', '')
+                        role = data.get('role') or data.get('type', 'user')
+                        
+                        history.append({
+                            "id": f"history-{i}",
+                            "content": content,
+                            "type": role,
+                            "timestamp": entry.get('timestamp', datetime.now().isoformat()),
+                            "metadata": data
+                        })
+        
+        return {
+            "success": True,
+            "data": history,
+            "session_id": session_id,
+            "total_count": len(history)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting chat history: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "data": []
+        }
+
+
+@router.delete("/memory_chat")
+async def clear_chat_history(
+    session_id: str = "default",
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Clear chat history for a session"""
+    try:
+        # Get orchestrator to access memory manager
+        orchestrator = await orchestrator_pool.get_healthy_orchestrator()
+        if not orchestrator:
+            return {
+                "success": False,
+                "error": "No healthy orchestrator available"
+            }
+        
+        # Clear context from memory manager
+        await orchestrator.memory_manager.clear_context(session_id)
+        
+        return {
+            "success": True,
+            "message": f"Chat history cleared for session: {session_id}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error clearing chat history: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }

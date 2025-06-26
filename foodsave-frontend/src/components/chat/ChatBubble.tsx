@@ -14,7 +14,7 @@ interface ChatBubbleProps {
  */
 export default function ChatBubble({ message }: ChatBubbleProps) {
   const { resolvedTheme } = useTheme();
-  const isUser = message.role === 'user';
+  const isUser = message.type === 'user';
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('pl-PL', { 

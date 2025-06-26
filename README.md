@@ -54,9 +54,16 @@ docker-compose up -d --build
 - API Docs:        http://localhost:8000/docs
 - Health Check:    http://localhost:8000/health
 
-## 🔧 Naprawy i Ulepszenia (v1.1.0)
+## 🔧 Naprawy i Ulepszenia (v1.2.0)
 
 ### ✅ Naprawione problemy:
+- **Chat API - format odpowiedzi**: Naprawiono niezgodność między frontend a backend
+  - Backend zwracał `StreamingResponse` z `text/plain`, frontend oczekiwał JSON z polem `data`
+  - Zmieniono endpoint `/api/chat/chat` na zwracanie JSON z formatem `{ "data": "..." }`
+  - Poprawiono obsługę błędów w `chat_response_generator`
+- **Frontend chat store**: Poprawiono obsługę odpowiedzi backendu
+  - Obsługuje zarówno string jak i obiekt z polem `content`
+  - Komponenty używają poprawnego typu `ChatMessage`
 - **Błąd bazy danych**: Naprawiono `AsyncAdaptedQueuePool` - usunięto nieistniejący atrybut `'invalid'`
 - **Generator odpowiedzi**: Naprawiono async generator w `/chat/stream` endpoint
 - **Health checks**: Wszystkie kontenery teraz przechodzą health checks ✅
@@ -71,6 +78,11 @@ docker-compose up -d --build
 - foodsave-postgres:    ✅ healthy
 - foodsave-ollama:      ✅ healthy
 - foodsave-redis:       ✅ healthy
+
+# Chat API działa poprawnie:
+- Backend chat endpoint: ✅ zwraca JSON z polem "data"
+- Frontend chat store:   ✅ obsługuje odpowiedzi backendu
+- Chat UI:              ✅ wyświetla odpowiedzi AI zamiast błędów
 ```
 
 ## 🛠️ Troubleshooting
@@ -136,4 +148,4 @@ MIT License - zobacz plik [LICENSE](src/backend/LICENSE) dla szczegółów.
 
 ---
 
-**Ostatnia aktualizacja**: 2025-06-26 - Naprawy stabilności systemu v1.1.0 
+**Ostatnia aktualizacja**: 2025-06-26 - Naprawa Chat API v1.2.0 

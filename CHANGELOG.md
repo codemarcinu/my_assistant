@@ -5,6 +5,41 @@ Wszystkie istotne zmiany w projekcie FoodSave AI będą dokumentowane w tym plik
 Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/),
 i projekt przestrzega [Semantic Versioning](https://semver.org/lang/pl/).
 
+## [1.2.0] - 2025-06-26
+
+### ✅ Naprawione
+- **Chat API - format odpowiedzi**: Naprawiono niezgodność między frontend a backend
+  - Backend zwracał `StreamingResponse` z `text/plain`, frontend oczekiwał JSON z polem `data`
+  - Zmieniono endpoint `/api/chat/chat` na zwracanie `Dict[str, Any]` z formatem:
+    ```json
+    {
+      "data": "Odpowiedź AI",
+      "status": "success",
+      "message": "Chat response generated successfully", 
+      "timestamp": "2025-06-26T13:33:20.328618"
+    }
+    ```
+  - Poprawiono obsługę błędów w `chat_response_generator` - teraz rzuca wyjątki zamiast yield'owania błędów
+  - Dodano import `HTTPException` dla walidacji requestów
+
+- **Frontend chat store**: Poprawiono obsługę odpowiedzi backendu
+  - Obsługuje zarówno string jak i obiekt z polem `content`
+  - Poprawiono logikę w `sendMessage()` dla różnych formatów odpowiedzi
+  - Komponenty `ChatBubble` i `ChatContainer` używają poprawnego typu `ChatMessage`
+
+### 🔧 Zmieniono
+- **API Contract**: Ujednolicono format odpowiedzi chat API
+- **Error Handling**: Lepsze zarządzanie błędami w generatorze odpowiedzi
+- **Type Safety**: Poprawiono typy w backend API
+
+### 📊 Stan systemu
+```bash
+# Chat API teraz działa poprawnie:
+- Backend chat endpoint: ✅ zwraca JSON z polem "data"
+- Frontend chat store:   ✅ obsługuje odpowiedzi backendu
+- Chat UI:              ✅ wyświetla odpowiedzi AI zamiast błędów
+```
+
 ## [1.1.0] - 2025-06-26
 
 ### ✅ Naprawione

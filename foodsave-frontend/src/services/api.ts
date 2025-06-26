@@ -77,9 +77,9 @@ apiClient.interceptors.response.use(
 // Chat API endpoints - using real backend endpoints
 export const chatAPI = {
   // Send message to AI assistant
-  sendMessage: async (message: string, context?: any): Promise<ApiResponse<ChatMessage>> => {
+  sendMessage: async (prompt: string, context?: any): Promise<ApiResponse<ChatMessage>> => {
     const response = await apiClient.post('/api/chat/chat', {
-      message,
+      prompt,
       context,
     });
     return response.data;

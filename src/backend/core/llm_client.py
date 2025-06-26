@@ -14,19 +14,15 @@ logger = structlog.get_logger()
 
 # Configure ollama client to use the correct host from settings
 ollama_url = settings.OLLAMA_URL
-ollama_host = ollama_url.replace("http://", "").replace("https://", "").split(":")[0]
+logger.info(f"Raw OLLAMA_URL from settings: {ollama_url}")
 
-# Set the host for the ollama library
-os.environ["OLLAMA_HOST"] = ollama_host
-logger.info(f"Configured ollama client to use host: {ollama_host}")
-logger.info(f"Ollama URL: {ollama_url}")
+if not ollama_url or not ollama_url.startswith(('http://', 'https://')):
+    logger.error(f"Invalid OLLAMA_URL: {ollama_url}")
+    raise ValueError(f"OLLAMA_URL must start with http:// or https://, got: {ollama_url}")
 
-# Create a configured ollama client instance
-ollama_client = ollama.Client()
-logger.info(
-    f"Configured ollama client to use host: {ollama_host} and URL: {ollama_url}"
-)
-
+# Create a configured ollama client instance with the correct host
+ollama_client = ollama.Client(host=ollama_url)
+logger.info(f"Configured ollama client with host: {ollama_url}")
 
 # Test Ollama connection on startup
 def test_ollama_connection() -> bool:

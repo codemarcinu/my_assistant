@@ -55,7 +55,7 @@ export const useChatStore = create<ChatStore & ChatState>((set, get) => ({
     const message: ChatMessage = {
       id: Date.now().toString(),
       content: messageData.content,
-      role: messageData.role || 'user',
+      type: messageData.type || 'user',
       timestamp: new Date(),
       metadata: messageData.metadata,
     };
@@ -134,10 +134,19 @@ export const useChatStore = create<ChatStore & ChatState>((set, get) => ({
       
       // Send message to backend
       const response = await chatAPI.sendMessage(content);
-      
+      let aiContent = '';
+      if (typeof response.data === 'string') {
+        aiContent = response.data;
+      } else if (response.data && typeof response.data === 'object' && response.data.content) {
+        aiContent = response.data.content;
+      } else if (response.message) {
+        aiContent = response.message;
+      } else {
+        aiContent = 'Przepraszam, wystąpił błąd.';
+      }
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: response.data?.content || response.message || 'Przepraszam, wystąpił błąd.',
+        content: aiContent,
         type: 'assistant',
         timestamp: new Date(),
       };
