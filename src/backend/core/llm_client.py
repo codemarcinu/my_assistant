@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import os
 import time
 from datetime import datetime
@@ -21,8 +22,8 @@ if not ollama_url or not ollama_url.startswith(('http://', 'https://')):
     raise ValueError(f"OLLAMA_URL must start with http:// or https://, got: {ollama_url}")
 
 # Create a configured ollama client instance with the correct host
-ollama_client = ollama.Client(host=ollama_url)
-logger.info(f"Configured ollama client with host: {ollama_url}")
+ollama_client = ollama.Client(base_url=ollama_url)
+logger.info(f"Configured ollama client with base_url: {ollama_url}")
 
 # Test Ollama connection on startup
 def test_ollama_connection() -> bool:

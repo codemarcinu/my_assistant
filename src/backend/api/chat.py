@@ -99,17 +99,34 @@ async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str
         async for chunk in llm_client.generate_stream_from_prompt_async(
             model=model, prompt=prompt, system_prompt=""
         ):
-            if not isinstance(chunk, dict):
-                continue
-            chunk_dict = cast(Dict[str, Any], chunk)
-            
             # Obsługa błędów z LLM client
-            if "error" in chunk_dict:
-                logger.error(f"LLM client error: {chunk_dict['error']}")
-                raise Exception(f"LLM client error: {chunk_dict['error']}")
+            if hasattr(chunk, 'error') and chunk.error:
+                logger.error(f"LLM client error: {chunk.error}")
+                raise Exception(f"LLM client error: {chunk.error}")
             
-            if "response" in chunk_dict:
-                yield chunk_dict["response"]
+            # Sprawdź różne możliwe struktury odpowiedzi z Ollama
+            response_text = None
+            
+            # Struktura 1: pole "response" (słownik)
+            if isinstance(chunk, dict) and "response" in chunk:
+                response_text = chunk["response"]
+            # Struktura 2: pole "message" z "content" (słownik)
+            elif isinstance(chunk, dict) and "message" in chunk and isinstance(chunk["message"], dict):
+                if "content" in chunk["message"]:
+                    response_text = chunk["message"]["content"]
+            # Struktura 3: pole "content" bezpośrednio (słownik)
+            elif isinstance(chunk, dict) and "content" in chunk:
+                response_text = chunk["content"]
+            # Struktura 4: obiekt ChatResponse z Ollama (atrybuty obiektu)
+            elif hasattr(chunk, 'message') and hasattr(chunk.message, 'content'):
+                response_text = chunk.message.content
+            # Struktura 5: obiekt z atrybutem content
+            elif hasattr(chunk, 'content'):
+                response_text = chunk.content
+            
+            if response_text:
+                yield response_text
+                
     except Exception as e:
         logger.error(f"Error in chat response generator: {e}")
         raise e

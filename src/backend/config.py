@@ -47,15 +47,16 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Modele językowe - z fallback na działające modele
-    OLLAMA_MODEL: str = "mistral:7b"  # Główny model
-    DEFAULT_CODE_MODEL: str = "mistral:7b"  # Model do kodu
-    DEFAULT_CHAT_MODEL: str = "mistral:7b"  # Model do ogólnej konwersacji
+    OLLAMA_MODEL: str = "gemma3:12b"  # Główny model
+    DEFAULT_CODE_MODEL: str = "gemma3:12b"  # Model do kodu
+    DEFAULT_CHAT_MODEL: str = "gemma3:12b"  # Model do ogólnej konwersacji
     DEFAULT_EMBEDDING_MODEL: str = "nomic-embed-text"  # Model do embeddingów
 
     # Lista dostępnych modeli (w kolejności preferencji)
     AVAILABLE_MODELS: list = [
-        "mistral:7b",  # Główny model
-        "llama3.2:3b",  # Fallback model
+        "gemma3:12b",  # Główny model
+        "mistral:7b",  # Fallback model
+        "llama3.2:3b",  # Dodatkowy fallback
         "SpeakLeash/bielik-1.5b-v3.0-instruct:FP16",  # Polski model
     ]
 
