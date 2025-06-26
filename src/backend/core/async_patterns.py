@@ -238,15 +238,15 @@ default_backpressure_manager = BackpressureManager()
 
 
 # Decorators for easy usage
-def with_circuit_breaker(config: Optional[CircuitBreakerConfig] = None) -> None:
+def with_circuit_breaker(config: Optional[CircuitBreakerConfig] = None):
     """Decorator to add circuit breaker to function"""
     circuit = CircuitBreaker(config or CircuitBreakerConfig())
 
-    def decorator(func) -> None:
-        async def async_wrapper(*args, **kwargs) -> None:
+    def decorator(func):
+        async def async_wrapper(*args, **kwargs):
             return await circuit.call(func, *args, **kwargs)
 
-        def sync_wrapper(*args, **kwargs) -> None:
+        def sync_wrapper(*args, **kwargs):
             loop = asyncio.get_event_loop()
             return loop.run_until_complete(circuit.call(func, *args, **kwargs))
 

@@ -258,40 +258,59 @@ class VectorStore:
             if query_embedding.ndim == 1:
                 query_embedding = query_embedding.reshape(1, -1)
 
+            # Check if index has any vectors
+            if self.index.ntotal == 0:
+                logger.warning("Vector store is empty, no search results available")
+                return []
+
             # Search in FAISS index
             distances, indices = self.index.search(query_embedding, k)
 
+            # Check if search returned any results
+            if len(distances) == 0 or len(indices) == 0:
+                logger.warning("FAISS search returned no results")
+                return []
+
+            # Ensure we have valid arrays
+            if len(distances[0]) == 0 or len(indices[0]) == 0:
+                logger.warning("FAISS search returned empty result arrays")
+                return []
+
             results = []
             for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
-                if idx < len(self._document_ids):
-                    doc_id = self._document_ids[idx]
+                # Check if index is valid
+                if idx < 0 or idx >= len(self._document_ids):
+                    logger.warning(f"Invalid document index: {idx}, skipping")
+                    continue
+                    
+                doc_id = self._document_ids[idx]
 
-                    # Try cache first
-                    cached_embedding = self._get_cached_embedding(doc_id)
-                    if cached_embedding is not None:
-                        # Create minimal document chunk with cached data
-                        doc = DocumentChunk(
-                            id=doc_id,
-                            content="",  # Content not cached for memory efficiency
-                            metadata={"cached": True},
-                            embedding=cached_embedding,
-                        )
-                        results.append((doc, float(distance)))
-                        continue
-
-                    weak_ref = self._documents.get(doc_id)
-
-                    doc_chunk: Optional[DocumentChunk] = (
-                        weak_ref() if weak_ref else None
+                # Try cache first
+                cached_embedding = self._get_cached_embedding(doc_id)
+                if cached_embedding is not None:
+                    # Create minimal document chunk with cached data
+                    doc = DocumentChunk(
+                        id=doc_id,
+                        content="",  # Content not cached for memory efficiency
+                        metadata={"cached": True},
+                        embedding=cached_embedding,
                     )
-                    if doc_chunk is not None:
-                        results.append((doc_chunk, float(distance)))
-                    else:
-                        # Clean up invalid reference
-                        if doc_id in self._documents:
-                            del self._documents[doc_id]
-                        if doc_id in self._document_ids:
-                            self._document_ids.remove(doc_id)
+                    results.append((doc, float(distance)))
+                    continue
+
+                weak_ref = self._documents.get(doc_id)
+
+                doc_chunk: Optional[DocumentChunk] = (
+                    weak_ref() if weak_ref else None
+                )
+                if doc_chunk is not None:
+                    results.append((doc_chunk, float(distance)))
+                else:
+                    # Clean up invalid reference
+                    if doc_id in self._documents:
+                        del self._documents[doc_id]
+                    if doc_id in self._document_ids:
+                        self._document_ids.remove(doc_id)
             return results
         except Exception as e:
             logger.error(f"Error during vector search: {e}")

@@ -28,23 +28,3 @@ async def global_exception_handler(request: Request, exc: Exception) -> Any:
             "timestamp": datetime.now().isoformat(),
         },
     )
-
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException) -> Any:
-    # Set error_code based on status_code
-    if exc.status_code >= 500:
-        error_code = "INTERNAL_SERVER_ERROR"
-    elif exc.status_code >= 400:
-        error_code = "CLIENT_ERROR"
-    else:
-        error_code = "HTTP_ERROR"
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "success": False,
-            "error": exc.detail,
-            "error_code": error_code,
-            "path": str(request.url.path),
-        },
-    )

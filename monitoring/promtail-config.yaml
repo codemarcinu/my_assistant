@@ -59,7 +59,7 @@ scrape_configs:
       - targets:
           - localhost
         labels:
-          job: backend_logs
+          job: backend
           service: backend
           __path__: /var/log/app/backend/*.log
 

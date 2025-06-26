@@ -3,6 +3,7 @@ Authentication middleware for FastAPI
 """
 
 import logging
+import os
 from functools import wraps
 from typing import Any, Callable, Optional, Union
 
@@ -39,6 +40,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # Skip authentication for excluded paths
         if any(request.url.path.startswith(path) for path in self.exclude_paths):
+            return await call_next(request)
+
+        # Skip authentication in testing mode
+        if os.getenv("TESTING_MODE") == "true":
+            # Set mock user data for tests
+            request.state.user = {
+                "sub": "1",
+                "email": "test@example.com",
+                "roles": ["user"]
+            }
+            request.state.user_id = "1"
+            request.state.user_roles = ["user"]
+            logger.debug("Testing mode: skipping authentication")
             return await call_next(request)
 
         # Extract token from Authorization header

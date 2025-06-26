@@ -37,8 +37,30 @@ Prometheus służy do zbierania i przechowywania metryk z różnych komponentów
 Grafana zapewnia wizualizację danych monitoringu:
 - Dashboardy dla różnych aspektów systemu
 - Wykresy metryk w czasie rzeczywistym
-- Wizualizacja logów
+- Wizualizacja logów (Loki)
 - Alerty i powiadomienia
+
+#### Dashboardy
+
+- **FoodSave AI Dashboard** – ogólne metryki systemu (Prometheus)
+- **Chat Interactions Dashboard** – aktywność czatu, logi backend/frontend (Loki)
+
+Dashboardy są automatycznie ładowane z katalogu `monitoring/grafana/dashboards`.
+
+#### Przeglądanie logów (Loki)
+
+1. Wejdź do Grafany: [http://localhost:3001](http://localhost:3001) (admin/admin)
+2. W menu „Explore” wybierz źródło danych **Loki**
+3. Przykładowe zapytania:
+   - `{job="backend_logs"}` – logi backendu
+   - `{job="frontend_logs"}` – logi frontendu
+   - `{job="redis_logs"}` – logi Redis
+   - `{job="postgres_logs"}` – logi PostgreSQL
+   - `{job="ollama_logs"}` – logi Ollama
+4. Możesz filtrować po poziomie logu, usłudze, tagu itp.
+
+#### Przykładowy dashboard logów:
+- **Chat Interactions Dashboard** – wizualizuje liczbę interakcji czatu na backendzie i frontendzie, pozwala analizować trendy i błędy.
 
 ### 4. **Loki**
 
@@ -54,15 +76,12 @@ Loki wymaga specjalnej konfiguracji, aby działać poprawnie:
 
 ```yaml
 loki:
-  image: grafana/loki:2.9.6
-  container_name: foodsave-loki
-  user: "0:0"  # Uruchom jako root, aby uniknąć problemów z uprawnieniami
+  image: grafana/loki:latest
+  container_name: foodsave-loki-dev
   volumes:
     - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml
-    - loki_data:/loki  # Używaj nazwanego wolumenu zamiast lokalnego katalogu
+    - loki_data:/loki
 ```
-
-> **Uwaga**: Uruchomienie Loki jako root (user: "0:0") jest konieczne, aby uniknąć problemów z uprawnieniami podczas zapisywania danych. W środowisku produkcyjnym należy rozważyć bardziej bezpieczne rozwiązanie.
 
 ### 5. **Promtail**
 
@@ -77,14 +96,21 @@ Promtail to agent zbierający logi dla Loki:
 ### Uruchamianie systemu monitoringu:
 
 ```bash
-docker compose --profile monitoring --profile logging up -d
+docker compose -f docker-compose.dev.yaml up -d loki promtail grafana prometheus
 ```
 
 ### Dostęp do interfejsów:
 
-- Grafana: http://localhost:3001 (domyślne dane: admin/admin)
+- Grafana: http://localhost:3001 (admin/admin)
 - Prometheus: http://localhost:9090
 - Loki: http://localhost:3100
+
+## Dashboardy
+
+Dashboardy są automatycznie provisionowane z katalogu `monitoring/grafana/dashboards`.
+
+- **FoodSave AI Dashboard** – metryki Prometheus
+- **Chat Interactions Dashboard** – logi i aktywność czatu (Loki)
 
 ## Rozwiązywanie problemów
 
@@ -93,20 +119,19 @@ docker compose --profile monitoring --profile logging up -d
 Jeśli w logach Loki pojawiają się błędy typu:
 
 ```
-level=error ts=2025-06-22T19:36:01.199521567Z caller=flush.go:143 org_id=fake msg="failed to flush" err="failed to flush chunks: store put chunk: open /loki/chunks/fake/210dd47453d74b0d/MTk3OTkxMzIxM2U6MTk3OTkxM2U1ZTA6ZTg2OTk1NGM=: permission denied
+level=error ts=... msg="failed to flush" err="failed to flush chunks: ... permission denied"
 ```
 
 Rozwiązania:
-1. Uruchom Loki jako root (user: "0:0")
-2. Użyj nazwanego wolumenu Docker zamiast montowania lokalnego katalogu
-3. Upewnij się, że katalog docelowy ma odpowiednie uprawnienia
+1. Użyj nazwanego wolumenu Docker zamiast montowania lokalnego katalogu
+2. Upewnij się, że katalog docelowy ma odpowiednie uprawnienia
 
 ### Problemy z siecią Docker
 
 Jeśli występują konflikty sieci:
 
 ```
-failed to create network foodsave-network: Error response from daemon: invalid pool request: Pool overlaps with other one on this address space
+failed to create network ...: Error response from daemon: invalid pool request: Pool overlaps with other one on this address space
 ```
 
 Rozwiązania:

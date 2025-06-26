@@ -15,10 +15,11 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 
 from fastapi import (APIRouter, BackgroundTasks, Depends, File, HTTPException,
-                     Query, UploadFile)
+                     Query, UploadFile, status)
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 
 from backend.api.v2.exceptions import BadRequestError, UnprocessableEntityError
 from backend.core.rag_document_processor import rag_document_processor
@@ -85,6 +86,9 @@ async def upload_document_to_rag(
             success=True,
             message="Document upload started.",
             filename=file.filename,
+            chunks_processed=0,
+            source_id=str(uuid.uuid4()),
+            processing_time=0.0
         )
 
     except HTTPException:

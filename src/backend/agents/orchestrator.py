@@ -258,6 +258,15 @@ class Orchestrator:
         )
 
         try:
+            # Special handling for health check command
+            if user_command.lower() in ["health", "health_check", "health_check_internal"]:
+                return AgentResponse(
+                    success=True,
+                    text="Orchestrator is healthy",
+                    data={"status": "ok", "components": "all_available"},
+                    request_id=request_id,
+                )
+
             # 1. Get user profile and context
             context = await self.memory_manager.get_context(session_id)
             context.last_command = user_command

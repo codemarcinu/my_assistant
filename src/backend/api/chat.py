@@ -89,7 +89,7 @@ llm_circuit_breaker = CircuitBreakerConfig(
 )
 
 
-@with_circuit_breaker
+@with_circuit_breaker()
 @with_backpressure(max_concurrent=50)
 @with_backpressure(max_concurrent=20)  # Ograniczenie dla memory chat
 async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str, None]:

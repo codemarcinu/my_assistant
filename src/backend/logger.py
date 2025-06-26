@@ -76,11 +76,13 @@ def setup_logger(name: str = "backend", level: int = logging.INFO) -> logging.Lo
     logger.addHandler(console_handler)
 
     # Handler dla pliku z rotacją (10MB max, zachowaj 5 kopii)
-    log_dir = os.path.join(os.path.dirname(__file__), "../../logs/backend")
-    log_dir = os.path.abspath(log_dir)
+    # Użyj zmiennej środowiskowej lub domyślnej ścieżki w kontenerze
+    log_file_path = os.getenv("LOG_FILE_PATH", "./logs/backend.log")
+    log_dir = os.path.dirname(log_file_path)
     os.makedirs(log_dir, exist_ok=True)
+    
     file_handler = RotatingFileHandler(
-        os.path.join(log_dir, "app.log"),
+        log_file_path,
         maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
     )
@@ -111,11 +113,13 @@ def configure_root_logger(level: int = logging.INFO) -> None:
     root_logger.addHandler(console_handler)
 
     # Handler dla pliku z rotacją
-    log_dir = os.path.join(os.path.dirname(__file__), "../../logs/backend")
-    log_dir = os.path.abspath(log_dir)
+    # Użyj zmiennej środowiskowej lub domyślnej ścieżki w kontenerze
+    log_file_path = os.getenv("LOG_FILE_PATH", "./logs/backend.log")
+    log_dir = os.path.dirname(log_file_path)
     os.makedirs(log_dir, exist_ok=True)
+    
     file_handler = RotatingFileHandler(
-        os.path.join(log_dir, "app.log"),
+        log_file_path,
         maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
     )

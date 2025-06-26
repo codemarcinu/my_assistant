@@ -139,18 +139,18 @@ async def health_check() -> JSONResponse:
         "external_apis": external_apis_health,
     }
 
-    # Determine overall health
-    all_healthy = (
+    # Determine overall health - only database and agents are critical
+    # External APIs are optional for basic functionality
+    critical_healthy = (
         db_health.get("status") == "healthy"
         and agents_health.get("status") == "healthy"
-        and external_apis_health.get("status") == "healthy"
     )
 
-    status_code = 200 if all_healthy else 503
+    status_code = 200 if critical_healthy else 503
     response_time = time.time() - start_time
 
     response_data = {
-        "status": "healthy" if all_healthy else "unhealthy",
+        "status": "healthy" if critical_healthy else "unhealthy",
         "checks": checks,
         "response_time": round(response_time, 3),
         "timestamp": datetime.now().isoformat(),
@@ -158,6 +158,19 @@ async def health_check() -> JSONResponse:
     }
 
     return JSONResponse(content=response_data, status_code=status_code)
+
+
+@router.options("/health", tags=["Health"])
+async def health_check_options() -> JSONResponse:
+    """OPTIONS endpoint for health check to support CORS"""
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 
 @router.get("/ready", tags=["Health"])

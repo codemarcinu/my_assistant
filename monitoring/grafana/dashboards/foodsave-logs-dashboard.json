@@ -25,7 +25,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki_foodsave_logs"
+        "uid": "P8E80F9AEF21F6940"
       },
       "description": "Log volumes by service over time",
       "fieldConfig": {
@@ -100,7 +100,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki_foodsave_logs"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "sum by(job) (count_over_time({job=~\".+\"}[5m]))",
@@ -114,7 +114,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki_foodsave_logs"
+        "uid": "P8E80F9AEF21F6940"
       },
       "description": "Error counts by service",
       "fieldConfig": {
@@ -184,7 +184,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki_foodsave_logs"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "sum by(job) (count_over_time({job=~\".+\"} |~ \"(?i)error|exception|fail\" [1h]))",
@@ -198,7 +198,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki_foodsave_logs"
+        "uid": "P8E80F9AEF21F6940"
       },
       "gridPos": {
         "h": 8,
@@ -221,7 +221,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki_foodsave_logs"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=\"backend\"} | logfmt | level=\"error\" or level=\"ERROR\"",
@@ -235,7 +235,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki_foodsave_logs"
+        "uid": "P8E80F9AEF21F6940"
       },
       "description": "",
       "gridPos": {
@@ -259,7 +259,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki_foodsave_logs"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=\"backend\"}",
@@ -273,7 +273,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki_foodsave_logs"
+        "uid": "P8E80F9AEF21F6940"
       },
       "gridPos": {
         "h": 8,
@@ -296,7 +296,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki_foodsave_logs"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=\"frontend\"}",
@@ -310,7 +310,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki_foodsave_logs"
+        "uid": "P8E80F9AEF21F6940"
       },
       "gridPos": {
         "h": 8,
@@ -333,7 +333,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki_foodsave_logs"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=\"ollama\"}",
@@ -347,7 +347,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki_foodsave_logs"
+        "uid": "P8E80F9AEF21F6940"
       },
       "gridPos": {
         "h": 8,
@@ -370,7 +370,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki_foodsave_logs"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=~\".+\"} |~ \"(?i)error|exception|fail|timeout\"",
@@ -396,7 +396,7 @@
         },
         "datasource": {
           "type": "loki",
-          "uid": "loki_foodsave_logs"
+          "uid": "P8E80F9AEF21F6940"
         },
         "definition": "label_values(job)",
         "hide": 0,
@@ -420,7 +420,7 @@
         },
         "datasource": {
           "type": "loki",
-          "uid": "loki_foodsave_logs"
+          "uid": "P8E80F9AEF21F6940"
         },
         "definition": "label_values(level)",
         "hide": 0,

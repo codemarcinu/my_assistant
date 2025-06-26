@@ -268,12 +268,24 @@ class WebSearchClient:
         cache_path = self._get_cache_path(response.query)
 
         try:
+            # Check if directory is writable
+            if not os.access(self.cache_dir, os.W_OK):
+                logger.warning(f"Cache directory {self.cache_dir} is not writable, skipping cache save")
+                return
+
             with open(cache_path, "w") as f:
                 json.dump(response.dict(), f)
 
             logger.debug(f"Saved results for '{response.query}' to cache")
+        except PermissionError as e:
+            logger.warning(f"Permission denied when saving to cache: {e}")
+            # Continue without caching
+        except OSError as e:
+            logger.warning(f"OS error when saving to cache: {e}")
+            # Continue without caching
         except Exception as e:
             logger.error(f"Error saving to cache: {e}")
+            # Continue without caching
 
     async def _make_request(
         self, source: SourceConfig, query: str, retries: int = MAX_RETRIES

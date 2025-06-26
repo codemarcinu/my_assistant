@@ -151,6 +151,16 @@ class EnhancedLLMClient:
         start_time = time.time()
         options = options or {}
 
+        # Log prompt
+        logger.info(
+            "ollama_prompt",
+            model=model,
+            messages=messages,
+            options=options,
+            stream=stream,
+            timestamp=datetime.now().isoformat(),
+        )
+
         # Check if Ollama is available
         if not await self._check_ollama_availability():
             logger.error(f"Ollama server not available for model {model}")
@@ -193,7 +203,7 @@ class EnhancedLLMClient:
 
             if stream:
                 # Return streaming generator
-                return self._stream_response(model, formatted_messages, options)
+                return self._stream_response(model, formatted_messages, options, original_messages=messages)
             else:
                 # For non-streaming, get complete response
                 response = await asyncio.to_thread(
@@ -214,6 +224,17 @@ class EnhancedLLMClient:
                     },
                     "response": response["message"]["content"],
                 }
+
+                # Log response
+                logger.info(
+                    "ollama_response",
+                    model=model,
+                    messages=messages,
+                    options=options,
+                    response=result,
+                    duration=time.time() - start_time,
+                    timestamp=datetime.now().isoformat(),
+                )
 
                 # Cache the result
                 self.cache.set(cache_key, result)
@@ -245,9 +266,21 @@ class EnhancedLLMClient:
             return fallback_response
 
     async def _stream_response(
-        self, model: str, messages: List[Dict[str, str]], options: Dict[str, Any]
+        self, model: str, messages: List[Dict[str, str]], options: Dict[str, Any], original_messages: Optional[List[Dict[str, str]]] = None
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Stream response from LLM"""
+        start_time = time.time()
+        if original_messages is None:
+            original_messages = messages
+        # Log prompt for streaming
+        logger.info(
+            "ollama_prompt",
+            model=model,
+            messages=original_messages,
+            options=options,
+            stream=True,
+            timestamp=datetime.now().isoformat(),
+        )
         try:
             # Call Ollama's streaming API - no await needed for stream=True
             response_stream = ollama_client.chat(
@@ -260,14 +293,27 @@ class EnhancedLLMClient:
             )
 
             # Process and yield each chunk
+            full_response = ""
             for chunk in response_stream:
+                content = chunk["message"]["content"]
+                full_response += content
                 yield {
                     "message": {
                         "role": "assistant",
-                        "content": chunk["message"]["content"],
+                        "content": content,
                     },
-                    "response": chunk["message"]["content"],
+                    "response": content,
                 }
+            # Log full response after streaming
+            logger.info(
+                "ollama_response",
+                model=model,
+                messages=original_messages,
+                options=options,
+                response=full_response,
+                duration=time.time() - start_time,
+                timestamp=datetime.now().isoformat(),
+            )
 
         except Exception as e:
             self.last_error = str(e)

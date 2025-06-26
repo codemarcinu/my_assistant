@@ -32,12 +32,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             return response
 
         except HTTPException as http_exc:
-            # Already formatted HTTP exceptions
-            return JSONResponse(
-                status_code=http_exc.status_code,
-                content={"detail": http_exc.detail},
-                headers=http_exc.headers,
-            )
+            # Przepuść HTTPException dalej, aby obsłużył go FastAPI
+            raise http_exc
 
         except FoodSaveError as custom_exc:
             # Convert custom exceptions to HTTP responses

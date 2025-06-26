@@ -4,12 +4,15 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 import structlog
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
+
+# Import custom logger to configure logging
+from backend.logger import configure_root_logger, setup_logger
 
 from backend.api import agents, chat, food, monitoring, pantry
 from backend.api import settings as settings_router
@@ -30,7 +33,12 @@ from backend.core.seed_data import seed_database
 from backend.core.telemetry import setup_telemetry
 from backend.orchestrator_management.orchestrator_pool import orchestrator_pool
 from backend.agents.orchestrator import Orchestrator
+from backend.agents.orchestrator_factory import create_orchestrator
+from backend.auth.auth_middleware import AuthMiddleware
+from backend.auth.routes import auth_router
 
+# Configure logging before creating the app
+configure_root_logger()
 logger = structlog.get_logger()
 limiter = Limiter(key_func=get_remote_address)
 
@@ -60,6 +68,14 @@ async def api_v2_exception_handler(request: Request, exc: APIException) -> None:
                 context=exc.context,
             ).model_dump(exclude_none=True)
         },
+    )
+
+
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Handler dla HTTPException - zachowuje domyślny format FastAPI"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
     )
 
 
@@ -107,7 +123,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Initializing orchestrator pool and request queue...")
     # Initialize orchestrator pool with default orchestrator
     async for db in get_db():
-        default_orchestrator = Orchestrator(db_session=db)
+        default_orchestrator = create_orchestrator(db)
         await orchestrator_pool.add_instance("default", default_orchestrator)
         await orchestrator_pool.start_health_checks()
         logger.info("Orchestrator pool initialized with default instance")
@@ -138,6 +154,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(AuthMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(ErrorHandlingMiddleware)
@@ -146,6 +163,7 @@ def create_app() -> FastAPI:
     # Add exception handlers
     app.add_exception_handler(FoodSaveError, custom_exception_handler)
     app.add_exception_handler(APIException, api_v2_exception_handler)
+    app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(Exception, generic_exception_handler)
     app.add_exception_handler(404, not_found_handler)
 
@@ -186,6 +204,7 @@ def create_app() -> FastAPI:
     api_v1_router.include_router(upload.router, tags=["Upload"])
 
     app.include_router(monitoring.router)
+    app.include_router(auth_router)
     app.include_router(api_router, prefix="/api")
     app.include_router(api_v1_router, prefix="/api/v1")
     app.include_router(api_v2_router, prefix="/api/v2")

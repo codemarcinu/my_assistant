@@ -1,0 +1,162 @@
+{
+  "id": null,
+  "uid": "foodsave-ai-logs",
+  "title": "FoodSave AI Logs Dashboard",
+  "tags": ["logs", "foodsave", "loki"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "style": "dark",
+  "editable": true,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "label": "Service",
+        "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+        "definition": "label_values(job)",
+        "query": "label_values(job)",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 1,
+        "sort": 1,
+        "current": {"selected": false, "text": "All", "value": "$__all"}
+      },
+      {
+        "name": "level",
+        "type": "query",
+        "label": "Log Level",
+        "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+        "definition": "label_values(level)",
+        "query": "label_values(level)",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 1,
+        "sort": 1,
+        "current": {"selected": false, "text": "All", "value": "$__all"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log Volume by Service",
+      "type": "timeseries",
+      "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+      "targets": [
+        {
+          "expr": "sum by(job) (count_over_time({job=~\"$service\"}[$__interval]))",
+          "refId": "A",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "options": {"legend": {"showLegend": true, "displayMode": "table", "placement": "right"}}
+    },
+    {
+      "id": 2,
+      "title": "Error Count by Service",
+      "type": "barchart",
+      "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+      "targets": [
+        {
+          "expr": "sum by(job) (count_over_time({job=~\"$service\"} |~ \"(?i)error|exception|fail\" [$__interval]))",
+          "refId": "A",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "options": {"legend": {"showLegend": true, "displayMode": "list", "placement": "right"}}
+    },
+    {
+      "id": 3,
+      "title": "All Logs",
+      "type": "logs",
+      "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+      "targets": [
+        {
+          "expr": "{job=~\"$service\", level=~\"$level\"}",
+          "refId": "A",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "options": {"showLabels": true, "showTime": true, "wrapLogMessage": true}
+    },
+    {
+      "id": 4,
+      "title": "Backend Logs",
+      "type": "logs",
+      "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+      "targets": [
+        {
+          "expr": "{job=\"backend\"}",
+          "refId": "A",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "options": {"showLabels": true, "showTime": true, "wrapLogMessage": true}
+    },
+    {
+      "id": 5,
+      "title": "Frontend Logs",
+      "type": "logs",
+      "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+      "targets": [
+        {
+          "expr": "{job=\"frontend\"}",
+          "refId": "A",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "options": {"showLabels": true, "showTime": true, "wrapLogMessage": true}
+    },
+    {
+      "id": 6,
+      "title": "Ollama Logs",
+      "type": "logs",
+      "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+      "targets": [
+        {
+          "expr": "{job=\"ollama\"}",
+          "refId": "A",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "options": {"showLabels": true, "showTime": true, "wrapLogMessage": true}
+    },
+    {
+      "id": 7,
+      "title": "Custom Search",
+      "type": "logs",
+      "datasource": {"type": "loki", "uid": "P8E80F9AEF21F6940"},
+      "targets": [
+        {
+          "expr": "{job=~\"$service\"} |~ \"$__search\"",
+          "refId": "A",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "options": {"showLabels": true, "showTime": true, "wrapLogMessage": true}
+    }
+  ]
+} 

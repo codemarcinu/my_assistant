@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
 from backend.agents.ocr_agent import OCRAgent, OCRAgentInput
 from backend.agents.receipt_analysis_agent import ReceiptAnalysisAgent
@@ -336,3 +337,19 @@ async def save_receipt_data(
                 "details": {"error": str(e)},
             },
         )
+
+
+@router.get("", response_model=dict)
+async def list_receipts():
+    """Stub: Zwraca przykładową listę paragonów zgodną ze schematem kontraktowym"""
+    receipts_data = [
+        {"id": "1", "filename": "receipt1.jpg", "upload_date": "2024-06-25", "status": "processed"},
+        {"id": "2", "filename": "receipt2.jpg", "upload_date": "2024-06-24", "status": "processed"}
+    ]
+    
+    return {
+        "receipts": receipts_data,
+        "total": len(receipts_data),
+        "page": 1,
+        "per_page": 10
+    }

@@ -25,7 +25,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "fieldConfig": {
         "defaults": {
@@ -104,7 +104,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "sum(count_over_time({job=\"backend_logs\"} |= \"Chat\" [1m])) by (job)",
@@ -115,7 +115,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "sum(count_over_time({job=\"frontend_logs\"} |~ \"(?i)chat\" [1m])) by (job)",
@@ -128,7 +128,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "fieldConfig": {
         "defaults": {
@@ -207,7 +207,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "sum(count_over_time({job=\"backend_logs\"} |= \"Chat request received\" [1m])) by (level)",
@@ -219,7 +219,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "fieldConfig": {
         "defaults": {
@@ -299,7 +299,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "avg_over_time({job=\"backend_logs\"} |= \"Chat response completed\" | json | unwrap processing_time_ms [1m])",
@@ -311,7 +311,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "gridPos": {
         "h": 8,
@@ -336,7 +336,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=\"backend_logs\"} |= \"Chat\" | json",
@@ -348,7 +348,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "fieldConfig": {
         "defaults": {
@@ -395,7 +395,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "100 * (sum(count_over_time({job=\"backend_logs\"} |= \"Chat\" |= \"error\" [5m])) / sum(count_over_time({job=\"backend_logs\"} |= \"Chat\" [5m])))",
@@ -407,7 +407,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "fieldConfig": {
         "defaults": {
@@ -462,7 +462,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=\"backend_logs\"} |= \"Chat\" | json | line_format \"{{.session_id}} {{.message}} {{.level}}\"",
@@ -491,7 +491,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "gridPos": {
         "h": 8,
@@ -516,7 +516,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=\"backend_logs\"} |= \"Chat\" |= \"error\"",
@@ -528,7 +528,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "gridPos": {
         "h": 8,
@@ -553,7 +553,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{job=\"frontend_logs\"} |~ \"(?i)chat\"",

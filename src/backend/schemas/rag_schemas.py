@@ -10,6 +10,9 @@ class RAGUploadResponse(BaseModel):
     success: bool
     filename: str
     message: str
+    chunks_processed: int = 0
+    source_id: Optional[str] = None
+    processing_time: float = 0.0
 
 
 class RAGDocumentInfo(BaseModel):

@@ -8,7 +8,8 @@ concise responses with controlled length and formatting.
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from ....core.response_length_config import (
@@ -62,10 +63,10 @@ class ConciseResponse(BaseModel):
     response_style: str = Field(..., description="Applied response style")
     concise_score: float = Field(..., description="Conciseness score (0-1)")
     can_expand: bool = Field(..., description="Whether response can be expanded")
-    processing_time: Optional[float] = Field(None, description="Processing time in seconds")
+    processing_time: float = Field(0.0, description="Processing time in seconds")
     chunks_processed: Optional[int] = Field(None, description="Number of RAG chunks processed")
     response_stats: Optional[Dict[str, Any]] = Field(None, description="Response statistics")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+    metadata: Dict = {}
 
 
 class ExpandRequest(BaseModel):
@@ -156,7 +157,7 @@ async def generate_concise_response(request: ConciseRequest) -> ConciseResponse:
             response_style=response_data.get("response_style", request.response_style.value),
             concise_score=response_data.get("concise_score", 0.0),
             can_expand=response_data.get("can_expand", False),
-            processing_time=response_data.get("processing_time"),
+            processing_time=response_data.get("processing_time", 0.0),
             chunks_processed=response_data.get("chunks_processed"),
             response_stats=response_data.get("response_stats"),
             metadata=response.metadata,
@@ -332,4 +333,20 @@ def _get_conciseness_recommendations(stats: Dict[str, Any]) -> List[str]:
     if not recommendations:
         recommendations.append("Response is already quite concise")
     
-    return recommendations 
+    return recommendations
+
+
+@router.post("/generate", response_model=ConciseResponse)
+async def concise_generate_stub(request: ConciseRequest):
+    """Stub: Zwraca przykładową odpowiedź zgodną ze schematem kontraktowym"""
+    if not request.query.strip():
+        raise HTTPException(status_code=422, detail="Query cannot be empty")
+    
+    return ConciseResponse(
+        text="Stub concise response",
+        response_style=request.response_style,
+        concise_score=1.0,
+        can_expand=False,
+        processing_time=0.01,
+        metadata={"stub": True}
+    ) 

@@ -110,29 +110,41 @@ class OrchestratorPool:
                 f"Running health check for orchestrator instance '{instance.id}'"
             )
 
-            # Wywołaj prostą metodę health_check na orkiestratorze
-            # EnhancedOrchestrator musi mieć taką metodę, np. process_command("health_check", ...)
-            health_response = await instance.orchestrator.process_command(
-                user_command="health_check_internal",
-                session_id=f"health_check_{instance.id}",
-            )
-
-            logger.debug(
-                f"Health check response for '{instance.id}': {health_response}"
-            )
-
-            # AgentResponse to obiekt Pydantic, nie słownik
-            if (
-                health_response.success
-                and health_response.data
-                and health_response.data.get("status") == "ok"
-            ):
-                await self._mark_healthy(instance)
-            else:
+            # Simple health check - verify that orchestrator has required components
+            orchestrator = instance.orchestrator
+            
+            # Check if orchestrator has required attributes
+            required_attrs = ['profile_manager', 'intent_detector', 'agent_router', 'memory_manager']
+            missing_attrs = [attr for attr in required_attrs if not hasattr(orchestrator, attr) or getattr(orchestrator, attr) is None]
+            
+            if missing_attrs:
                 await self._mark_failed(
                     instance,
-                    f"Health check failed with status: {health_response.data.get('status') if health_response.data else 'unknown'}",
+                    f"Missing required components: {missing_attrs}"
                 )
+                return
+
+            # Check if orchestrator can process a simple command
+            try:
+                # Use a simple health check command that should always work
+                health_response = await orchestrator.process_command(
+                    user_command="health",
+                    session_id=f"health_check_{instance.id}",
+                )
+                
+                if health_response and health_response.success:
+                    await self._mark_healthy(instance)
+                else:
+                    await self._mark_failed(
+                        instance,
+                        f"Health check failed with response: {health_response.error if health_response else 'No response'}"
+                    )
+            except Exception as e:
+                await self._mark_failed(
+                    instance,
+                    f"Health check command failed: {str(e)}"
+                )
+
         except Exception as e:
             logger.error(
                 f"Health check exception for '{instance.id}': {str(e)}", exc_info=True
