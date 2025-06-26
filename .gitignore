@@ -146,4 +146,24 @@ Thumbs.db
 # Project specific
 receipts/
 backups/
+
+# Test results and monitoring (organized structure)
 test-results/
+logs/gpu-monitoring/
+logs/test_*.log
+
+# Documentation artifacts (keep only source files)
+docs/reports/*.json
+docs/reports/*.log
+
+# Temporary test files
+test_*.py
+*_test_results_*.json
+gpu_usage_*.log
+intent_*_test_results_*.json
+
+# Benchmark results
+.benchmarks/
+
+# Local development files
+foodsave_dev.db

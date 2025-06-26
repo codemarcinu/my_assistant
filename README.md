@@ -40,8 +40,8 @@ AIASISSTMARUBO to zaawansowany system AI do zarządzania żywnością, który ł
 - ✅ Pełny przepływ użytkownika
 - ✅ Monitoring GPU (RTX 3060 12GB)
 
-**📊 [Szczegółowy raport testowy](TEST_REPORT_2025-06-26.md)**  
-**🧠 [Raport E2E modeli LLM](RAPORT_E2E_MODELI_LLM.md)**
+**📊 [Szczegółowy raport testowy](docs/reports/TEST_REPORT_2025-06-26.md)**  
+**🧠 [Raport E2E modeli LLM](docs/reports/RAPORT_E2E_MODELI_LLM.md)**
 
 ---
 
@@ -59,7 +59,13 @@ AIASISSTMARUBO/
 ├── foodsave-frontend/        # Next.js 14 (TypeScript strict)
 │   └── tests/                # Jest + Playwright
 ├── docker-compose.yaml       # Komplet usług + healthchecks
-└── .env[example]             # Wymagane zmienne środowiskowe
+├── docs/                     # Dokumentacja projektu
+│   ├── reports/              # Raporty testowe
+│   ├── architecture/         # Dokumentacja architektury
+│   └── guides/               # Przewodniki
+├── test-results/             # Wyniki testów
+├── logs/                     # Logi systemu
+└── scripts/                  # Skrypty pomocnicze
 ```
 
 ---
@@ -122,10 +128,10 @@ python -m pytest tests/test_production_e2e.py -v
 ### **Testy modeli LLM z monitoringiem GPU:**
 ```bash
 # Test pojedynczego modelu
-./monitor_gpu_during_test.sh "poetry run pytest tests/test_gemma3_12b_e2e.py::TestGemma312BE2E::test_gemma3_food_knowledge -v" "gpu_usage_test.log"
+./scripts/monitor_gpu_during_test.sh "poetry run pytest tests/test_gemma3_12b_e2e.py::TestGemma312BE2E::test_gemma3_food_knowledge -v" "logs/gpu-monitoring/gpu_usage_test.log"
 
 # Test wszystkich modeli sekwencyjnie
-./run_llm_tests.sh
+./scripts/run_llm_tests.sh
 ```
 
 ### **Wszystkie testy:**
@@ -239,7 +245,7 @@ response = await weather_agent.get_weather("Jaka jest pogoda w Warszawie?")
 - Backend: `logs/backend/backend.log`
 - Ollama: `logs/ollama/`
 - Database: `logs/postgres/`
-- GPU Monitoring: `gpu_usage_*.log`
+- GPU Monitoring: `logs/gpu-monitoring/`
 
 ---
 
@@ -255,6 +261,21 @@ docker-compose up -d
 - Frontend: `http://localhost:3000`
 - Database: `localhost:5432`
 - Ollama: `http://localhost:11434`
+
+---
+
+## 📚 **DOKUMENTACJA**
+
+### **Struktura dokumentacji:**
+- **[📖 Dokumentacja główna](docs/README.md)** - Centralny hub dokumentacji
+- **[📊 Raporty testowe](docs/reports/)** - Szczegółowe raporty testów
+- **[🏗️ Architektura](docs/architecture/)** - Dokumentacja architektury
+- **[📋 Przewodniki](docs/guides/)** - Przewodniki użytkownika
+
+### **Kluczowe dokumenty:**
+- **[Założenia projektu](docs/architecture/PROJECT_ASSUMPTIONS.md)** - Strategia modeli LLM
+- **[Przewodnik routingu](docs/guides/INTENT_ROUTING_GUIDE.md)** - Routing intencji
+- **[Historia zmian](CHANGELOG.md)** - Changelog projektu
 
 ---
 
