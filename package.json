@@ -3,15 +3,11 @@
   "version": "1.0.0",
   "description": "FoodSave AI - Inteligentny Asystent Spiżarni",
   "scripts": {
-    "dev:frontend": "cd myappassistant/myappassistant-chat-frontend && npm run dev",
-    "dev:backend": "cd myappassistant && python -m uvicorn src.main:app --reload",
-    "install:frontend": "cd myappassistant/myappassistant-chat-frontend && npm install",
-    "install:backend": "cd myappassistant && pip install -r requirements.txt",
-    "install:all": "npm run install:frontend && npm run install:backend",
-    "test:frontend": "cd myappassistant/myappassistant-chat-frontend && npm test",
-    "test:e2e": "cd myappassistant/myappassistant-chat-frontend && npm run test:e2e",
-    "build:frontend": "cd myappassistant/myappassistant-chat-frontend && npm run build",
-    "clean": "rm -rf node_modules && cd myappassistant/myappassistant-chat-frontend && rm -rf node_modules"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:e2e": "playwright test tests/e2e"
   },
   "keywords": [
     "ai",

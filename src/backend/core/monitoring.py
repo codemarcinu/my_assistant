@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from enum import Enum
 from collections import defaultdict, deque
 import threading
+from contextlib import asynccontextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -443,3 +444,51 @@ class MonitoringSystem:
 
 # Global monitoring instance
 monitoring = MonitoringSystem()
+
+# Memory profiling context manager
+@asynccontextmanager
+async def async_memory_profiling_context(operation_name: str = "operation"):
+    """
+    Context manager for async memory profiling.
+    
+    Args:
+        operation_name: Name of the operation being profiled
+    """
+    process = psutil.Process()
+    start_memory = process.memory_info().rss
+    start_time = time.time()
+    
+    try:
+        yield
+    finally:
+        end_time = time.time()
+        end_memory = process.memory_info().rss
+        
+        duration = end_time - start_time
+        memory_diff = end_memory - start_memory
+        
+        # Record metrics
+        monitoring.record_metric(
+            name="memory_usage_bytes",
+            value=end_memory,
+            metric_type=MetricType.GAUGE,
+            labels={"operation": operation_name}
+        )
+        
+        monitoring.record_metric(
+            name="memory_delta_bytes",
+            value=memory_diff,
+            metric_type=MetricType.GAUGE,
+            labels={"operation": operation_name}
+        )
+        
+        monitoring.record_metric(
+            name="operation_duration_seconds",
+            value=duration,
+            metric_type=MetricType.HISTOGRAM,
+            labels={"operation": operation_name}
+        )
+        
+        logger.debug(f"Memory profiling for {operation_name}: "
+                    f"duration={duration:.3f}s, "
+                    f"memory_diff={memory_diff/1024/1024:.2f}MB")

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, ModalHeader, ModalContent, ModalFooter } from '../ui/Modal';
-import { Input } from '../ui/Input';
+import Input from '../ui/Input';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 

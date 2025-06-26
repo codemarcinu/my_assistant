@@ -11,7 +11,7 @@ export default defineConfig({
   workers: isCI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     actionTimeout: 10000,
     navigationTimeout: 30000,

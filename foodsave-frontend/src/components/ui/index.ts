@@ -1,5 +1,5 @@
 export { default as Button } from './Button';
-export { Input } from './Input';
+export { default as Input } from './Input';
 export { default as Card } from './Card';
 export { Badge } from './Badge';
 export { Spinner } from './Spinner';

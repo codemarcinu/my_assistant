@@ -1,0 +1,76 @@
+# Multi-stage build for production backend using pip
+FROM python:3.12-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    libopenblas-dev \
+    libblas-dev \
+    liblapack-dev \
+    gfortran \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY requirements.txt ./
+
+# Install dependencies with pip (more reliable than poetry for large packages)
+RUN pip install --timeout 1800 --retries 5 --no-cache-dir -r requirements.txt
+
+# Production stage
+FROM python:3.12-slim as production
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    libopenblas0 \
+    libblas3 \
+    liblapack3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user
+RUN groupadd -r foodsave && useradd -r -g foodsave foodsave
+
+# Set working directory
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code (from root context)
+COPY src/backend ./backend
+
+# Copy configuration files
+COPY alembic.ini ./
+COPY pytest.ini ./
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/data /app/data/vector_store /app/data/search_cache /app/backups
+
+# Set ownership to non-root user
+RUN chown -R foodsave:foodsave /app
+
+# Switch to non-root user
+USER foodsave
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV ENVIRONMENT=production
+ENV LOG_LEVEL=INFO
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Command to run the application
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"] 

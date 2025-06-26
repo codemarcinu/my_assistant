@@ -1,0 +1,10 @@
+# Minimal dependencies for fast builds
+fastapi==0.115.13
+uvicorn==0.32.1
+python-multipart==0.0.20
+aiofiles==24.1.0
+pydantic==2.11.7
+httpx==0.28.1
+requests==2.32.4
+pytest==8.4.1
+pytest-asyncio==1.0.0 
