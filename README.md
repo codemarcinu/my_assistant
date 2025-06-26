@@ -1,7 +1,7 @@
 # 🍽️ AIASISSTMARUBO - Inteligentny System Zarządzania Żywnością
 
 **Ostatnia aktualizacja:** 26.06.2025  
-**Status:** ✅ WSZYSTKIE TESTY PRZESZŁY (14/14)  
+**Status:** ✅ WSZYSTKIE TESTY PRZESZŁY (14/14) + E2E LLM  
 **Wersja:** Production Ready
 
 ---
@@ -9,7 +9,7 @@
 ## 🎯 **O PROJEKCIE**
 
 AIASISSTMARUBO to zaawansowany system AI do zarządzania żywnością, który łączy:
-- 🤖 **Inteligentne agenty AI** (Ollama LLM)
+- 🤖 **Inteligentne agenty AI** (Ollama LLM z modelem Bielik 11B jako domyślnym)
 - 📷 **OCR paragonów** (Tesseract)
 - 🗄️ **Baza danych produktów** (PostgreSQL/SQLite)
 - 🔍 **RAG (Retrieval-Augmented Generation)**
@@ -20,21 +20,28 @@ AIASISSTMARUBO to zaawansowany system AI do zarządzania żywnością, który ł
 ## ✅ **STATUS TESTOWY (26.06.2025)**
 
 ### **Wyniki testów E2E:**
-- **Łącznie testów:** 14
-- **Przeszło:** 14 (100%)
-- **Czas wykonania:** ~3.5s
+- **Łącznie testów:** 14 + 3 modele LLM
+- **Przeszło:** 17 (100%)
+- **Czas wykonania:** ~3.5s + testy LLM
 - **Status:** **KOMPLETNY SUKCES**
 
+### **Przetestowane modele LLM:**
+- ✅ **Bielik 11B Q4_K_M** - Model domyślny (37.40s, najszybszy)
+- ✅ **Mistral 7B** - Model fallback (44.91s, równowaga)
+- ✅ **Gemma3 12B** - Model zaawansowany (50.39s, najwyższa jakość)
+
 ### **Przetestowane funkcjonalności:**
-- ✅ Połączenie z Ollama LLM
+- ✅ Połączenie z Ollama LLM (wszystkie modele)
 - ✅ Upload i OCR paragonów
 - ✅ Operacje na bazie danych
 - ✅ Agenty AI (jedzenie, planowanie, pogoda, wiadomości)
 - ✅ Integracja RAG
 - ✅ Endpointy zdrowia i metryki
 - ✅ Pełny przepływ użytkownika
+- ✅ Monitoring GPU (RTX 3060 12GB)
 
-**📊 [Szczegółowy raport testowy](TEST_REPORT_2025-06-26.md)**
+**📊 [Szczegółowy raport testowy](TEST_REPORT_2025-06-26.md)**  
+**🧠 [Raport E2E modeli LLM](RAPORT_E2E_MODELI_LLM.md)**
 
 ---
 
@@ -80,12 +87,15 @@ cp .env.example .env
 # Edytuj .env z odpowiednimi wartościami
 ```
 
-### **4. Uruchomienie Ollama**
+### **4. Uruchomienie Ollama z modelami**
 ```bash
 # Zainstaluj Ollama z https://ollama.ai
 ollama serve
-ollama pull llama3.2:3b
-ollama pull mistral:7b
+
+# Pobierz modele (w kolejności preferencji)
+ollama pull bielik:11b-q4_k_m        # Model domyślny (polski)
+ollama pull mistral:7b               # Model fallback
+ollama pull gemma3:12b               # Model zaawansowany (większe okno kontekstowe)
 ```
 
 ### **5. Uruchomienie systemu**
@@ -109,6 +119,15 @@ cd src/backend
 python -m pytest tests/test_production_e2e.py -v
 ```
 
+### **Testy modeli LLM z monitoringiem GPU:**
+```bash
+# Test pojedynczego modelu
+./monitor_gpu_during_test.sh "poetry run pytest tests/test_gemma3_12b_e2e.py::TestGemma312BE2E::test_gemma3_food_knowledge -v" "gpu_usage_test.log"
+
+# Test wszystkich modeli sekwencyjnie
+./run_llm_tests.sh
+```
+
 ### **Wszystkie testy:**
 ```bash
 # Backend
@@ -129,9 +148,11 @@ npm run test:e2e
 DATABASE_URL=postgresql://user:pass@localhost/foodsave
 TEST_DATABASE_URL=sqlite+aiosqlite:///./test.db
 
-# Ollama
+# Ollama - Model domyślny i fallback
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2:3b
+OLLAMA_MODEL=bielik:11b-q4_k_m          # Model domyślny (polski)
+OLLAMA_FALLBACK_MODEL=mistral:7b        # Model fallback
+OLLAMA_ADVANCED_MODEL=gemma3:12b        # Model zaawansowany
 
 # API Keys
 PERPLEXITY_API_KEY=your_key_here
@@ -139,6 +160,27 @@ PERPLEXITY_API_KEY=your_key_here
 # Security
 SECRET_KEY=your_secret_key
 TESTING_MODE=false
+```
+
+### **Strategia modeli LLM:**
+```
+🎯 MODEL DOMYŚLNY: Bielik 11B Q4_K_M
+├── Najszybszy (37.40s)
+├── Nativne wsparcie języka polskiego
+├── Zoptymalizowany (Q4_K_M)
+└── Idealny dla aplikacji polskojęzycznych
+
+🔄 MODEL FALLBACK: Mistral 7B
+├── Równowaga szybkość/jakość (44.91s)
+├── Wsparcie wielojęzyczne
+├── Stabilne działanie
+└── Używany gdy Bielik nie odpowiada
+
+🧠 MODEL ZAAWANSOWANY: Gemma3 12B
+├── Najwyższa jakość (50.39s)
+├── Większe okno kontekstowe
+├── Najbardziej szczegółowe analizy
+└── Używany dla złożonych zadań
 ```
 
 ---
@@ -188,10 +230,16 @@ response = await weather_agent.get_weather("Jaka jest pogoda w Warszawie?")
 - `/ready` - Gotowość do obsługi requestów
 - `/metrics` - Metryki Prometheus
 
+### **Monitoring GPU:**
+- **GPU:** NVIDIA RTX 3060 (12GB VRAM)
+- **Wykorzystanie:** ~7,236 MiB przez Ollama
+- **Status:** ✅ Optymalne dla wszystkich modeli
+
 ### **Logi:**
 - Backend: `logs/backend/backend.log`
 - Ollama: `logs/ollama/`
 - Database: `logs/postgres/`
+- GPU Monitoring: `gpu_usage_*.log`
 
 ---
 
@@ -230,21 +278,25 @@ docker-compose up -d
 
 ### **Q2 2025 (Aktualne):**
 - ✅ Testy E2E zrealizowane
-- ✅ Integracja z Ollama
+- ✅ Integracja z Ollama (wszystkie modele)
 - ✅ System RAG
-- 🔄 Testy z realnymi modelami LLM
+- ✅ Testy z realnymi modelami LLM
+- ✅ Monitoring GPU
+- ✅ Strategia fallback modeli
 
 ### **Q3 2025:**
 - [ ] Rozszerzone agenty AI
 - [ ] Integracja z kalendarzem
 - [ ] Notyfikacje push
 - [ ] Mobile app
+- [ ] Auto-scaling dla modeli
 
 ### **Q4 2025:**
 - [ ] Machine Learning dla predykcji
 - [ ] Integracja z sklepami online
 - [ ] Social features
 - [ ] Analytics dashboard
+- [ ] Fine-tuning modeli
 
 ---
 
@@ -260,8 +312,9 @@ docker-compose up -d
 ### **Wymagania:**
 - Python 3.12+
 - Node.js 18+
-- Ollama
+- Ollama z modelami LLM
 - PostgreSQL (opcjonalnie)
+- GPU NVIDIA (zalecane)
 
 ---
 

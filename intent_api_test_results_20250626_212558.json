@@ -1,0 +1,174 @@
+{
+  "test_info": {
+    "timestamp": "20250626_212558",
+    "total_tests": 21,
+    "successful_tests": 13,
+    "test_type": "intent_api"
+  },
+  "results": [
+    {
+      "text": "Cześć, jak się masz?",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 4.098491907119751,
+      "response_text": "Dziękuję, dobrze. A u Ciebie?",
+      "status_code": 200
+    },
+    {
+      "text": "Opowiedz mi żart",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 0.7168617248535156,
+      "response_text": "Dlaczego komputer był na diecie? Bo miał za dużo bajtów!",
+      "status_code": 200
+    },
+    {
+      "text": "Kim jesteś?",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 4.878838539123535,
+      "response_text": "Jestem sztuczną inteligencją stworzoną przez SpeakLeash i ACK Cyfronet AGH w ramach projektu open-science. Moja rola polega na wspieraniu użytkowników w różnych dziedzinach, takich jak edukacja, rozry...",
+      "status_code": 200
+    },
+    {
+      "text": "Wczoraj wydałem 150 zł w Biedronce",
+      "expected_intent": "shopping_conversation",
+      "success": true,
+      "response_time": 21.664992809295654,
+      "response_text": "```python\r\n# Wartość wydaną w Biedronce podzielić na kategorie produktów\r\n# i przedstawić w formie wykresu słupkowego\r\n\r\nimport matplotlib.pyplot as plt\r\n\r\n# Dane wejściowe\r\ntotal_spent = 150  # Warto...",
+      "status_code": 200
+    },
+    {
+      "text": "Mam paragon z Lidla",
+      "expected_intent": "shopping_conversation",
+      "success": true,
+      "response_time": 1.0912444591522217,
+      "response_text": "Czy możesz mi pomóc w analizie tego paragonu i odpowiedzieć na kilka pytań?",
+      "status_code": 200
+    },
+    {
+      "text": "Ile wydałem w tym miesiącu na jedzenie?",
+      "expected_intent": "shopping_conversation",
+      "success": true,
+      "response_time": 13.968376398086548,
+      "response_text": "Aby odpowiedzieć na to pytanie, musimy przeanalizować Twoje wydatki związane z jedzeniem w tym miesiącu. Oto kroki, które należy podjąć:\r\n\r\n1. Zbierz dane o wydatkach: Przejrzyj swoje rachunki bankowe...",
+      "status_code": 200
+    },
+    {
+      "text": "Jak ugotować spaghetti?",
+      "expected_intent": "food_conversation",
+      "success": true,
+      "response_time": 28.37677526473999,
+      "response_text": "### Instrukcja gotowania spaghetti:\n\n1. **Przygotuj składniki i naczynia:**\n   - Spaghetti (ilość zależna od liczby osób)\n   - Woda\n   - Sól\n   - Garnek o dużej pojemności\n   - Łyżka do makaronu\n   - ...",
+      "status_code": 200
+    },
+    {
+      "text": "Czy awokado jest zdrowe?",
+      "expected_intent": "food_conversation",
+      "success": true,
+      "response_time": 25.042096376419067,
+      "response_text": "Tak, awokado jest uważane za zdrową żywność. Oto kilka powodów, dla których warto je spożywać: \r\n\r\n1. Zawiera zdrowe tłuszcze: Awokado jest bogate w nienasycone kwasy tłuszczowe, które są korzystne dl...",
+      "status_code": 200
+    },
+    {
+      "text": "Podaj mi przepis na pizzę",
+      "expected_intent": "food_conversation",
+      "success": false,
+      "response_time": 30.046262741088867,
+      "error": ""
+    },
+    {
+      "text": "Zaplanuj mi posiłki na cały tydzień",
+      "expected_intent": "meal_planning",
+      "success": false,
+      "response_time": 30.05005717277527,
+      "error": ""
+    },
+    {
+      "text": "Co powinienem jeść na śniadanie?",
+      "expected_intent": "meal_planning",
+      "success": true,
+      "response_time": 29.815613985061646,
+      "response_text": "Oto kilka propozycji zdrowych i pożywnych posiłków na śniadanie:\n\n1. Owsianka z owocami i orzechami - płatki owsiane są bogate w błonnik, który pomaga regulować poziom cukru we krwi i dostarcza energi...",
+      "status_code": 200
+    },
+    {
+      "text": "Jaka jest pogoda w Warszawie?",
+      "expected_intent": "weather",
+      "success": true,
+      "response_time": 29.36970806121826,
+      "response_text": "Aby sprawdzić aktualną pogodę w Warszawie, możesz skorzystać z różnych źródeł online. Oto kilka sposobów, jak to zrobić:\n\n1. Strony internetowe:\n   - [Pogoda.pl](https://www.pogoda.pl/): Popularna pol...",
+      "status_code": 200
+    },
+    {
+      "text": "Czy będzie jutro padać?",
+      "expected_intent": "weather",
+      "success": true,
+      "response_time": 6.80516242980957,
+      "response_text": "Niestety, nie jestem w stanie przewidywać pogody. Moja funkcjonalność opiera się na analizie danych i odpowiadaniu na pytania zgodnie z podanymi informacjami. Jednakże, mogę powiedzieć, że prognozy po...",
+      "status_code": 200
+    },
+    {
+      "text": "Co to jest sztuczna inteligencja?",
+      "expected_intent": "information_query",
+      "success": false,
+      "response_time": 30.048090934753418,
+      "error": ""
+    },
+    {
+      "text": "Kto wynalazł komputer?",
+      "expected_intent": "information_query",
+      "success": false,
+      "response_time": 30.046281576156616,
+      "error": ""
+    },
+    {
+      "text": "Kategoryzuj moje wydatki",
+      "expected_intent": "categorization",
+      "success": false,
+      "response_time": 3.8255393505096436,
+      "response_text": "Chętnie pomogę Ci skategoryzować Twoje wydatki. Aby to zrobić, potrzebuję więcej informacji na temat tych wydatków. Czy możesz podać konkretne przykłady lub opisać rodzaje wydatków, które chcesz skate...",
+      "status_code": 200
+    },
+    {
+      "text": "Przypisz kategorię do tego produktu",
+      "expected_intent": "categorization",
+      "success": true,
+      "response_time": 5.553927659988403,
+      "response_text": "Ten produkt należy do kategorii \"Elektronika\". Jest to urządzenie elektroniczne, które wykorzystuje zaawansowane technologie i komponenty elektroniczne do realizacji swoich funkcji. W tej kategorii zn...",
+      "status_code": 200
+    },
+    {
+      "text": "Przeanalizuj ten paragon",
+      "expected_intent": "ocr",
+      "success": true,
+      "response_time": 1.695106029510498,
+      "response_text": "Aby przeanalizować paragon, potrzebuję więcej informacji. Proszę podać treść paragonu lub opis tego, co chcesz, abym z niego wywnioskował.",
+      "status_code": 200
+    },
+    {
+      "text": "Skanuj ten obraz",
+      "expected_intent": "ocr",
+      "success": true,
+      "response_time": 1.2627732753753662,
+      "response_text": "Przepraszam, ale nie mam możliwości skanowania obrazów. Czy mogę w czymś jeszcze pomóc?",
+      "status_code": 200
+    },
+    {
+      "text": "Przeczytaj ten dokument",
+      "expected_intent": "rag",
+      "success": true,
+      "response_time": 20.11280632019043,
+      "response_text": "Dokument zawiera informacje na temat różnych aspektów życia codziennego, takich jak zdrowie, relacje międzyludzkie i rozwój osobisty. Jest to cenne źródło wiedzy dla osób poszukujących porad i wskazów...",
+      "status_code": 200
+    },
+    {
+      "text": "Analizuj ten plik PDF",
+      "expected_intent": "rag",
+      "success": true,
+      "response_time": 11.161705255508423,
+      "response_text": "### Instrukcja:\r\n\r\nAnalizuj ten plik PDF o nazwie \"dokument.pdf\". Plik zawiera informacje na temat projektu badawczego dotyczącego sztucznej inteligencji. Twoim zadaniem jest przeczytanie i zrozumieni...",
+      "status_code": 200
+    }
+  ]
+}

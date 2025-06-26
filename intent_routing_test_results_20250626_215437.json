@@ -1,0 +1,343 @@
+{
+  "test_info": {
+    "timestamp": "20250626_215437",
+    "total_tests": 37,
+    "successful_tests": 4,
+    "test_type": "intent_routing"
+  },
+  "results": [
+    {
+      "text": "Cześć, jak się masz?",
+      "expected_intent": "general_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 9.298324584960938e-06,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Dzień dobry! Co słychać?",
+      "expected_intent": "general_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.6927719116210938e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Opowiedz mi żart",
+      "expected_intent": "general_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.9311904907226562e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Kim jesteś?",
+      "expected_intent": "general_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.4543533325195312e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Wczoraj wydałem 150 zł w Biedronce",
+      "expected_intent": "shopping_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.3589859008789062e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Mam paragon z Lidla, chcesz go przeanalizować?",
+      "expected_intent": "shopping_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 2.288818359375e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Ile wydałem w tym miesiącu na jedzenie?",
+      "expected_intent": "shopping_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.7881393432617188e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Dodaj ten produkt do listy zakupów",
+      "expected_intent": "shopping_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.8358230590820312e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Jak ugotować spaghetti?",
+      "expected_intent": "food_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.5020370483398438e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Mam awokado i jajka, co mogę z tego ugotować?",
+      "expected_intent": "food_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.2874603271484375e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Czy awokado jest zdrowe?",
+      "expected_intent": "food_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.52587890625e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Podaj mi przepis na pizzę",
+      "expected_intent": "food_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.7881393432617188e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Zaplanuj mi posiłki na cały tydzień",
+      "expected_intent": "meal_planning",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.3589859008789062e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Co powinienem jeść na śniadanie?",
+      "expected_intent": "meal_planning",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.3113021850585938e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Stwórz plan żywieniowy dla diety wegetariańskiej",
+      "expected_intent": "meal_planning",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.6450881958007812e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Jaka jest pogoda w Warszawie?",
+      "expected_intent": "weather",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.33514404296875e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Czy będzie jutro padać?",
+      "expected_intent": "weather",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.1920928955078125e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Prognoza pogody na weekend",
+      "expected_intent": "weather",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.2874603271484375e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Co to jest sztuczna inteligencja?",
+      "expected_intent": "information_query",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.2159347534179688e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Kto wynalazł komputer?",
+      "expected_intent": "information_query",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.33514404296875e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Jak działa blockchain?",
+      "expected_intent": "information_query",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.2636184692382812e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Kategoryzuj moje wydatki z ostatniego miesiąca",
+      "expected_intent": "categorization",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.2159347534179688e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Przypisz kategorię do tego produktu",
+      "expected_intent": "categorization",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.71661376953125e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Pogrupuj moje zakupy według kategorii",
+      "expected_intent": "categorization",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.3113021850585938e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Przeanalizuj ten paragon",
+      "expected_intent": "ocr",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.33514404296875e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Skanuj ten obraz",
+      "expected_intent": "ocr",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.3113021850585938e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Wyciągnij tekst z tego zdjęcia",
+      "expected_intent": "ocr",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 2.4557113647460938e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Przeczytaj ten dokument",
+      "expected_intent": "rag",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.4781951904296875e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Analizuj ten plik PDF",
+      "expected_intent": "rag",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.2636184692382812e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Znajdź informacje w tym tekście",
+      "expected_intent": "rag",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 2.1696090698242188e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Mam paragon z wczoraj i chcę wiedzieć, czy wydałem za dużo na jedzenie",
+      "expected_intent": "shopping_conversation",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.4066696166992188e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Zaplanuj mi posiłki na tydzień, ale uwzględnij, że jestem wegetarianinem",
+      "expected_intent": "meal_planning",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.1920928955078125e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Jaka jest pogoda w Krakowie i czy powinienem wziąć parasol?",
+      "expected_intent": "weather",
+      "detected_intent": "error",
+      "confidence": 0.0,
+      "success": false,
+      "detection_time": 1.5497207641601562e-05,
+      "error": "MemoryContext.__init__() got an unexpected keyword argument 'last_command'"
+    },
+    {
+      "text": "Cześć, jak się masz?",
+      "expected_agent": "general_conversation",
+      "success": true,
+      "processing_time": 5.007652759552002,
+      "response_text": "I'm sorry, but the language model service is currently unavailable. Please try again later.",
+      "error": null,
+      "test_type": "routing"
+    },
+    {
+      "text": "Jaka jest pogoda w Warszawie?",
+      "expected_agent": "weather",
+      "success": true,
+      "processing_time": 3.850264310836792,
+      "response_text": "I'm sorry, but the language model service is currently unavailable. Please try again later.",
+      "error": null,
+      "test_type": "routing"
+    },
+    {
+      "text": "Jak ugotować spaghetti?",
+      "expected_agent": "food_conversation",
+      "success": true,
+      "processing_time": 2.947706460952759,
+      "response_text": "I'm sorry, but the language model service is currently unavailable. Please try again later.",
+      "error": null,
+      "test_type": "routing"
+    },
+    {
+      "text": "Wczoraj wydałem 150 zł w Biedronce",
+      "expected_agent": "shopping_conversation",
+      "success": true,
+      "processing_time": 2.922527313232422,
+      "response_text": "I'm sorry, but the language model service is currently unavailable. Please try again later.",
+      "error": null,
+      "test_type": "routing"
+    }
+  ]
+}

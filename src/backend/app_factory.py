@@ -106,7 +106,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup logic
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    await run_migrations()
+    
+    # Skip migrations for SQLite (they use PostgreSQL-specific queries)
+    if not settings.DATABASE_URL.startswith("sqlite"):
+        await run_migrations()
+    else:
+        logger.info("Skipping migrations for SQLite database")
+    
     logger.info("database.seeding.start")
     async with AsyncSessionLocal() as db:
         try:

@@ -9,27 +9,27 @@ import ollama
 import requests  # type: ignore
 import structlog
 
-from ..config import settings
+from ..config import OLLAMA_URL, settings
 
 logger = structlog.get_logger()
 
-# Configure ollama client to use the correct host from settings
-ollama_url = settings.OLLAMA_URL
-logger.info(f"Raw OLLAMA_URL from settings: {ollama_url}")
+# Configure ollama client to use the correct host from OLLAMA_URL
+ollama_url = OLLAMA_URL
+logger.info(f"Raw OLLAMA_URL from config: {ollama_url}")
 
 if not ollama_url or not ollama_url.startswith(('http://', 'https://')):
     logger.error(f"Invalid OLLAMA_URL: {ollama_url}")
     raise ValueError(f"OLLAMA_URL must start with http:// or https://, got: {ollama_url}")
 
 # Create a configured ollama client instance with the correct host
-ollama_client = ollama.Client(base_url=ollama_url)
-logger.info(f"Configured ollama client with base_url: {ollama_url}")
+ollama_client = ollama.Client(host=ollama_url)
+logger.info(f"Configured ollama client with host: {ollama_url}")
 
 # Test Ollama connection on startup
 def test_ollama_connection() -> bool:
     """Test if Ollama server is accessible"""
     try:
-        response = requests.get(f"{settings.OLLAMA_URL}/api/version", timeout=5)
+        response = requests.get(f"{OLLAMA_URL}/api/version", timeout=5)
         if response.status_code == 200:
             logger.info("Ollama server is accessible")
             return True
@@ -43,6 +43,57 @@ def test_ollama_connection() -> bool:
 
 # Test connection on module import
 OLLAMA_AVAILABLE = test_ollama_connection()
+
+
+class ModelFallbackManager:
+    """Manages model fallback strategy when primary model fails"""
+    
+    def __init__(self):
+        self.available_models = settings.AVAILABLE_MODELS
+        self.fallback_strategy = settings.FALLBACK_STRATEGY
+        self.enable_fallback = settings.ENABLE_MODEL_FALLBACK
+        self.fallback_timeout = settings.FALLBACK_TIMEOUT
+        self.model_health: Dict[str, bool] = {}
+        self.last_fallback_time: Dict[str, datetime] = {}
+        
+    async def get_working_model(self, preferred_model: str) -> str:
+        """Get a working model, starting with preferred and falling back if needed"""
+        if not self.enable_fallback:
+            return preferred_model
+            
+        # Check if preferred model is healthy
+        if await self._is_model_healthy(preferred_model):
+            return preferred_model
+            
+        # Try fallback models
+        for model in self.available_models:
+            if model != preferred_model and await self._is_model_healthy(model):
+                logger.info(f"Falling back from {preferred_model} to {model}")
+                return model
+                
+        # If no model is healthy, return preferred model anyway
+        logger.warning(f"No healthy models found, using {preferred_model}")
+        return preferred_model
+        
+    async def _is_model_healthy(self, model: str) -> bool:
+        """Check if a specific model is healthy and available"""
+        try:
+            # Check if model exists and is accessible
+            response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+            if response.status_code == 200:
+                models_data = response.json()
+                available_models = [m.get('name', '') for m in models_data.get('models', [])]
+                return model in available_models
+        except Exception as e:
+            logger.debug(f"Health check failed for model {model}: {e}")
+            
+        return False
+        
+    def mark_model_failed(self, model: str):
+        """Mark a model as failed for fallback purposes"""
+        self.model_health[model] = False
+        self.last_fallback_time[model] = datetime.now()
+        logger.warning(f"Model {model} marked as failed")
 
 
 class LLMCache:
@@ -110,12 +161,13 @@ class EnhancedLLMClient:
         self.last_request_time = datetime.now()
         self.connection_retries = 3
         self.retry_delay = 1.0
+        self.model_fallback_manager = ModelFallbackManager()
 
     async def _check_ollama_availability(self) -> bool:
         """Check if Ollama is available with retries"""
         for attempt in range(self.connection_retries):
             try:
-                response = requests.get(f"{settings.OLLAMA_URL}/api/version", timeout=5)
+                response = requests.get(f"{OLLAMA_URL}/api/version", timeout=5)
                 if response.status_code == 200:
                     return True
             except Exception as e:
@@ -134,7 +186,7 @@ class EnhancedLLMClient:
         options: Optional[Dict[str, Any]] = None,
     ) -> Union[Dict[str, Any], AsyncGenerator[Dict[str, Any], None]]:
         """
-        Send chat messages to the LLM
+        Send chat messages to the LLM with automatic fallback
 
         Args:
             model: Model name
@@ -147,6 +199,12 @@ class EnhancedLLMClient:
         """
         start_time = time.time()
         options = options or {}
+
+        # Get working model with fallback
+        working_model = await self.model_fallback_manager.get_working_model(model)
+        if working_model != model:
+            logger.info(f"Using fallback model: {working_model} instead of {model}")
+            model = working_model
 
         # Log prompt
         logger.info(
@@ -245,6 +303,9 @@ class EnhancedLLMClient:
             self.last_error = str(e)
             self.error_count += 1
             logger.error(f"Error in LLM request to {model}: {str(e)}")
+            
+            # Mark model as failed for fallback
+            self.model_fallback_manager.mark_model_failed(model)
 
             # Return a fallback response instead of raising an exception
             fallback_response = {

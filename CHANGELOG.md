@@ -132,3 +132,116 @@ i projekt przestrzega [Semantic Versioning](https://semver.org/lang/pl/).
 - `✅ Naprawione` - poprawki błędów
 - `🗑️ Usunięto` - usunięte funkcje
 - `📊 Stan systemu` - informacje o stabilności 
+
+## [Unreleased]
+
+### 🧠 **Dodano - Strategia modeli LLM z fallback**
+- **Model domyślny**: Bielik 11B Q4_K_M (polski, najszybszy - 37.40s)
+- **Model fallback**: Mistral 7B (równowaga - 44.91s)
+- **Model zaawansowany**: Gemma3 12B (najwyższa jakość - 50.39s)
+- **Automatyczny fallback** między modelami w przypadku problemów
+- **ModelFallbackManager** do zarządzania przełączaniem modeli
+- **Testy E2E** wszystkich modeli z monitoringiem GPU
+- **Skrypt `run_llm_tests.sh`** do uruchamiania testów sekwencyjnie
+
+### 📊 **Dodano - Monitoring i metryki**
+- **Monitoring GPU** dla wszystkich modeli LLM
+- **Szczegółowe raporty** wydajności modeli
+- **Logi wykorzystania zasobów** (GPU, pamięć, czas odpowiedzi)
+- **Analiza jakości odpowiedzi** (długość, słowa, stabilność)
+
+### 📚 **Dodano - Dokumentacja**
+- **PROJECT_ASSUMPTIONS.md** - założenia projektu i strategia modeli
+- **RAPORT_E2E_MODELI_LLM.md** - szczegółowy raport testów E2E
+- **Zaktualizowany README.md** z nową strategią modeli
+- **Instrukcje instalacji** modeli Ollama
+
+### 🔧 **Zmieniono - Konfiguracja**
+- **Domyślny model**: `gemma3:12b` → `bielik:11b-q4_k_m`
+- **Lista modeli**: Dodano strategię fallback
+- **LLM Client**: Dodano automatyczne przełączanie modeli
+- **Agent Factory**: Obsługa fallback w tworzeniu agentów
+
+### 🧪 **Dodano - Testy**
+- **Testy E2E** dla wszystkich trzech modeli LLM
+- **Monitoring GPU** podczas testów
+- **Skrypt testowy** `run_llm_tests.sh`
+- **Walidacja** strategii fallback
+
+### 🐛 **Naprawiono**
+- **Format odpowiedzi** w testach (response → data)
+- **Uwierzytelnienie** w trybie testowym
+- **Połączenie z Ollama** (localhost vs Docker)
+- **Timeouty** w testach LLM
+
+---
+
+## [2025-06-26] - Testy E2E i integracja Ollama
+
+### ✅ **Dodano - Testy End-to-End**
+- Kompletne testy E2E dla wszystkich funkcjonalności
+- Integracja z Ollama LLM
+- Testy agentów AI (jedzenie, planowanie, pogoda, wiadomości)
+- Testy OCR paragonów
+- Testy operacji na bazie danych
+- Testy endpointów zdrowia i metryki
+
+### 🤖 **Dodano - Agenty AI**
+- **Food Agent** - Pytania o jedzenie i żywienie
+- **Meal Planning Agent** - Planowanie posiłków
+- **Weather Agent** - Informacje o pogodzie
+- **News Agent** - Aktualności i wiadomości
+- **RAG Agent** - Wyszukiwanie w dokumentach
+- **OCR Agent** - Analiza paragonów
+
+### 🔍 **Dodano - System RAG**
+- Integracja z ChromaDB
+- Przetwarzanie dokumentów
+- Embedding models
+- Retrieval algorithms
+
+### 📊 **Dodano - Monitoring**
+- Health checks (`/health`, `/ready`)
+- Metryki Prometheus (`/metrics`)
+- Logowanie strukturalne
+- Error tracking
+
+### 🐳 **Dodano - Docker**
+- Docker Compose dla wszystkich usług
+- Health checks dla kontenerów
+- Konfiguracja środowisk (dev/prod)
+
+### 📱 **Dodano - Frontend**
+- Next.js 14 z TypeScript
+- Responsive design
+- Chat interface
+- Upload paragonów
+- Dashboard z metrykami
+
+### 🗄️ **Dodano - Baza danych**
+- Migracje Alembic
+- Modele SQLAlchemy
+- Backup system
+- Seed data
+
+---
+
+## [2025-06-25] - Inicjalizacja projektu
+
+### 🎯 **Dodano - Podstawowa struktura**
+- FastAPI backend
+- SQLAlchemy models
+- Pydantic schemas
+- Basic API endpoints
+- Docker configuration
+- CI/CD pipeline
+
+### 📝 **Dodano - Dokumentacja**
+- README z instrukcjami
+- API documentation
+- Setup guide
+- Development guidelines
+
+---
+
+*Changelog jest aktualizowany automatycznie przy każdej znaczącej zmianie w projekcie.* 

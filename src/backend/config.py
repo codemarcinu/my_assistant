@@ -47,18 +47,23 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Modele językowe - z fallback na działające modele
-    OLLAMA_MODEL: str = "gemma3:12b"  # Główny model
-    DEFAULT_CODE_MODEL: str = "gemma3:12b"  # Model do kodu
-    DEFAULT_CHAT_MODEL: str = "gemma3:12b"  # Model do ogólnej konwersacji
+    OLLAMA_MODEL: str = "bielik:11b-q4_k_m"  # Model domyślny (polski)
+    DEFAULT_CODE_MODEL: str = "bielik:11b-q4_k_m"  # Model do kodu
+    DEFAULT_CHAT_MODEL: str = "bielik:11b-q4_k_m"  # Model do ogólnej konwersacji
     DEFAULT_EMBEDDING_MODEL: str = "nomic-embed-text"  # Model do embeddingów
 
     # Lista dostępnych modeli (w kolejności preferencji)
     AVAILABLE_MODELS: list = [
-        "gemma3:12b",  # Główny model
-        "mistral:7b",  # Fallback model
+        "bielik:11b-q4_k_m",  # Model domyślny (polski, najszybszy)
+        "mistral:7b",  # Model fallback (równowaga)
+        "gemma3:12b",  # Model zaawansowany (większe okno kontekstowe)
         "llama3.2:3b",  # Dodatkowy fallback
-        "SpeakLeash/bielik-1.5b-v3.0-instruct:FP16",  # Polski model
     ]
+
+    # Strategia fallback modeli
+    FALLBACK_STRATEGY: str = "progressive"  # progressive, round_robin, quality_first
+    ENABLE_MODEL_FALLBACK: bool = True
+    FALLBACK_TIMEOUT: int = 60  # sekundy przed przełączeniem na fallback
 
     # Konfiguracja dla modelu MMLW (opcjonalny, lepszy dla języka polskiego)
     USE_MMLW_EMBEDDINGS: bool = True  # Automatycznie włączone
@@ -100,3 +105,14 @@ class Settings(BaseSettings):
 # Tworzymy jedną, globalną instancję ustawień,
 # której będziemy używać w całej aplikacji.
 settings = Settings()
+
+# Ustawienie OLLAMA_URL na localhost dla środowiska lokalnego
+def get_ollama_url():
+    import os
+    url = os.environ.get('OLLAMA_URL')
+    if url:
+        return url
+    # Domyślnie localhost dla dev
+    return 'http://localhost:11434'
+
+OLLAMA_URL = get_ollama_url()

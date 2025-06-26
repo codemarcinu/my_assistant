@@ -1,0 +1,178 @@
+{
+  "test_info": {
+    "timestamp": "20250626_211955",
+    "total_tests": 21,
+    "successful_tests": 0,
+    "test_type": "intent_api"
+  },
+  "results": [
+    {
+      "text": "Cześć, jak się masz?",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 0.026157379150390625,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Opowiedz mi żart",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 0.026757240295410156,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Kim jesteś?",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 0.02198934555053711,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Wczoraj wydałem 150 zł w Biedronce",
+      "expected_intent": "shopping_conversation",
+      "success": false,
+      "response_time": 0.024597644805908203,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Mam paragon z Lidla",
+      "expected_intent": "shopping_conversation",
+      "success": false,
+      "response_time": 0.02135944366455078,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Ile wydałem w tym miesiącu na jedzenie?",
+      "expected_intent": "shopping_conversation",
+      "success": false,
+      "response_time": 0.021098852157592773,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Jak ugotować spaghetti?",
+      "expected_intent": "food_conversation",
+      "success": false,
+      "response_time": 0.021634817123413086,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Czy awokado jest zdrowe?",
+      "expected_intent": "food_conversation",
+      "success": false,
+      "response_time": 0.02332901954650879,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Podaj mi przepis na pizzę",
+      "expected_intent": "food_conversation",
+      "success": false,
+      "response_time": 0.022320032119750977,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Zaplanuj mi posiłki na cały tydzień",
+      "expected_intent": "meal_planning",
+      "success": false,
+      "response_time": 0.022655248641967773,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Co powinienem jeść na śniadanie?",
+      "expected_intent": "meal_planning",
+      "success": false,
+      "response_time": 0.02242755889892578,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Jaka jest pogoda w Warszawie?",
+      "expected_intent": "weather",
+      "success": false,
+      "response_time": 0.03104710578918457,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Czy będzie jutro padać?",
+      "expected_intent": "weather",
+      "success": false,
+      "response_time": 0.022788047790527344,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Co to jest sztuczna inteligencja?",
+      "expected_intent": "information_query",
+      "success": false,
+      "response_time": 0.021902799606323242,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Kto wynalazł komputer?",
+      "expected_intent": "information_query",
+      "success": false,
+      "response_time": 0.020929336547851562,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Kategoryzuj moje wydatki",
+      "expected_intent": "categorization",
+      "success": false,
+      "response_time": 0.022607088088989258,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Przypisz kategorię do tego produktu",
+      "expected_intent": "categorization",
+      "success": false,
+      "response_time": 0.024010896682739258,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Przeanalizuj ten paragon",
+      "expected_intent": "ocr",
+      "success": false,
+      "response_time": 0.022114038467407227,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Skanuj ten obraz",
+      "expected_intent": "ocr",
+      "success": false,
+      "response_time": 0.02202010154724121,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Przeczytaj ten dokument",
+      "expected_intent": "rag",
+      "success": false,
+      "response_time": 0.02156376838684082,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    },
+    {
+      "text": "Analizuj ten plik PDF",
+      "expected_intent": "rag",
+      "success": false,
+      "response_time": 0.02365565299987793,
+      "response_text": "Przepraszam, wystąpił błąd: model \"bielik:11b-q4_k_m\" not found, try pulling it first (status code: 404)",
+      "status_code": 200
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "model": "gemma3:12b",
+  "test_timestamp": "2025-06-26T21:03:31.964733",
+  "total_tests": 1,
+  "total_time_seconds": 105.1681969165802,
+  "average_response_time": 44.906829833984375,
+  "total_responses_length": 2535,
+  "average_response_length": 2535.0,
+  "results": [
+    {
+      "test_name": "food_knowledge_1",
+      "model": "gemma3:12b",
+      "timestamp": "2025-06-26T21:02:31.720756",
+      "prompt": "Jakie są korzyści zdrowotne jedzenia awokado?",
+      "response": "Awokado to prawdziwa superżywność! Oto lista korzyści zdrowotnych płynących z jedzenia awokado:\n\n**1. Bogate w zdrowe tłuszcze:**\n\n*   **Tłuszcze nienasycone jednonienasycone (MUFA):** Awokado jest jednym z najlepszych źródeł MUFA. Pomagają one obniżyć poziom \"złego\" cholesterolu (LDL) i podnieść poziom \"dobrego\" cholesterolu (HDL), zmniejszając ryzyko chorób serca.\n*   **Tłuszcze nienasycone wielonienasycone (PUFA):** Zawierają kwasy tłuszczowe omega-3, które są ważne dla zdrowia serca, mózgu i wzroku.\n\n**2. Bogate w witaminy i minerały:**\n\n*   **Witamina K:** Ważna dla krzepnięcia krwi i zdrowia kości.\n*   **Witaminy z grupy B (B5, B6, B9 - kwas foliowy):** Wspomagają metabolizm energetyczny i funkcje nerwowe.\n*   **Witaminę C:**  Silny przeciwutleniacz, wspiera odporność i zdrowie skóry.\n*   **Witaminę E:** Chroni komórki przed uszkodzeniami i wspiera zdrowie oczu.\n*   **Potas:** Awokado zawiera więcej potasu niż banany - pomaga regulować ciśnienie krwi.\n*   **Magnez:** Ważny dla wielu funkcji organizmu, w tym dla pracy mięśni i nerwów.\n\n**3. Dobre dla układu trawiennego:**\n\n*   **Błonnik:** Awokado jest bogate w błonnik, co wspomaga prawidłowe trawienie, zapobiega zaparciom i reguluje poziom cukru we krwi.\n*   **Prebiotyki:** Zawiera prebiotyki, które karmią dobre bakterie w jelitach, wspierając zdrową florę bakteryjną.\n\n**4. Wspiera zdrowie oczu:**\n\n*   **Luteina i Zeaksantyna:**  Te przeciwutleniacze chronią oczy przed uszkodzeniami spowodowanymi światłem i zmniejszają ryzyko zwyrodnienia plamki żółtej.\n\n**5. Wspiera wchłanianie składników odżywczych:**\n\n*   **Tłuszcze:**  Pomagają organizmowi wchłaniać rozpuszczalne w tłuszczach witaminy (A, D, E, K) z innych pokarmów.\n\n**6. Dobre dla mózgu:**\n\n*   **Potas, kwas foliowy i witamina K:**  Wspierają funkcje poznawcze i mogą pomóc w zapobieganiu demencji.\n*   **Jednonienasycone kwasy tłuszczowe:** Pomagają w utrzymaniu zdrowia mózgu i funkcji poznawczych.\n\n**7.  Pomaga w kontroli wagi:**\n\n*   **Tłuszcze i błonnik:**  Pomagają uczuciu sytości, co może prowadzić do zmniejszenia spożycia kalorii i wspierać kontrolę wagi.\n\n**8.  Może zmniejszać stan zapalny:**\n\n*   **Przeciwutleniacze:**  Pomagają neutralizować wolne rodniki i zmniejszać stan zapalny w organizmie.\n\n**Warto pamiętać:**\n\n*   Awokado jest kaloryczne, więc należy spożywać je z umiarem.\n*   Niektóre osoby mogą być uczulone na awokado.\n\n\n\nPamiętaj, że zdrowe odżywianie to kombinacja różnych produktów i zrównoważona dieta. Awokado jest doskonałym uzupełnieniem zdrowego stylu życia.",
+      "response_time_seconds": 44.906829833984375,
+      "response_length_chars": 2535,
+      "response_length_words": 336,
+      "additional_info": {
+        "prompt_number": 1,
+        "total_prompts": 5,
+        "response_contains_nutrition": true,
+        "response_contains_safety": false
+      }
+    }
+  ]
+}

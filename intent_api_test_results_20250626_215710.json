@@ -1,0 +1,177 @@
+{
+  "test_info": {
+    "timestamp": "20250626_215710",
+    "total_tests": 21,
+    "successful_tests": 15,
+    "test_type": "intent_api"
+  },
+  "results": [
+    {
+      "text": "Cześć, jak się masz?",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 8.635730981826782,
+      "response_text": "Dziękuję, dobrze. A u Ciebie?",
+      "status_code": 200
+    },
+    {
+      "text": "Opowiedz mi żart",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 0.7168452739715576,
+      "response_text": "Dlaczego komputer był na diecie? Bo miał za dużo bajtów!",
+      "status_code": 200
+    },
+    {
+      "text": "Kim jesteś?",
+      "expected_intent": "general_conversation",
+      "success": false,
+      "response_time": 8.533698558807373,
+      "response_text": "Jestem sztuczną inteligencją stworzoną przez SpeakLeash i ACK Cyfronet AGH w ramach projektu open-science. Moja rola polega na wspieraniu użytkowników w różnych dziedzinach, takich jak edukacja, rozry...",
+      "status_code": 200
+    },
+    {
+      "text": "Wczoraj wydałem 150 zł w Biedronce",
+      "expected_intent": "shopping_conversation",
+      "success": true,
+      "response_time": 2.7650907039642334,
+      "response_text": "To świetna informacja! Czy możesz podzielić się szczegółami dotyczącymi tego, co kupiłeś i ile każdy produkt kosztował? To pomoże mi lepiej zrozumieć Twoje wydatki i doradzić Ci, jak możesz oszczędzać...",
+      "status_code": 200
+    },
+    {
+      "text": "Mam paragon z Lidla",
+      "expected_intent": "shopping_conversation",
+      "success": true,
+      "response_time": 10.01923656463623,
+      "response_text": "Czy możesz mi pomóc w analizie tego paragonu i podsumowaniu wydatków? Chciałbym wiedzieć, ile zapłaciłem za poszczególne produkty oraz całkowity koszt zakupów. Proszę podaj mi te informacje w formie l...",
+      "status_code": 200
+    },
+    {
+      "text": "Ile wydałem w tym miesiącu na jedzenie?",
+      "expected_intent": "shopping_conversation",
+      "success": true,
+      "response_time": 14.602330923080444,
+      "response_text": "Aby odpowiedzieć na to pytanie, musimy najpierw zebrać informacje o wszystkich wydatkach na jedzenie, które poniosłeś w tym miesiącu. Oto kroki, które możemy podjąć, aby znaleźć odpowiedź:\n\n1. Zbieran...",
+      "status_code": 200
+    },
+    {
+      "text": "Jak ugotować spaghetti?",
+      "expected_intent": "food_conversation",
+      "success": true,
+      "response_time": 13.50246810913086,
+      "response_text": "Ugotowanie spaghetti jest proste i szybkie. Oto krok po kroku, jak to zrobić:\n\n1. Przygotuj składniki:\n   - 250-300 g spaghetti (w zależności od liczby osób)\n   - 1 litr wody\n   - 1 łyżka soli\n\n2. Wle...",
+      "status_code": 200
+    },
+    {
+      "text": "Czy awokado jest zdrowe?",
+      "expected_intent": "food_conversation",
+      "success": false,
+      "response_time": 17.62274694442749,
+      "response_text": "Tak, awokado jest uważane za bardzo zdrowe owoce. Oto kilka powodów, dla których warto je spożywać:\r\n\r\n1. Zawiera zdrowe tłuszcze: Awokado jest bogate w nienasycone kwasy tłuszczowe, które są korzystn...",
+      "status_code": 200
+    },
+    {
+      "text": "Podaj mi przepis na pizzę",
+      "expected_intent": "food_conversation",
+      "success": true,
+      "response_time": 24.887311220169067,
+      "response_text": "Oto prosty przepis na domową pizzę:\n\n### Składniki:\n- 3 szklanki mąki pszennej\n- 1 łyżeczka soli\n- 1 łyżeczka cukru\n- 2 łyżeczki suszonego drożdża\n- 1 łyżka oliwy z oliwek\n- 1 szklanka ciepłej wody\n- ...",
+      "status_code": 200
+    },
+    {
+      "text": "Zaplanuj mi posiłki na cały tydzień",
+      "expected_intent": "meal_planning",
+      "success": true,
+      "response_time": 8.442535877227783,
+      "response_text": "Oto propozycja zbilansowanego planu posiłków na cały tydzień, który uwzględnia różnorodność smaków i składników odżywczych. Pamiętaj, że możesz dostosować te propozycje do swoich preferencji żywieniow...",
+      "status_code": 200
+    },
+    {
+      "text": "Co powinienem jeść na śniadanie?",
+      "expected_intent": "meal_planning",
+      "success": true,
+      "response_time": 21.142696857452393,
+      "response_text": "Oto kilka propozycji zdrowych i pożywnych śniadań, które mogą być dobrym wyborem:\n\n1. Owsianka z owocami i orzechami - owsianka jest bogata w błonnik, który pomaga regulować poziom cukru we krwi i dos...",
+      "status_code": 200
+    },
+    {
+      "text": "Jaka jest pogoda w Warszawie?",
+      "expected_intent": "weather",
+      "success": true,
+      "response_time": 19.135735273361206,
+      "response_text": "Aby uzyskać informacje o aktualnej pogodzie w Warszawie, możesz skorzystać z różnych źródeł. Oto kilka sposobów, jak sprawdzić pogodę w Warszawie:\n\n1. Strony internetowe i aplikacje pogodowe:\n   - Wej...",
+      "status_code": 200
+    },
+    {
+      "text": "Czy będzie jutro padać?",
+      "expected_intent": "weather",
+      "success": true,
+      "response_time": 3.5177483558654785,
+      "response_text": "Niestety, nie jestem w stanie przewidywać pogody. Moja funkcjonalność opiera się na analizie tekstu i odpowiadaniu na pytania zgodnie z danymi, które mi podano. Jeśli chcesz dowiedzieć się, jaka będzi...",
+      "status_code": 200
+    },
+    {
+      "text": "Co to jest sztuczna inteligencja?",
+      "expected_intent": "information_query",
+      "success": false,
+      "response_time": 30.047139644622803,
+      "error": ""
+    },
+    {
+      "text": "Kto wynalazł komputer?",
+      "expected_intent": "information_query",
+      "success": false,
+      "response_time": 28.28801202774048,
+      "response_text": "Wynalezienie komputera jest złożonym procesem, który obejmuje wiele osób i wynalazków na przestrzeni wielu lat. Nie można jednoznacznie wskazać jednej osoby jako \"wynalazcy\" komputera, ponieważ rozwój...",
+      "status_code": 200
+    },
+    {
+      "text": "Kategoryzuj moje wydatki",
+      "expected_intent": "categorization",
+      "success": true,
+      "response_time": 26.314804077148438,
+      "response_text": "Chętnie pomogę Ci skategoryzować Twoje wydatki. Aby to zrobić, potrzebuję kilku informacji o Twoich finansach. Proszę podaj mi listę swoich miesięcznych wydatków wraz z kwotami oraz opisem kategorii, ...",
+      "status_code": 200
+    },
+    {
+      "text": "Przypisz kategorię do tego produktu",
+      "expected_intent": "categorization",
+      "success": true,
+      "response_time": 5.60846734046936,
+      "response_text": "### Kategoria: Elektronika\r\n\r\nTen produkt należy do kategorii \"Elektronika\". Jest to urządzenie elektroniczne, które wykorzystuje zaawansowane technologie i komponenty elektroniczne do realizacji swoi...",
+      "status_code": 200
+    },
+    {
+      "text": "Przeanalizuj ten paragon",
+      "expected_intent": "ocr",
+      "success": true,
+      "response_time": 1.7588434219360352,
+      "response_text": "Wygląda na to, że nie podałeś żadnego paragonu do przeanalizowania. Czy mógłbyś podać konkretny paragon, który chciałbyś, abym przeanalizował?",
+      "status_code": 200
+    },
+    {
+      "text": "Skanuj ten obraz",
+      "expected_intent": "ocr",
+      "success": true,
+      "response_time": 1.2281723022460938,
+      "response_text": "Przepraszam, ale nie mam możliwości skanowania obrazów. Czy mogę w czymś jeszcze pomóc?",
+      "status_code": 200
+    },
+    {
+      "text": "Przeczytaj ten dokument",
+      "expected_intent": "rag",
+      "success": true,
+      "response_time": 13.947486162185669,
+      "response_text": "Dokument zawiera informacje na temat różnych aspektów związanych z programowaniem. Obejmuje on tematy takie jak algorytmy, struktury danych, języki programowania, projektowanie oprogramowania i wiele ...",
+      "status_code": 200
+    },
+    {
+      "text": "Analizuj ten plik PDF",
+      "expected_intent": "rag",
+      "success": true,
+      "response_time": 3.1965863704681396,
+      "response_text": "### Instrukcja: Analizuj ten plik PDF\r\n\r\nAby przeprowadzić analizę pliku PDF, potrzebujemy najpierw uzyskać dostęp do tego pliku. Proszę podaj nazwę i lokalizację pliku PDF, który chcesz przeanalizowa...",
+      "status_code": 200
+    }
+  ]
+}

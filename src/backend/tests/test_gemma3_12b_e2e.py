@@ -72,7 +72,7 @@ class TestGemma312BE2E:
                 response = await client.post(
                     f"{API_BASE}/chat/chat",
                     json={
-                        "message": prompt,
+                        "prompt": prompt,
                         "model": MODEL_NAME,
                         "stream": False
                     },
@@ -83,7 +83,7 @@ class TestGemma312BE2E:
                 
                 assert response.status_code == 200
                 data = response.json()
-                response_text = data.get("response", "")
+                response_text = data.get("data", "")
                 
                 self.log_test_result(
                     f"food_knowledge_{i}",
@@ -118,7 +118,7 @@ class TestGemma312BE2E:
                 response = await client.post(
                     f"{API_BASE}/chat/chat",
                     json={
-                        "message": prompt,
+                        "prompt": prompt,
                         "model": MODEL_NAME,
                         "stream": False
                     },
@@ -129,7 +129,7 @@ class TestGemma312BE2E:
                 
                 assert response.status_code == 200
                 data = response.json()
-                response_text = data.get("response", "")
+                response_text = data.get("data", "")
                 
                 self.log_test_result(
                     f"meal_planning_{i}",
@@ -165,7 +165,7 @@ class TestGemma312BE2E:
                 response = await client.post(
                     f"{API_BASE}/chat/chat",
                     json={
-                        "message": prompt,
+                        "prompt": prompt,
                         "model": MODEL_NAME,
                         "stream": False
                     },
@@ -176,7 +176,7 @@ class TestGemma312BE2E:
                 
                 assert response.status_code == 200
                 data = response.json()
-                response_text = data.get("response", "")
+                response_text = data.get("data", "")
                 
                 self.log_test_result(
                     f"recipe_generation_{i}",
@@ -211,7 +211,7 @@ class TestGemma312BE2E:
                 response = await client.post(
                     f"{API_BASE}/chat/chat",
                     json={
-                        "message": message,
+                        "prompt": message,
                         "model": MODEL_NAME,
                         "stream": False
                     },
@@ -222,7 +222,7 @@ class TestGemma312BE2E:
                 
                 assert response.status_code == 200
                 data = response.json()
-                response_text = data.get("response", "")
+                response_text = data.get("data", "")
                 
                 self.log_test_result(
                     f"conversation_context_{i}",
@@ -260,7 +260,7 @@ class TestGemma312BE2E:
                     response = await client.post(
                         f"{API_BASE}/chat/chat",
                         json={
-                            "message": prompt,
+                            "prompt": prompt,
                             "model": MODEL_NAME,
                             "stream": False
                         },
@@ -271,7 +271,7 @@ class TestGemma312BE2E:
                     
                     if response.status_code == 200:
                         data = response.json()
-                        response_text = data.get("response", "")
+                        response_text = data.get("data", "")
                     else:
                         response_text = f"ERROR: {response.status_code} - {response.text}"
                     
@@ -318,7 +318,7 @@ class TestGemma312BE2E:
                 response = await client.post(
                     f"{API_BASE}/chat/chat",
                     json={
-                        "message": prompt,
+                        "prompt": prompt,
                         "model": MODEL_NAME,
                         "stream": False
                     },
@@ -331,7 +331,7 @@ class TestGemma312BE2E:
                 
                 assert response.status_code == 200
                 data = response.json()
-                response_text = data.get("response", "")
+                response_text = data.get("data", "")
                 
                 self.log_test_result(
                     f"performance_{i}",
@@ -368,7 +368,7 @@ class TestGemma312BE2E:
                 "POST",
                 f"{API_BASE}/chat/chat",
                 json={
-                    "message": test_prompt,
+                    "prompt": test_prompt,
                     "model": MODEL_NAME,
                     "stream": True
                 },
@@ -390,7 +390,7 @@ class TestGemma312BE2E:
                         
                         try:
                             chunk = json.loads(chunk_data)
-                            chunk_text = chunk.get("response", "")
+                            chunk_text = chunk.get("data", "")
                             full_response += chunk_text
                             chunks_received += 1
                             
