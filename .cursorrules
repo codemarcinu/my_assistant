@@ -1,0 +1,100 @@
+### 💥 CRITICAL ANTI-PATTERNS — NEVER DO THESE
+
+```
+# ⛔ Relatywne importy skracane („..”, „.”) w kodzie backendu
+# ⛔ Duplikaty nazw klas SQLAlchemy w różnych modułach
+# ⛔ Tworzenie kontenerów Docker bez instrukcji HEALTHCHECK
+# ⛔ Hard-code kluczy, haseł lub tokenów w kodzie źródłowym
+# ⛔ Użycie TypeScript typu „any” lub wyłączanie strict mode
+# ⛔ Pomijanie testów @pytest.mark.asyncio dla funkcji asynchronicznych
+# ⛔ Build Next.js App Router z deprecated Pages Router API
+# ⛔ Brak CORS-middleware albo zbyt szerokie allow_origins ["*"]
+# ⛔ Logika biznesowa w warstwie routingowej FastAPI
+```
+
+
+### ✅ REQUIRED PATTERNS — ALWAYS DO THESE
+
+```
+# 📁 Struktura
+├── src/backend/               # Python 3.12 + FastAPI
+│   ├── main.py                # Instancja FastAPI "app"
+│   ├── api/                   # End-pointy (routery)
+│   ├── models/                # SQLAlchemy + Pydantic
+│   ├── services/              # Logika domenowa
+│   └── tests/                 # Unit + integration
+├── foodsave-frontend/         # Next.js 14 (TypeScript strict)
+│   └── tests/                 # Jest + Playwright
+├── docker-compose.yaml        # Komplet usług + healthchecks
+└── .env[example]              # Wymagane zmienne środowiskowe
+```
+
+```
+# 🐍 Python / FastAPI
+ALWAYS use type hints & Pydantic models for every request/response          # [^1][^2]
+ALWAYS declare dependencies via Depends() – żadnych połączeń DB w routerze
+ALWAYS register każdą klasę agenta w AgentFactory, z bezpiecznym fallback   # [^2]
+ALWAYS implement /health, /ready, /metrics endpoints                       # [^2][^21]
+ALWAYS configure CORS: allow_origins=["http://localhost:3000"]             # [^2]
+```
+
+```
+# 🐳 Docker / Compose
+ALWAYS define HEALTHCHECK for every service (backend, db, vector-store)     # [^25]
+ALWAYS expose only niezbędne porty; używaj networks: internal
+ALWAYS use env_file: .env  – żadnych sekretów w docker-compose.yaml
+ALWAYS set restart: unless-stopped dla usług krytycznych
+```
+
+```
+# ⚛️ Next.js 14 (TypeScript)
+ALWAYS enable "strict": true w tsconfig.json                               # [^27]
+ALWAYS run "tsc --noEmit" w pipeline przed `next build`
+ALWAYS dodaj React Error Boundaries dla komponentów klienta
+ALWAYS używaj React Query z prawidłowym invalidation po mutacjach          # [^2]
+```
+
+```
+# 🔐 Bezpieczeństwo
+ALWAYS używaj HTTPS w środowisku prod (Traefik / Caddy / nginx TLS)        # [^28]
+ALWAYS skanuj zależności `poetry export` + `npm audit`
+ALWAYS implementuj rate limiting (Starlette middleware + key-func IP)      # [^28]
+ALWAYS loguj z kontekstem (structured logging, brak danych wrażliwych)     # [^2]
+```
+
+
+### 🧪 TESTING REQUIREMENTS
+
+```
+REQUIRED pytest.ini → addopts = --strict-markers --cov=src --cov-report=html   # [^2]
+REQUIRED markers: unit / integration / e2e                                    # [^2]
+REQUIRED async tests ⇒ @pytest.mark.asyncio                                   # [^26]
+REQUIRED Playwright specs dla kluczowych user flows („add food”, „donate”)    # [^2]
+```
+
+
+### 🔄 PRODUCTION-READINESS CHECKLIST (Pre-merge Gate)
+
+```
+[ ] docker compose config --quiet    # brak błędów składni
+[ ] docker compose up -d && ./scripts/wait-for-services.sh
+[ ] curl http://localhost:8000/health → 200 {"status":"healthy"}
+[ ] npm run type-check (frontend)    # zero TS errors
+[ ] poetry run pytest -q             # wszystkie testy przechodzą
+[ ] Coverage ≥ 90 % backend, ≥ 80 % frontend
+[ ] npm run test:e2e --browser=chromium --reporter=html
+[ ] git diff → brak TODO/FIXME w kodzie
+[ ] docs/ aktualne (OpenAPI / README + CHANGELOG)
+[ ] Grafana dashboard → alert rules configured
+```
+
+
+### 🛠️ INTEGRACJA Z CI/CD
+
+```
+# .github/workflows/quality-check.yml
+- name: Cursor-Rules Validation
+  run: python scripts/validate_rules.py                                       # [^1]
+- name: Production-Readiness Checklist
+  run: ./scripts/pr_checklist.sh                                              # [^21]
+```

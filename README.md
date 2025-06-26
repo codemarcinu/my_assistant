@@ -123,6 +123,31 @@ cd myappassistant
 docker-compose up -d
 ```
 
+## 🧪 Best Practices for Async Tests
+
+- Every async test function **must** be decorated with `@pytest.mark.asyncio`:
+
+```python
+import pytest
+
+@pytest.mark.asyncio
+async def test_example():
+    ...
+```
+
+- This ensures proper execution and compatibility with pytest-asyncio.
+- Run all tests with:
+
+```bash
+poetry run pytest
+```
+
+- Run coverage:
+
+```bash
+poetry run pytest --cov=src --cov-report=html
+```
+
 ## 📄 Licencja
 
 MIT License - zobacz plik [LICENSE](myappassistant/LICENSE) dla szczegółów. 

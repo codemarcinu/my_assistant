@@ -1,0 +1,291 @@
+services:
+  # Serwis Ollama dla lokalnych modeli LLM
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    container_name: foodsave-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./logs/ollama:/var/log/ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - foodsave-network
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-0.0.0.0}
+      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-24h}
+    command: serve
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/version || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: .
+      dockerfile: ${BACKEND_DOCKERFILE:-src/backend/Dockerfile}
+    container_name: foodsave-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app  # Mapowanie całego katalogu projektu
+      - ./logs/backend:/app/logs
+    environment:
+      - PYTHONPATH=/app:/app/src
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev}
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma3:12b}
+      - DEFAULT_CHAT_MODEL=${DEFAULT_CHAT_MODEL:-gemma3:12b}
+      - DEFAULT_CODE_MODEL=${DEFAULT_CODE_MODEL:-gemma3:12b}
+      - DEFAULT_EMBEDDING_MODEL=${DEFAULT_EMBEDDING_MODEL:-nomic-embed-text}
+      - RAG_VECTOR_STORE_PATH=${RAG_VECTOR_STORE_PATH:-/app/data/vector_store}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://frontend:3000}
+    networks:
+      - foodsave-network
+    depends_on:
+      - ollama
+      - postgres
+    command: ["uvicorn", "src.backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level=debug"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # Frontend Next.js
+  frontend:
+    build:
+      context: ./myappassistant-chat-frontend
+      dockerfile: Dockerfile.dev
+    container_name: foodsave-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./myappassistant-chat-frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - ./logs/frontend:/app/logs
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_TELEMETRY_DISABLED=1
+    networks:
+      - foodsave-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: foodsave-postgres
+    ports:
+      - "5433:5432"  # Unikanie konfliktu portów
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-foodsave_dev}
+      - POSTGRES_USER=${POSTGRES_USER:-foodsave}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-foodsave_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./logs/postgres:/var/log/postgresql
+    networks:
+      - foodsave-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-foodsave}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: foodsave-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./logs/redis:/var/log/redis
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "notice", "--logfile", "/var/log/redis/redis.log"]
+    networks:
+      - foodsave-network
+    restart: unless-stopped
+    profiles:
+      - with-cache
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # Prometheus for monitoring (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: foodsave-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - backend
+    networks:
+      - foodsave-network
+    profiles:
+      - monitoring
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: foodsave-grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_LOG_LEVEL=info
+    networks:
+      - foodsave-network
+    profiles:
+      - monitoring
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # Loki for log aggregation (optional)
+  loki:
+    image: grafana/loki:2.9.6
+    container_name: foodsave-loki
+    user: "0:0"  # Uruchom jako root, aby mieć pełne uprawnienia
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - foodsave-network
+    profiles:
+      - logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # Promtail for log collection (optional)
+  promtail:
+    image: grafana/promtail:2.9.6
+    container_name: foodsave-promtail
+    volumes:
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers
+      - ./logs:/logs:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - foodsave-network
+    depends_on:
+      - loki
+    restart: unless-stopped
+    profiles:
+      - logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+
+# Wolumeny dla trwałego przechowywania danych
+volumes:
+  ollama_data:
+    name: foodsave-ollama-data
+  postgres_data:
+    name: foodsave-postgres-data
+  redis_data:
+    name: foodsave-redis-data
+  frontend_node_modules:
+    name: foodsave-frontend-node-modules
+  prometheus_data:
+    name: foodsave-prometheus-data
+  grafana_data:
+    name: foodsave-grafana-data
+  loki_data:
+    name: foodsave-loki-data
+
+networks:
+  foodsave-network:

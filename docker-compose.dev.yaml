@@ -1,0 +1,31 @@
+networks:
+  foodsave-dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16 
+
+# Redis for caching
+redis:
+  image: redis:7-alpine
+  container_name: foodsave-redis-dev
+  ports:
+    - "6379:6379"
+  volumes:
+    - redis_data:/data
+    - ./logs/redis:/var/log/redis
+  command: ["redis-server", "--save", "60", "1", "--loglevel", "debug", "--appendonly", "yes"]
+  networks:
+    - foodsave-dev-network
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "100m"
+      max-file: "10"
+      tag: "{{.Name}}/{{.ID}}" 
