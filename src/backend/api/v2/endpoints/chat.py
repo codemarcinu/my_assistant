@@ -19,6 +19,7 @@ from backend.core.async_patterns import (CircuitBreakerConfig, timeout_context,
                                          with_backpressure,
                                          with_circuit_breaker)
 from backend.core.llm_client import llm_client
+from backend.core.database_optimizer import DatabaseOptimizer
 from backend.infrastructure.database.database import get_db
 from backend.orchestrator_management.orchestrator_pool import orchestrator_pool
 from backend.orchestrator_management.request_queue import request_queue
@@ -94,27 +95,62 @@ llm_circuit_breaker = CircuitBreakerConfig(
 
 async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str, None]:
     """
-    Asynchroniczny generator streamujący odpowiedzi LLM do FastAPI (zgodny z najlepszymi praktykami).
+    Asynchroniczny generator streamujący odpowiedzi LLM z timeout i lepszą obsługą błędów.
     """
     try:
-        async for chunk in llm_client.generate_stream_from_prompt_async(
-            model=model, prompt=prompt, system_prompt=""
-        ):
-            if not isinstance(chunk, dict):
-                continue
-            chunk_dict = cast(Dict[str, Any], chunk)
-            
-            # Obsługa błędów z LLM client
-            if "error" in chunk_dict:
-                logger.error(f"LLM client error: {chunk_dict['error']}")
-                yield f"Przepraszam, wystąpił błąd: {chunk_dict['error']}"
-                return
-            
-            if "response" in chunk_dict:
-                yield chunk_dict["response"]
+        # Timeout dla całego procesu generowania
+        async with timeout_context(30.0):  # 30 sekund timeout
+            async for chunk in llm_client.generate_stream_from_prompt_async(
+                model=model, prompt=prompt, system_prompt=""
+            ):
+                if not isinstance(chunk, dict):
+                    continue
+                chunk_dict = cast(Dict[str, Any], chunk)
+                
+                # Obsługa błędów z LLM client
+                if "error" in chunk_dict:
+                    logger.error(f"LLM client error: {chunk_dict['error']}")
+                    error_response = {
+                        "type": "error",
+                        "content": f"Przepraszam, wystąpił błąd: {chunk_dict['error']}",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    yield f"data: {json.dumps(error_response, ensure_ascii=False)}\n\n"
+                    return
+                
+                if "response" in chunk_dict:
+                    # Formatowanie jako Server-Sent Events (SSE)
+                    response_data = {
+                        "type": "chunk",
+                        "content": chunk_dict["response"],
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    yield f"data: {json.dumps(response_data, ensure_ascii=False)}\n\n"
+                    
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout in chat response generator for model: {model}")
+        timeout_response = {
+            "type": "error",
+            "content": "Przepraszam, odpowiedź trwała zbyt długo. Spróbuj ponownie.",
+            "timestamp": datetime.now().isoformat()
+        }
+        yield f"data: {json.dumps(timeout_response, ensure_ascii=False)}\n\n"
     except Exception as e:
         logger.error(f"Error in chat response generator: {e}")
-        yield f"Przepraszam, wystąpił błąd podczas przetwarzania odpowiedzi: {str(e)}"
+        error_response = {
+            "type": "error",
+            "content": f"Przepraszam, wystąpił błąd podczas przetwarzania odpowiedzi: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+        yield f"data: {json.dumps(error_response, ensure_ascii=False)}\n\n"
+    finally:
+        # End of stream marker
+        end_response = {
+            "type": "end",
+            "content": "",
+            "timestamp": datetime.now().isoformat()
+        }
+        yield f"data: {json.dumps(end_response, ensure_ascii=False)}\n\n"
 
 
 @router.post("/chat")
@@ -157,24 +193,60 @@ async def chat_with_model(request: ChatRequest) -> ChatResponse:
 
 @router.post("/chat/stream")
 async def chat_with_model_stream(request: Request) -> StreamingResponse:
-    """Streaming chat endpoint for API v2"""
-    body = await request.json()
-    prompt = body.get("message", "")
-    
-    # Walidacja prompt
-    if not prompt or prompt.strip() == "":
+    """Streaming chat endpoint for API v2 z optymalizacją wydajności"""
+    try:
+        body = await request.json()
+        prompt = body.get("message", "")
+        
+        # Walidacja prompt
+        if not prompt or prompt.strip() == "":
+            error_response = {
+                "type": "error",
+                "content": "Message cannot be empty or null",
+                "timestamp": datetime.now().isoformat()
+            }
+            return StreamingResponse(
+                iter([f"data: {json.dumps(error_response, ensure_ascii=False)}\n\n"]),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "Cache-Control"
+                }
+            )
+        
+        model = body.get("model") or get_selected_model()
+        
+        logger.info(f"Starting streaming chat with model: {model}, prompt length: {len(prompt)}")
+        
         return StreamingResponse(
-            iter([json.dumps({"error": "Message cannot be empty or null"})]),
-            media_type="application/json"
+            chat_response_generator(prompt, model), 
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Cache-Control",
+                "X-Content-Type-Options": "nosniff"
+            }
         )
-    
-    model = body.get("model") or get_selected_model()
-    
-    # ✅ FIXED: chat_response_generator is already an async generator, no need for inspection
-    return StreamingResponse(
-        chat_response_generator(prompt, model), 
-        media_type="text/plain"
-    )
+        
+    except Exception as e:
+        logger.error(f"Error in streaming chat endpoint: {e}")
+        error_response = {
+            "type": "error",
+            "content": f"Internal server error: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+        return StreamingResponse(
+            iter([f"data: {json.dumps(error_response, ensure_ascii=False)}\n\n"]),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive"
+            }
+        )
 
 
 async def memory_chat_generator(
@@ -304,49 +376,75 @@ async def test_chat_simple(request: ChatRequest) -> Dict[str, Any]:
 async def get_chat_history(
     session_id: str = "default",
     limit: int = 50,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
-    """Get chat history for a session"""
+    """Get chat history for a session z optymalizacją bazy danych"""
     try:
-        # Get orchestrator to access memory manager
-        orchestrator = await orchestrator_pool.get_healthy_orchestrator()
-        if not orchestrator:
-            return {
-                "success": False,
-                "error": "No healthy orchestrator available",
-                "data": []
-            }
+        # Użyj DatabaseOptimizer dla optymalizacji zapytań
+        db_optimizer = DatabaseOptimizer(db)
         
-        # Get context from memory manager
-        context = await orchestrator.memory_manager.get_context(session_id)
+        # Pobierz konwersacje z optymalizacją
+        conversations = await db_optimizer.get_conversations_with_messages(
+            session_id=session_id,
+            limit=limit,
+            offset=offset
+        )
         
-        # Extract chat history from context
+        # Jeśli nie ma konwersacji w bazie, spróbuj z memory manager
+        if not conversations:
+            orchestrator = await orchestrator_pool.get_healthy_orchestrator()
+            if orchestrator:
+                context = await orchestrator.memory_manager.get_context(session_id)
+                
+                # Extract chat history from context
+                history = []
+                if hasattr(context, 'history') and context.history:
+                    # Take last 'limit' items
+                    recent_history = context.history[-limit:] if limit > 0 else context.history
+                    
+                    for i, entry in enumerate(recent_history):
+                        if isinstance(entry, dict) and 'data' in entry:
+                            data = entry['data']
+                            if isinstance(data, dict):
+                                # Extract message content from various possible formats
+                                content = data.get('message') or data.get('content') or data.get('text', '')
+                                role = data.get('role') or data.get('type', 'user')
+                                
+                                history.append({
+                                    "id": f"history-{i}",
+                                    "content": content,
+                                    "type": role,
+                                    "timestamp": entry.get('timestamp', datetime.now().isoformat()),
+                                    "metadata": data
+                                })
+                
+                return {
+                    "success": True,
+                    "data": history,
+                    "session_id": session_id,
+                    "total_count": len(history),
+                    "source": "memory_manager"
+                }
+        
+        # Konwertuj konwersacje do formatu historii
         history = []
-        if hasattr(context, 'history') and context.history:
-            # Take last 'limit' items
-            recent_history = context.history[-limit:] if limit > 0 else context.history
-            
-            for i, entry in enumerate(recent_history):
-                if isinstance(entry, dict) and 'data' in entry:
-                    data = entry['data']
-                    if isinstance(data, dict):
-                        # Extract message content from various possible formats
-                        content = data.get('message') or data.get('content') or data.get('text', '')
-                        role = data.get('role') or data.get('type', 'user')
-                        
-                        history.append({
-                            "id": f"history-{i}",
-                            "content": content,
-                            "type": role,
-                            "timestamp": entry.get('timestamp', datetime.now().isoformat()),
-                            "metadata": data
-                        })
+        for conv in conversations:
+            for msg in conv.get("messages", []):
+                history.append({
+                    "id": msg["id"],
+                    "content": msg["content"],
+                    "type": msg["role"],
+                    "timestamp": msg["timestamp"],
+                    "metadata": {"conversation_id": conv["id"]}
+                })
         
         return {
             "success": True,
             "data": history,
             "session_id": session_id,
-            "total_count": len(history)
+            "total_count": len(history),
+            "source": "database_optimized"
         }
         
     except Exception as e:
@@ -383,6 +481,79 @@ async def clear_chat_history(
         
     except Exception as e:
         logger.error(f"Error clearing chat history: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get("/performance/stats")
+async def get_performance_stats(
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Get performance statistics and cache info"""
+    try:
+        db_optimizer = DatabaseOptimizer(db)
+        
+        # Pobierz statystyki bazy danych
+        db_stats = await db_optimizer.get_statistics()
+        
+        # Pobierz statystyki cache'owania
+        from backend.core.search_cache import search_cache
+        from backend.core.optimized_prompts import get_cache_stats
+        
+        cache_stats = {
+            "search_cache": search_cache.get_stats(),
+            "prompt_cache": get_cache_stats()
+        }
+        
+        # Pobierz statystyki orchestrator pool
+        orchestrator_stats = {
+            "pool_size": orchestrator_pool.pool_size if hasattr(orchestrator_pool, 'pool_size') else 0,
+            "healthy_count": len(await orchestrator_pool.get_all_healthy_orchestrators()) if hasattr(orchestrator_pool, 'get_all_healthy_orchestrators') else 0
+        }
+        
+        return {
+            "success": True,
+            "database_stats": db_stats,
+            "cache_stats": cache_stats,
+            "orchestrator_stats": orchestrator_stats,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting performance stats: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.post("/performance/cleanup")
+async def cleanup_old_data(
+    days: int = 30,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Clean up old data for performance optimization"""
+    try:
+        db_optimizer = DatabaseOptimizer(db)
+        
+        # Wyczyść stare dane z bazy
+        cleanup_stats = await db_optimizer.cleanup_old_data(days=days)
+        
+        # Wyczyść wygasłe wpisy z cache
+        from backend.core.search_cache import search_cache
+        expired_cache_entries = search_cache.clear_expired()
+        
+        return {
+            "success": True,
+            "database_cleanup": cleanup_stats,
+            "cache_cleanup": {"expired_entries": expired_cache_entries},
+            "message": f"Cleaned up data older than {days} days"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error cleaning up old data: {e}")
         return {
             "success": False,
             "error": str(e)

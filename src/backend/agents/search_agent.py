@@ -4,13 +4,16 @@ from typing import Any, AsyncGenerator, Dict, List
 import httpx
 
 from backend.agents.base_agent import BaseAgent
-from backend.agents.interfaces import AgentResponse
+from backend.agents.interfaces import AgentResponse, MemoryContext
+from backend.agents.response_generator import ResponseGenerator
 from backend.config import settings
 from backend.core.decorators import handle_exceptions
 from backend.core.hybrid_llm_client import hybrid_llm_client
 from backend.core.llm_client import LLMClient
 from backend.core.vector_store import VectorStore
 from backend.integrations.web_search import web_search
+from backend.agents.tools.search_providers import WikipediaSearchProvider, DuckDuckGoSearchProvider
+from backend.core.search_cache import search_cache
 
 logger = logging.getLogger(__name__)
 
@@ -29,36 +32,178 @@ class SearchAgentInput:
 
 
 class SearchAgent(BaseAgent):
-    """Agent that performs web searches using multiple sources with knowledge verification"""
+    """
+    Agent do wyszukiwania informacji z różnych źródeł (Wikipedia, DuckDuckGo).
+    Wybór providera na podstawie heurystyki, prefixu lub fallbacku.
+    Zintegrowany z ResponseGenerator dla spójnych odpowiedzi.
+    Zoptymalizowany z cache'owaniem wyników wyszukiwania.
+    """
 
-    def __init__(
-        self,
-        vector_store: VectorStore,
-        llm_client: LLMClient,
-        perplexity_client: Any | None = None,
-        model: str | None = None,
-        embedding_model: str = "nomic-embed-text",
-        plugins: List[Any] | None = None,
-        initial_state: Dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(**kwargs)
-        self.vector_store = vector_store
-        self.search_url = "https://api.duckduckgo.com/"
-        self.http_client = httpx.AsyncClient(
-            timeout=30.0, headers={"User-Agent": settings.USER_AGENT}
-        )
-        self.llm_client = llm_client
-        from backend.core.perplexity_client import \
-            perplexity_client as global_perplexity_client
+    def __init__(self, config: Dict[str, Any] = None) -> None:
+        super().__init__(config=config)
+        self.search_providers = {
+            "wikipedia": WikipediaSearchProvider(),
+            "duck": DuckDuckGoSearchProvider(),
+        }
+        self.default_provider = "duck"
+        self.response_generator = ResponseGenerator()
+        self.cache_enabled = config.get("cache_enabled", True) if config else True
 
-        self.web_search = perplexity_client or global_perplexity_client
-        self.plugins = plugins or []
-        self.initial_state = initial_state or {}
-        self.knowledge_verification_threshold = 0.7
+    def detect_search_type(self, query: str) -> str:
+        """
+        Wybiera providera na podstawie prefixu lub heurystyki.
+        """
+        q = query.lower().strip()
+        if q.startswith("wikipedia:"):
+            return "wikipedia"
+        if q.startswith("duck:") or q.startswith("duckduckgo:"):
+            return "duck"
+        # Heurystyka encyklopedyczna
+        wiki_keywords = ["wikipedia", "kto to", "co to", "definicja", "biografia", "historia", "encyklopedia"]
+        if any(kw in q for kw in wiki_keywords):
+            return "wikipedia"
+        # Heurystyka webowa
+        duck_keywords = ["szukaj", "search", "find", "najlepsze strony", "aktualności", "news"]
+        if any(kw in q for kw in duck_keywords):
+            return "duck"
+        return self.default_provider
+
+    def format_search_results(self, results: List[Dict[str, Any]], provider: str) -> str:
+        """
+        Formatuje wyniki wyszukiwania w czytelny tekst.
+        """
+        if not results:
+            return "Nie znaleziono wyników wyszukiwania."
+        
+        formatted_results = []
+        for i, result in enumerate(results[:5], 1):  # Maksymalnie 5 wyników
+            title = result.get("title", "Brak tytułu")
+            snippet = result.get("snippet", "Brak opisu")
+            
+            if provider == "wikipedia":
+                pageid = result.get("pageid", "")
+                formatted_results.append(f"{i}. **{title}** (ID: {pageid})\n   {snippet}")
+            else:  # duck
+                url = result.get("url", "")
+                formatted_results.append(f"{i}. **{title}**\n   {snippet}\n   URL: {url}")
+        
+        return "\n\n".join(formatted_results)
+
+    async def process(self, input_data: Dict[str, Any]) -> AgentResponse:
+        """
+        Główna metoda przetwarzania zgodna z interfejsem BaseAgent.
+        """
+        query = input_data.get("query", "")
+        context = input_data.get("context")
+        
+        if not query:
+            return AgentResponse(
+                success=False,
+                error="Brak zapytania wyszukiwania",
+                text="Proszę podać zapytanie do wyszukiwania."
+            )
+        
+        try:
+            results = await self.process_request(query, context)
+            formatted_text = self.format_search_results(results, self.detect_search_type(query))
+            
+            response = AgentResponse(
+                success=True,
+                text=formatted_text,
+                data={"search_results": results, "provider_used": self.detect_search_type(query)},
+                metadata={
+                    "agent_type": "search",
+                    "results_count": len(results),
+                    "query": query,
+                    "cache_used": self.cache_enabled
+                }
+            )
+            
+            # Użyj ResponseGenerator do finalnego formatowania
+            if context:
+                return await self.response_generator.generate_response(context, response)
+            return response
+            
+        except Exception as e:
+            logger.error(f"SearchAgent error: {e}")
+            error_response = AgentResponse(
+                success=False,
+                error=f"Błąd wyszukiwania: {str(e)}",
+                text=f"Przepraszam, wystąpił błąd podczas wyszukiwania: {str(e)}"
+            )
+            
+            if context:
+                return await self.response_generator.generate_response(context, error_response)
+            return error_response
+
+    async def process_request(self, query: str, context: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """
+        Przetwarza zapytanie, wybiera providera, obsługuje fallback i cache.
+        Zwraca listę wyników (tytuł, snippet, url/pageid).
+        """
+        provider_key = self.detect_search_type(query)
+        
+        # Sprawdź cache jeśli włączony
+        if self.cache_enabled:
+            cached_results = search_cache.get(query, provider_key)
+            if cached_results:
+                logger.info(f"Cache hit for query: {query}, provider: {provider_key}")
+                return cached_results
+        
+        provider = self.search_providers[provider_key]
+        try:
+            results = await provider.search(query)
+            if results:
+                # Zapisz w cache jeśli włączony
+                if self.cache_enabled:
+                    search_cache.set(query, provider_key, results)
+                return results
+            
+            # Fallback na drugi provider jeśli brak wyników
+            fallback_key = "duck" if provider_key == "wikipedia" else "wikipedia"
+            fallback_provider = self.search_providers[fallback_key]
+            
+            # Sprawdź cache dla fallback providera
+            if self.cache_enabled:
+                cached_fallback = search_cache.get(query, fallback_key)
+                if cached_fallback:
+                    logger.info(f"Cache hit for fallback query: {query}, provider: {fallback_key}")
+                    return cached_fallback
+            
+            fallback_results = await fallback_provider.search(query)
+            
+            # Zapisz fallback wyniki w cache
+            if self.cache_enabled and fallback_results:
+                search_cache.set(query, fallback_key, fallback_results)
+            
+            return fallback_results
+            
+        except Exception as e:
+            logger.error(f"SearchAgent error with {provider_key}: {e}")
+            # Fallback na drugi provider w razie błędu
+            fallback_key = "duck" if provider_key == "wikipedia" else "wikipedia"
+            try:
+                fallback_provider = self.search_providers[fallback_key]
+                
+                # Sprawdź cache dla fallback providera
+                if self.cache_enabled:
+                    cached_fallback = search_cache.get(query, fallback_key)
+                    if cached_fallback:
+                        return cached_fallback
+                
+                fallback_results = await fallback_provider.search(query)
+                
+                # Zapisz fallback wyniki w cache
+                if self.cache_enabled and fallback_results:
+                    search_cache.set(query, fallback_key, fallback_results)
+                
+                return fallback_results
+            except Exception as e2:
+                logger.error(f"SearchAgent fallback error: {e2}")
+                return []
 
     @handle_exceptions(max_retries=2)
-    async def process(self, input_data: Dict[str, Any]) -> AgentResponse:
+    async def process_with_verification(self, input_data: Dict[str, Any]) -> AgentResponse:
         """Main processing method - performs search and returns results in a stream"""
         query = input_data.get("query", "")
         if not query:
@@ -323,23 +468,17 @@ class SearchAgent(BaseAgent):
     @handle_exceptions(max_retries=1)
     def get_dependencies(self) -> List[type]:
         """Return list of dependencies this agent requires"""
-        return ["httpx", "hybrid_llm_client", "perplexity_client", "web_search"]
+        return ["httpx", "hybrid_llm_client", "perplexity_client", "web_search", ResponseGenerator]
 
     def get_metadata(self) -> Dict[str, Any]:
-        """Return metadata about this agent"""
+        """Zwraca metadane agenta."""
         return {
-            "name": self.name,
-            "description": "Agent that performs web searches using multiple sources with knowledge verification",
-            "version": "2.0.0",
-            "search_url": self.search_url,
-            "capabilities": [
-                "web_search", 
-                "translation", 
-                "fallback_search", 
-                "knowledge_verification",
-                "source_credibility_assessment"
-            ],
-            "knowledge_verification_threshold": self.knowledge_verification_threshold,
+            "agent_type": "search",
+            "capabilities": ["web_search", "wikipedia_search", "fallback_support", "caching"],
+            "providers": list(self.search_providers.keys()),
+            "version": "1.0.0",
+            "cache_enabled": self.cache_enabled,
+            "cache_stats": search_cache.get_stats() if self.cache_enabled else None
         }
 
     def is_healthy(self) -> bool:
