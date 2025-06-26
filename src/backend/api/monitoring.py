@@ -5,19 +5,23 @@ API endpoints for monitoring, health, and status checks.
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 import structlog
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
 from backend.agents.agent_factory import AgentFactory
 from backend.core.alerting import alert_manager
 from backend.core.perplexity_client import perplexity_client
 from backend.infrastructure.database.database import check_database_health
+from backend.core.monitoring import monitoring, AlertSeverity
+from backend.core.database_optimizer import DatabaseOptimizer
+from backend.core.search_cache import SearchCache
+from backend.core.optimized_prompts import OptimizedPrompts
 
-router = APIRouter()
+router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 logger = structlog.get_logger()
 
 
@@ -123,54 +127,267 @@ async def check_external_apis_health() -> Dict[str, Any]:
     }
 
 
-@router.get("/health", tags=["Health"])
-async def health_check() -> JSONResponse:
-    """✅ REQUIRED: Health checks for all services"""
-    start_time = time.time()
-
-    # Perform all health checks
-    db_health = await check_database_health()
-    agents_health = await check_agents_health()
-    external_apis_health = await check_external_apis_health()
-
-    checks = {
-        "database": db_health,
-        "agents": agents_health,
-        "external_apis": external_apis_health,
-    }
-
-    # Determine overall health - only database and agents are critical
-    # External APIs are optional for basic functionality
-    critical_healthy = (
-        db_health.get("status") == "healthy"
-        and agents_health.get("status") == "healthy"
-    )
-
-    status_code = 200 if critical_healthy else 503
-    response_time = time.time() - start_time
-
-    response_data = {
-        "status": "healthy" if critical_healthy else "unhealthy",
-        "checks": checks,
-        "response_time": round(response_time, 3),
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0",
-    }
-
-    return JSONResponse(content=response_data, status_code=status_code)
-
-
-@router.options("/health", tags=["Health"])
-async def health_check_options() -> JSONResponse:
-    """OPTIONS endpoint for health check to support CORS"""
-    return JSONResponse(
-        content={},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
+@router.get("/health")
+async def health_check():
+    """Get overall system health status."""
+    try:
+        health_checks = monitoring.health_checks
+        
+        # Check if any health checks are unhealthy
+        unhealthy_checks = [
+            name for name, check in health_checks.items() 
+            if check.status == "unhealthy"
+        ]
+        
+        overall_status = "healthy" if not unhealthy_checks else "unhealthy"
+        
+        return {
+            "status": overall_status,
+            "timestamp": datetime.now().isoformat(),
+            "checks": {
+                name: {
+                    "status": check.status,
+                    "response_time": check.response_time,
+                    "last_check": check.last_check.isoformat(),
+                    "error_message": check.error_message
+                }
+                for name, check in health_checks.items()
+            },
+            "unhealthy_checks": unhealthy_checks
         }
-    )
+    except Exception as e:
+        logger.error(f"Error in health check: {e}")
+        raise HTTPException(status_code=500, detail="Health check failed")
+
+
+@router.get("/metrics")
+async def get_metrics():
+    """Get current system metrics."""
+    try:
+        return monitoring.get_metrics_summary()
+    except Exception as e:
+        logger.error(f"Error getting metrics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get metrics")
+
+
+@router.get("/performance")
+async def get_performance_stats():
+    """Get performance statistics."""
+    try:
+        return monitoring.get_performance_stats()
+    except Exception as e:
+        logger.error(f"Error getting performance stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get performance stats")
+
+
+@router.get("/alerts")
+async def get_alerts(active_only: bool = True):
+    """Get system alerts."""
+    try:
+        alerts = monitoring.alerts
+        
+        if active_only:
+            alerts = [alert for alert in alerts if not alert.resolved]
+        
+        return {
+            "alerts": [
+                {
+                    "id": alert.id,
+                    "title": alert.title,
+                    "message": alert.message,
+                    "severity": alert.severity.value,
+                    "source": alert.source,
+                    "timestamp": alert.timestamp.isoformat(),
+                    "resolved": alert.resolved,
+                    "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None
+                }
+                for alert in alerts
+            ],
+            "total_alerts": len(alerts),
+            "active_alerts": len([a for a in monitoring.alerts if not a.resolved])
+        }
+    except Exception as e:
+        logger.error(f"Error getting alerts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get alerts")
+
+
+@router.post("/alerts/{alert_id}/resolve")
+async def resolve_alert(alert_id: str):
+    """Resolve an alert."""
+    try:
+        monitoring.resolve_alert(alert_id)
+        return {"message": f"Alert {alert_id} resolved successfully"}
+    except Exception as e:
+        logger.error(f"Error resolving alert: {e}")
+        raise HTTPException(status_code=500, detail="Failed to resolve alert")
+
+
+@router.post("/alerts")
+async def create_alert(
+    title: str,
+    message: str,
+    severity: str,
+    source: str
+):
+    """Create a new alert."""
+    try:
+        severity_enum = AlertSeverity(severity.lower())
+        monitoring.create_alert(title, message, severity_enum, source)
+        return {"message": "Alert created successfully"}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid severity level")
+    except Exception as e:
+        logger.error(f"Error creating alert: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create alert")
+
+
+@router.get("/dashboard")
+async def get_dashboard_data():
+    """Get comprehensive dashboard data."""
+    try:
+        # Get all monitoring data
+        metrics = monitoring.get_metrics_summary()
+        performance = monitoring.get_performance_stats()
+        alerts = [a for a in monitoring.alerts if not a.resolved]
+        
+        # Get cache performance
+        cache_stats = {}
+        try:
+            search_cache = SearchCache()
+            cache_stats["search_cache"] = {
+                "size": len(search_cache._cache),
+                "max_size": search_cache.max_size
+            }
+        except Exception as e:
+            logger.warning(f"Could not get search cache stats: {e}")
+        
+        # Get database stats
+        db_stats = {}
+        try:
+            db_optimizer = DatabaseOptimizer()
+            db_stats = await db_optimizer.get_database_stats()
+        except Exception as e:
+            logger.warning(f"Could not get database stats: {e}")
+        
+        # Get prompt optimization stats
+        prompt_stats = {}
+        try:
+            optimized_prompts = OptimizedPrompts()
+            prompt_stats = {
+                "cached_prompts": len(optimized_prompts._cache),
+                "cache_hits": optimized_prompts._cache_hits,
+                "cache_misses": optimized_prompts._cache_misses
+            }
+        except Exception as e:
+            logger.warning(f"Could not get prompt stats: {e}")
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "system": {
+                "uptime": metrics.get("uptime", 0),
+                "total_metrics": metrics.get("total_metrics", 0),
+                "recent_metrics": metrics.get("recent_metrics", 0)
+            },
+            "performance": performance,
+            "alerts": {
+                "active_count": len(alerts),
+                "recent_alerts": [
+                    {
+                        "title": alert.title,
+                        "severity": alert.severity.value,
+                        "timestamp": alert.timestamp.isoformat()
+                    }
+                    for alert in alerts[-5:]  # Last 5 alerts
+                ]
+            },
+            "health_checks": metrics.get("health_checks", {}),
+            "cache_performance": metrics.get("cache_performance", {}),
+            "cache_stats": cache_stats,
+            "database_stats": db_stats,
+            "prompt_stats": prompt_stats
+        }
+    except Exception as e:
+        logger.error(f"Error getting dashboard data: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get dashboard data")
+
+
+@router.get("/system")
+async def get_system_info():
+    """Get detailed system information."""
+    try:
+        import psutil
+        
+        # CPU info
+        cpu_info = {
+            "usage_percent": psutil.cpu_percent(interval=1),
+            "count": psutil.cpu_count(),
+            "frequency": psutil.cpu_freq()._asdict() if psutil.cpu_freq() else None
+        }
+        
+        # Memory info
+        memory = psutil.virtual_memory()
+        memory_info = {
+            "total": memory.total,
+            "available": memory.available,
+            "used": memory.used,
+            "percent": memory.percent
+        }
+        
+        # Disk info
+        disk = psutil.disk_usage('/')
+        disk_info = {
+            "total": disk.total,
+            "used": disk.used,
+            "free": disk.free,
+            "percent": (disk.used / disk.total) * 100
+        }
+        
+        # Network info
+        network = psutil.net_io_counters()
+        network_info = {
+            "bytes_sent": network.bytes_sent,
+            "bytes_recv": network.bytes_recv,
+            "packets_sent": network.packets_sent,
+            "packets_recv": network.packets_recv
+        }
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "cpu": cpu_info,
+            "memory": memory_info,
+            "disk": disk_info,
+            "network": network_info
+        }
+    except Exception as e:
+        logger.error(f"Error getting system info: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get system info")
+
+
+@router.post("/cleanup")
+async def trigger_cleanup():
+    """Trigger manual cleanup of old data."""
+    try:
+        # This will trigger the cleanup task
+        asyncio.create_task(monitoring._cleanup_old_data())
+        return {"message": "Cleanup triggered successfully"}
+    except Exception as e:
+        logger.error(f"Error triggering cleanup: {e}")
+        raise HTTPException(status_code=500, detail="Failed to trigger cleanup")
+
+
+@router.get("/logs")
+async def get_recent_logs(limit: int = 100):
+    """Get recent application logs."""
+    try:
+        # This is a simplified version - in production you'd want to read from log files
+        return {
+            "message": "Log retrieval not implemented in this version",
+            "limit": limit,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting logs: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get logs")
 
 
 @router.get("/ready", tags=["Health"])
@@ -196,20 +413,6 @@ async def ready_check() -> JSONResponse:
             "services": {"database": db_health},
             "timestamp": datetime.now().isoformat(),
         },
-    )
-
-
-@router.get("/metrics", tags=["Monitoring"])
-async def metrics_endpoint() -> JSONResponse:
-    """Prometheus metrics endpoint."""
-    # This would typically be handled by a Prometheus client library middleware
-    # returning the metrics in the correct format.
-    # This is a placeholder.
-    return JSONResponse(
-        content={
-            "message": "Prometheus metrics would be exposed here.",
-            "timestamp": datetime.now().isoformat(),
-        }
     )
 
 
