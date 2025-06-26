@@ -147,3 +147,39 @@ MIT License - zobacz [LICENSE](LICENSE) dla szczegółów.
 ---
 
 **FoodSave AI Frontend** – Nowoczesny, responsywny interfejs użytkownika z Cosmic Design System, pełną obsługą RAG i polskim UI. 🚀
+
+## Testy E2E (Playwright)
+
+### Uruchamianie
+
+1. Uruchom serwer dev:
+   ```
+   cd foodsave-frontend
+   npm run dev
+   ```
+2. W nowym terminalu uruchom testy:
+   ```
+   npm run test:e2e
+   ```
+
+### Debugowanie
+
+- Po każdym teście generowany jest raport HTML:
+  ```
+  npx playwright show-report
+  ```
+- W raporcie znajdziesz screenshoty i dumpy DOM (np. `settings-after-click.html`), które pomagają zlokalizować problem z renderowaniem lub routingiem.
+
+### Typowe problemy
+
+- **Routing nie działa po kliknięciu w sidebar**:  
+  Upewnij się, że po kliknięciu przycisku nawigacji w teście czekasz na zmianę URL:
+  ```ts
+  await settingsBtn.click();
+  await page.waitForURL('**/settings');
+  ```
+- **Element nie pojawia się w DOM**:  
+  Sprawdź, czy nie ma animacji/opóźnienia, użyj `waitForSelector` lub dłuższego timeoutu.
+
+- **Brak `<BrowserRouter>`**:  
+  Aplikacja musi być opakowana w `<BrowserRouter>` na najwyższym poziomie.
