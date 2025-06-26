@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import AsyncGenerator
+import re
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
@@ -14,16 +15,24 @@ from backend.config import settings
 DATABASE_URL = settings.DATABASE_URL
 
 # Create async SQLAlchemy engine with optimized connection pooling
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,  # Disable SQL logging in production
-    pool_pre_ping=True,  # Verify connections before use
-    pool_recycle=3600,  # Recycle connections after 1 hour
-    pool_size=20,  # Increased connection pool size (was 10)
-    max_overflow=40,  # Increased maximum overflow connections (was 20)
-    pool_timeout=30,  # Connection timeout in seconds
-    pool_reset_on_return='commit',  # Reset connections on return
-)
+if DATABASE_URL.startswith("sqlite"):  # SQLite does not support pool_size, max_overflow, pool_timeout
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=False,
+        pool_pre_ping=True,
+        pool_reset_on_return='commit',
+    )
+else:
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=False,  # Disable SQL logging in production
+        pool_pre_ping=True,  # Verify connections before use
+        pool_recycle=3600,  # Recycle connections after 1 hour
+        pool_size=20,  # Increased connection pool size (was 10)
+        max_overflow=40,  # Increased maximum overflow connections (was 20)
+        pool_timeout=30,  # Connection timeout in seconds
+        pool_reset_on_return='commit',  # Reset connections on return
+    )
 
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 

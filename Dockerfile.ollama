@@ -1,5 +1,8 @@
 FROM ollama/ollama:latest
 
+# Instalacja curl dla health check
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Ustawienie zmiennych środowiskowych
 ENV OLLAMA_HOST=0.0.0.0
 ENV OLLAMA_KEEP_ALIVE=24h

@@ -77,18 +77,24 @@ def setup_logger(name: str = "backend", level: int = logging.INFO) -> logging.Lo
 
     # Handler dla pliku z rotacją (10MB max, zachowaj 5 kopii)
     # Użyj zmiennej środowiskowej lub domyślnej ścieżki w kontenerze
-    log_file_path = os.getenv("LOG_FILE_PATH", "./logs/backend.log")
+    log_file_path = os.getenv("LOG_FILE_PATH", "logs/backend.log")
     log_dir = os.path.dirname(log_file_path)
-    os.makedirs(log_dir, exist_ok=True)
     
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5,
-    )
-    file_handler.setLevel(level)
-    file_handler.setFormatter(json_formatter)
-    logger.addHandler(file_handler)
+    # Utwórz katalog tylko jeśli nie jesteśmy w trybie testowym
+    if not os.getenv("TESTING"):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+            file_handler = RotatingFileHandler(
+                log_file_path,
+                maxBytes=10 * 1024 * 1024,  # 10MB
+                backupCount=5,
+            )
+            file_handler.setLevel(level)
+            file_handler.setFormatter(json_formatter)
+            logger.addHandler(file_handler)
+        except (PermissionError, OSError):
+            # Jeśli nie można utworzyć pliku logów, loguj tylko do konsoli
+            pass
 
     return logger
 
@@ -114,18 +120,24 @@ def configure_root_logger(level: int = logging.INFO) -> None:
 
     # Handler dla pliku z rotacją
     # Użyj zmiennej środowiskowej lub domyślnej ścieżki w kontenerze
-    log_file_path = os.getenv("LOG_FILE_PATH", "./logs/backend.log")
+    log_file_path = os.getenv("LOG_FILE_PATH", "logs/backend.log")
     log_dir = os.path.dirname(log_file_path)
-    os.makedirs(log_dir, exist_ok=True)
     
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5,
-    )
-    file_handler.setLevel(level)
-    file_handler.setFormatter(json_formatter)
-    root_logger.addHandler(file_handler)
+    # Utwórz katalog tylko jeśli nie jesteśmy w trybie testowym
+    if not os.getenv("TESTING"):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+            file_handler = RotatingFileHandler(
+                log_file_path,
+                maxBytes=10 * 1024 * 1024,  # 10MB
+                backupCount=5,
+            )
+            file_handler.setLevel(level)
+            file_handler.setFormatter(json_formatter)
+            root_logger.addHandler(file_handler)
+        except (PermissionError, OSError):
+            # Jeśli nie można utworzyć pliku logów, loguj tylko do konsoli
+            pass
     return None
 
 

@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- complementary:
+  - text: 🍽️ FoodSave AI
+  - button "Zwiń menu":
+    - img
+  - navigation:
+    - list:
+      - listitem:
+        - button "🏠 Dashboard"
+      - listitem:
+        - button "💬 Chat"
+      - listitem:
+        - button "🛒 Zakupy"
+      - listitem:
+        - button "📦 Produkty"
+      - listitem:
+        - button "📷 OCR"
+      - listitem:
+        - button "🌤️ Pogoda"
+      - listitem:
+        - button "⚙️ Ustawienia"
+  - button "🌙"
+- banner:
+  - img "FoodSave AI Logo": 🍽️
+  - heading "FoodSave AI" [level=1]
+  - text: Ładowanie... System aktywny
+  - img "Theme indicator": ☀️
+  - button "Menu użytkownika": U
+- main:
+  - heading "Czat AI" [level=1]
+  - paragraph: Inteligentny asystent do zarządzania produktami i planowania posiłków
+  - text: AI
+  - heading "FoodSave AI" [level=3]
+  - paragraph: Online
+  - text: Aktywny 🍽️
+  - heading "Witaj w FoodSave AI!" [level=3]
+  - paragraph: Jestem Twoim asystentem do zarządzania spiżarnią i zakupami. Jak mogę Ci dzisiaj pomóc?
+  - textbox "Napisz wiadomość..."
+  - button [disabled]:
+    - img
+  - paragraph: "FoodSave AI v1.0 • Powered by Claude AI •Ostatnia aktualizacja: 26.06.2025"
+- contentinfo:
+  - paragraph: "FoodSave AI v1.0 • Powered by Claude AI •Ostatnia aktualizacja: 26.06.2025"
+```
