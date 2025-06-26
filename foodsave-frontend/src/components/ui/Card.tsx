@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../ThemeProvider';
 
 interface CardProps {
@@ -8,38 +8,43 @@ interface CardProps {
   shadow?: 'sm' | 'md' | 'lg';
 }
 
-export default function Card({ 
+const Card: React.FC<CardProps> = React.memo(({ 
   children, 
   className = '', 
   padding = 'md',
   shadow = 'md'
-}: CardProps) {
+}) => {
   const { resolvedTheme } = useTheme();
 
-  const paddingClasses = {
-    sm: 'p-3',
-    md: 'p-4',
-    lg: 'p-6'
-  };
+  // Memoizacja klas CSS dla lepszej wydajności
+  const cardClasses = useMemo(() => {
+    const paddingClasses = {
+      sm: 'p-3',
+      md: 'p-4',
+      lg: 'p-6'
+    };
 
-  const shadowClasses = {
-    sm: 'shadow-sm',
-    md: 'shadow-md',
-    lg: 'shadow-lg'
-  };
+    const shadowClasses = {
+      sm: 'shadow-sm',
+      md: 'shadow-md',
+      lg: 'shadow-lg'
+    };
+
+    const baseClasses = 'rounded-xl border transition-all duration-200';
+    const themeClasses = resolvedTheme === 'dark' 
+      ? 'bg-gray-800 border-gray-700' 
+      : 'bg-white border-gray-200';
+
+    return `${baseClasses} ${themeClasses} ${paddingClasses[padding]} ${shadowClasses[shadow]} ${className}`;
+  }, [resolvedTheme, padding, shadow, className]);
 
   return (
-    <div className={`
-      rounded-xl border transition-all duration-200
-      ${resolvedTheme === 'dark' 
-        ? 'bg-gray-800 border-gray-700' 
-        : 'bg-white border-gray-200'
-      }
-      ${paddingClasses[padding]}
-      ${shadowClasses[shadow]}
-      ${className}
-    `}>
+    <div className={cardClasses}>
       {children}
     </div>
   );
-} 
+});
+
+Card.displayName = 'Card';
+
+export default Card; 

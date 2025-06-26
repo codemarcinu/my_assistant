@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '../ThemeProvider';
 import { Badge } from '../ui/Badge';
 import type { FoodItem, FoodStatus } from '../../types';
@@ -10,12 +10,12 @@ interface PantryModuleProps {
 }
 
 /**
- * PantryModule component for quick pantry overview.
+ * PantryModule component for quick pantry overview with performance optimization.
  * 
  * This component provides a quick overview of pantry items
  * with expiration dates and status, following the .cursorrules guidelines.
  */
-const PantryModule: React.FC<PantryModuleProps> = ({ onClose, onManagePantry }) => {
+const PantryModule: React.FC<PantryModuleProps> = React.memo(({ onClose, onManagePantry }) => {
   const { resolvedTheme } = useTheme();
   const [items, setItems] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,34 +71,72 @@ const PantryModule: React.FC<PantryModuleProps> = ({ onClose, onManagePantry }) 
     }, 500);
   }, []);
 
-  const getStatusColor = (status: FoodStatus) => {
+  // Memoizacja funkcji status
+  const getStatusColor = useCallback((status: FoodStatus) => {
     switch (status) {
       case 'fresh': return 'success';
       case 'expiring_soon': return 'warning';
       case 'expired': return 'error';
       default: return 'default';
     }
-  };
+  }, []);
 
-  const getStatusText = (status: FoodStatus) => {
+  const getStatusText = useCallback((status: FoodStatus) => {
     switch (status) {
       case 'fresh': return 'Świeży';
       case 'expiring_soon': return 'Kończy się';
       case 'expired': return 'Przeterminowany';
       default: return 'Nieznany';
     }
-  };
+  }, []);
 
-  const formatDate = (date: Date) => {
+  const formatDate = useCallback((date: Date) => {
     return date.toLocaleDateString('pl-PL');
-  };
+  }, []);
 
-  const getDaysUntilExpiry = (expirationDate: Date) => {
+  const getDaysUntilExpiry = useCallback((expirationDate: Date) => {
     const today = new Date();
     const diffTime = expirationDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
-  };
+  }, []);
+
+  // Memoizacja renderowania elementów listy
+  const itemElements = useMemo(() => {
+    return items.map((item) => {
+      const daysUntilExpiry = getDaysUntilExpiry(item.expirationDate);
+      return (
+        <div 
+          key={item.id}
+          className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+        >
+          <div className="flex-1">
+            <div className="flex items-center space-x-2">
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {item.name}
+              </span>
+              <Badge variant={getStatusColor(item.status)} size="sm">
+                {getStatusText(item.status)}
+              </Badge>
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {item.quantity} {item.unit} • Termin: {formatDate(item.expirationDate)}
+              {daysUntilExpiry > 0 && (
+                <span className="ml-2 text-orange-600 dark:text-orange-400">
+                  (za {daysUntilExpiry} dni)
+                </span>
+              )}
+              {daysUntilExpiry <= 0 && (
+                <span className="ml-2 text-red-600 dark:text-red-400">
+                  (przeterminowany)
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    });
+  }, [items, getDaysUntilExpiry, getStatusColor, getStatusText, formatDate]);
 
   if (loading) {
     return (
@@ -130,39 +168,7 @@ const PantryModule: React.FC<PantryModuleProps> = ({ onClose, onManagePantry }) 
       </p>
       
       <div className="space-y-3 mb-5">
-        {items.map((item) => {
-          const daysUntilExpiry = getDaysUntilExpiry(item.expirationDate);
-          return (
-            <div 
-              key={item.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-            >
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {item.name}
-                  </span>
-                  <Badge variant={getStatusColor(item.status)} size="sm">
-                    {getStatusText(item.status)}
-                  </Badge>
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {item.quantity} {item.unit} • Termin: {formatDate(item.expirationDate)}
-                  {daysUntilExpiry > 0 && (
-                    <span className="ml-2 text-orange-600 dark:text-orange-400">
-                      (za {daysUntilExpiry} dni)
-                    </span>
-                  )}
-                  {daysUntilExpiry <= 0 && (
-                    <span className="ml-2 text-red-600 dark:text-red-400">
-                      (przeterminowany)
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {itemElements}
       </div>
       
       <button
@@ -173,6 +179,8 @@ const PantryModule: React.FC<PantryModuleProps> = ({ onClose, onManagePantry }) 
       </button>
     </div>
   );
-};
+});
+
+PantryModule.displayName = 'PantryModule';
 
 export default PantryModule; 

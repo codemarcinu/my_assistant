@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 // import { useTheme } from '../ThemeProvider';
@@ -8,18 +8,31 @@ interface MainLayoutProps {
 }
 
 /**
- * MainLayout component for the application structure.
+ * MainLayout component for the application structure with performance optimization.
  * 
  * This component provides the main layout structure with sidebar,
  * header, and content area, following the .cursorrules guidelines.
  */
-export default function MainLayout({ children }: MainLayoutProps) {
+const MainLayout: React.FC<MainLayoutProps> = React.memo(({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // const { resolvedTheme } = useTheme();
 
-  const handleSidebarToggle = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
+  // Memoizacja funkcji toggle sidebar
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarCollapsed(prev => !prev);
+  }, []);
+
+  // Memoizacja daty ostatniej aktualizacji
+  const lastUpdateDate = useMemo(() => {
+    return new Date().toLocaleDateString('pl-PL');
+  }, []);
+
+  // Memoizacja klas footer
+  const footerClasses = useMemo(() => {
+    const baseClasses = 'p-4 border-t text-center text-sm transition-all duration-300';
+    const marginClass = sidebarCollapsed ? 'ml-16' : 'ml-64';
+    return `${baseClasses} ${marginClass}`;
+  }, [sidebarCollapsed]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
@@ -28,6 +41,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         collapsed={sidebarCollapsed} 
         onToggle={handleSidebarToggle} 
       />
+      
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={handleSidebarToggle} />
@@ -36,19 +50,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
             {children}
           </div>
         </main>
-        <footer className={`
-          p-4 border-t text-center text-sm
-          ${sidebarCollapsed ? 'ml-16' : 'ml-64'}
-          transition-all duration-300
-        `}>
+        
+        <footer className={footerClasses}>
           <p className="text-gray-500 dark:text-gray-400">
             FoodSave AI v1.0 • Powered by Claude AI • 
             <span className="ml-1">
-              Ostatnia aktualizacja: {new Date().toLocaleDateString('pl-PL')}
+              Ostatnia aktualizacja: {lastUpdateDate}
             </span>
           </p>
         </footer>
       </div>
     </div>
   );
-} 
+});
+
+MainLayout.displayName = 'MainLayout';
+
+export default MainLayout; 

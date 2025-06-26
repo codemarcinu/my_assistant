@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
 
 export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -7,29 +7,32 @@ export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   label?: string;
 }
 
-const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
+const Spinner = React.memo(React.forwardRef<HTMLDivElement, SpinnerProps>(
   ({ className, size = 'md', variant = 'default', label = 'Loading...', ...props }, ref) => {
-    const sizeClasses = {
-      sm: 'w-4 h-4',
-      md: 'w-6 h-6',
-      lg: 'w-8 h-8',
-      xl: 'w-12 h-12'
-    };
+    // Memoizacja klas CSS dla lepszej wydajności
+    const classes = useMemo(() => {
+      const sizeClasses = {
+        sm: 'w-4 h-4',
+        md: 'w-6 h-6',
+        lg: 'w-8 h-8',
+        xl: 'w-12 h-12'
+      };
 
-    const variantClasses = {
-      default: 'text-gray-400 dark:text-gray-600',
-      primary: 'text-blue-500 dark:text-blue-400',
-      success: 'text-green-500 dark:text-green-400',
-      warning: 'text-yellow-500 dark:text-yellow-400',
-      error: 'text-red-500 dark:text-red-400'
-    };
+      const variantClasses = {
+        default: 'text-gray-400 dark:text-gray-600',
+        primary: 'text-blue-500 dark:text-blue-400',
+        success: 'text-green-500 dark:text-green-400',
+        warning: 'text-yellow-500 dark:text-yellow-400',
+        error: 'text-red-500 dark:text-red-400'
+      };
 
-    const classes = cn(
-      'animate-spin',
-      sizeClasses[size],
-      variantClasses[variant],
-      className
-    );
+      return cn(
+        'animate-spin',
+        sizeClasses[size],
+        variantClasses[variant],
+        className
+      );
+    }, [size, variant, className]);
 
     return (
       <div
@@ -65,7 +68,7 @@ const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
       </div>
     );
   }
-);
+));
 
 Spinner.displayName = 'Spinner';
 

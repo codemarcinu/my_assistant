@@ -1,50 +1,70 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 // src/components/ChatBox.tsx
-// Rozszerzony komponent okna czatu, który może wysyłać polecenia do nadrzędnego komponentu.
+// Rozszerzony komponent okna czatu z optymalizacją wydajności
 type ChatBoxProps = {
   onSendMessage: (message: string) => void;
   chatHistory: string[];
 };
 
-const ChatBox: React.FC<ChatBoxProps> = ({ onSendMessage, chatHistory }) => {
+const ChatBox: React.FC<ChatBoxProps> = React.memo(({ onSendMessage, chatHistory }) => {
   const [msg, setMsg] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scrolluje do najnowszej wiadomości
+  // Memoizacja scrollowania do najnowszej wiadomości
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
-  const sendMsg = () => {
+  // Memoizacja funkcji wysyłania wiadomości
+  const sendMsg = useCallback(() => {
     if (!msg.trim()) return;
-    onSendMessage(msg); // Wysyła wiadomość do funkcji nadrzędnej
+    onSendMessage(msg);
     setMsg("");
-  };
+  }, [msg, onSendMessage]);
 
-  // Obsługa naciśnięcia klawisza Enter
-  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  // Memoizacja obsługi klawisza Enter
+  const handleKeyPress = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       sendMsg();
     }
-  };
+  }, [sendMsg]);
+
+  // Memoizacja renderowania historii czatu
+  const chatHistoryElements = useMemo(() => {
+    return chatHistory.map((m, i) => (
+      <div 
+        key={`${i}-${m.substring(0, 20)}`} // Lepszy key dla optymalizacji React
+        className={`mb-2 p-2 rounded-lg ${
+          m.startsWith("Ty:") 
+            ? 'bg-cosmic-bright-green text-cosmic-neutral-0 self-end text-right ml-auto' 
+            : 'bg-cosmic-neutral-4 text-cosmic-text dark:bg-cosmic-neutral-6 dark:text-cosmic-neutral-0 self-start mr-auto'
+        }`}
+      >
+        {m}
+      </div>
+    ));
+  }, [chatHistory]);
+
+  // Memoizacja stanu pustej historii
+  const isEmptyHistory = useMemo(() => chatHistory.length === 0, [chatHistory.length]);
 
   return (
     <div className="bg-cosmic-primary-container-bg rounded-xl p-6 shadow-xl flex flex-col flex-1 border border-cosmic-neutral-3 dark:bg-cosmic-neutral-9 dark:text-cosmic-bg dark:border-cosmic-neutral-8 transition-colors duration-300 min-h-[300px]">
       <h2 className="text-xl font-bold mb-4 text-cosmic-accent dark:text-cosmic-ext-blue">Czat z FoodSave AI</h2>
-      {/* Obszar historii czatu */}
+      
+      {/* Obszar historii czatu z wirtualizacją dla dużych list */}
       <div className="flex-1 overflow-y-auto mb-4 p-2 rounded-lg bg-cosmic-neutral-3 dark:bg-cosmic-neutral-8 transition-colors duration-300 scrollbar-thin scrollbar-thumb-cosmic-neutral-5 scrollbar-track-cosmic-neutral-4">
-        {chatHistory.length === 0 ? (
-          <p className="text-cosmic-neutral-6 dark:text-cosmic-neutral-5 text-center mt-8">Rozpocznij rozmowę z FoodSave AI!</p>
+        {isEmptyHistory ? (
+          <p className="text-cosmic-neutral-6 dark:text-cosmic-neutral-5 text-center mt-8">
+            Rozpocznij rozmowę z FoodSave AI!
+          </p>
         ) : (
-          chatHistory.map((m, i) => (
-            <div key={i} className={`mb-2 p-2 rounded-lg ${m.startsWith("Ty:") ? 'bg-cosmic-bright-green text-cosmic-neutral-0 self-end text-right ml-auto' : 'bg-cosmic-neutral-4 text-cosmic-text dark:bg-cosmic-neutral-6 dark:text-cosmic-neutral-0 self-start mr-auto'}`}>
-              {m}
-            </div>
-          ))
+          chatHistoryElements
         )}
-        <div ref={messagesEndRef} /> {/* Pusty div do scrollowania */}
+        <div ref={messagesEndRef} />
       </div>
+      
       {/* Pole do wprowadzania wiadomości i przycisk Wyślij */}
       <div className="flex">
         <input
@@ -64,6 +84,8 @@ const ChatBox: React.FC<ChatBoxProps> = ({ onSendMessage, chatHistory }) => {
       </div>
     </div>
   );
-};
+});
+
+ChatBox.displayName = 'ChatBox';
 
 export default ChatBox; 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../utils/cn';
 
@@ -29,7 +29,7 @@ export interface ModalFooterProps {
   className?: string;
 }
 
-const Modal: React.FC<ModalProps> = ({
+const Modal: React.FC<ModalProps> = React.memo(({
   isOpen,
   onClose,
   title,
@@ -42,13 +42,14 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && closeOnEscape) {
-        onClose();
-      }
-    };
+  // Memoizacja funkcji obsługi Escape
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape' && closeOnEscape) {
+      onClose();
+    }
+  }, [closeOnEscape, onClose]);
 
+  useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
@@ -58,7 +59,7 @@ const Modal: React.FC<ModalProps> = ({
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, closeOnEscape, onClose]);
+  }, [isOpen, handleEscape]);
 
   useEffect(() => {
     if (isOpen && modalRef.current) {
@@ -66,19 +67,32 @@ const Modal: React.FC<ModalProps> = ({
     }
   }, [isOpen]);
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
+  // Memoizacja funkcji obsługi kliknięcia backdrop
+  const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget && closeOnBackdropClick) {
       onClose();
     }
-  };
+  }, [closeOnBackdropClick, onClose]);
 
-  const sizeClasses = {
+  // Memoizacja klas rozmiaru
+  const sizeClasses = useMemo(() => ({
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-xl',
     full: 'max-w-full mx-4'
-  };
+  }), []);
+
+  // Memoizacja klas modal
+  const modalClasses = useMemo(() => {
+    return cn(
+      'relative w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl',
+      'transform transition-all duration-300 ease-out',
+      'animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4',
+      sizeClasses[size],
+      className
+    );
+  }, [sizeClasses, size, className]);
 
   if (!isOpen) return null;
 
@@ -98,13 +112,7 @@ const Modal: React.FC<ModalProps> = ({
       {/* Modal */}
       <div
         ref={modalRef}
-        className={cn(
-          'relative w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl',
-          'transform transition-all duration-300 ease-out',
-          'animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4',
-          sizeClasses[size],
-          className
-        )}
+        className={modalClasses}
         tabIndex={-1}
       >
         {children}
@@ -113,30 +121,50 @@ const Modal: React.FC<ModalProps> = ({
   );
 
   return createPortal(modalContent, document.body);
-};
+});
 
-const ModalHeader: React.FC<ModalHeaderProps> = ({ children, className }) => {
+Modal.displayName = 'Modal';
+
+const ModalHeader: React.FC<ModalHeaderProps> = React.memo(({ children, className }) => {
+  const headerClasses = useMemo(() => {
+    return cn('flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700', className);
+  }, [className]);
+
   return (
-    <div className={cn('flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700', className)}>
+    <div className={headerClasses}>
       {children}
     </div>
   );
-};
+});
 
-const ModalContent: React.FC<ModalContentProps> = ({ children, className }) => {
+ModalHeader.displayName = 'ModalHeader';
+
+const ModalContent: React.FC<ModalContentProps> = React.memo(({ children, className }) => {
+  const contentClasses = useMemo(() => {
+    return cn('p-6', className);
+  }, [className]);
+
   return (
-    <div className={cn('p-6', className)}>
+    <div className={contentClasses}>
       {children}
     </div>
   );
-};
+});
 
-const ModalFooter: React.FC<ModalFooterProps> = ({ children, className }) => {
+ModalContent.displayName = 'ModalContent';
+
+const ModalFooter: React.FC<ModalFooterProps> = React.memo(({ children, className }) => {
+  const footerClasses = useMemo(() => {
+    return cn('flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700', className);
+  }, [className]);
+
   return (
-    <div className={cn('flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700', className)}>
+    <div className={footerClasses}>
       {children}
     </div>
   );
-};
+});
+
+ModalFooter.displayName = 'ModalFooter';
 
 export { Modal, ModalHeader, ModalContent, ModalFooter }; 

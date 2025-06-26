@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useTheme } from '../ThemeProvider';
 import ChatBubble from './ChatBubble';
 import ConciseResponseBubble from './ConciseResponseBubble';
@@ -7,31 +7,33 @@ import { useChatStore } from '../../stores/chatStore';
 import type { ChatMessage } from '../../types';
 
 /**
- * ChatContainer component for managing chat interface.
+ * ChatContainer component for managing chat interface with performance optimization.
  * 
  * This component provides the main chat interface with message history,
  * input handling, and AI responses, following the .cursorrules guidelines.
  */
-export default function ChatContainer() {
+const ChatContainer: React.FC = React.memo(() => {
   const { resolvedTheme } = useTheme();
   const { messages, isLoading, sendMessage, loadChatHistory } = useChatStore();
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  // Memoizacja funkcji scrollowania
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     // Load chat history on component mount
     loadChatHistory();
   }, [loadChatHistory]);
 
-  const handleSendMessage = async (content: string) => {
+  // Memoizacja funkcji wysyłania wiadomości
+  const handleSendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
 
     setIsTyping(true);
@@ -40,9 +42,10 @@ export default function ChatContainer() {
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [sendMessage]);
 
-  const generateAIResponse = (userMessage: string): string => {
+  // Memoizacja funkcji generowania odpowiedzi AI
+  const generateAIResponse = useCallback((userMessage: string): string => {
     const responses = [
       'Rozumiem! To bardzo interesujące pytanie.',
       'Dziękuję za informację. Pozwól mi to przemyśleć.',
@@ -51,11 +54,12 @@ export default function ChatContainer() {
       'Interesujące podejście. Sprawdźmy to razem.',
     ];
     return responses[Math.floor(Math.random() * responses.length)];
-  };
+  }, []);
 
-  const renderMessage = (message: Message) => {
+  // Memoizacja funkcji renderowania wiadomości
+  const renderMessage = useCallback((message: ChatMessage) => {
     // Check if it's a concise response
-    if (message.sender === 'ai' && message.metadata?.isConcise) {
+    if (message.type === 'assistant' && message.metadata?.isConcise) {
       return (
         <ConciseResponseBubble
           key={message.id}
@@ -71,21 +75,39 @@ export default function ChatContainer() {
     }
 
     return <ChatBubble key={message.id} message={message} />;
-  };
+  }, []);
+
+  // Memoizacja elementów wiadomości
+  const messageElements = useMemo(() => {
+    return messages.map(renderMessage);
+  }, [messages, renderMessage]);
+
+  // Memoizacja stanu pustej historii
+  const isEmptyMessages = useMemo(() => messages.length === 0, [messages.length]);
+
+  // Memoizacja stanu ładowania
+  const isAnyLoading = useMemo(() => isTyping || isLoading, [isTyping, isLoading]);
+
+  // Memoizacja klas kontenera
+  const containerClasses = useMemo(() => {
+    const baseClasses = 'flex flex-col h-full rounded-xl overflow-hidden shadow-lg';
+    const themeClasses = resolvedTheme === 'dark' 
+      ? 'bg-gray-800 border border-gray-700' 
+      : 'bg-white border border-gray-200';
+    return `${baseClasses} ${themeClasses}`;
+  }, [resolvedTheme]);
+
+  // Memoizacja klas nagłówka
+  const headerClasses = useMemo(() => {
+    const baseClasses = 'flex items-center justify-between px-6 py-4 border-b';
+    const themeClasses = resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-200';
+    return `${baseClasses} ${themeClasses}`;
+  }, [resolvedTheme]);
 
   return (
-    <div className={`
-      flex flex-col h-full rounded-xl overflow-hidden shadow-lg
-      ${resolvedTheme === 'dark' 
-        ? 'bg-gray-800 border border-gray-700' 
-        : 'bg-white border border-gray-200'
-      }
-    `}>
+    <div className={containerClasses}>
       {/* Chat Header */}
-      <div className={`
-        flex items-center justify-between px-6 py-4 border-b
-        ${resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-200'}
-      `}>
+      <div className={headerClasses}>
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold">AI</span>
@@ -93,7 +115,7 @@ export default function ChatContainer() {
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">FoodSave AI</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {isTyping || isLoading ? 'Pisze...' : 'Online'}
+              {isAnyLoading ? 'Pisze...' : 'Online'}
             </p>
           </div>
         </div>
@@ -106,7 +128,7 @@ export default function ChatContainer() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+        {isEmptyMessages && (
           <div className="text-center py-8">
             <div className="text-4xl mb-4">🍽️</div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -119,9 +141,9 @@ export default function ChatContainer() {
           </div>
         )}
         
-        {messages.map(renderMessage)}
+        {messageElements}
         
-        {(isTyping || isLoading) && (
+        {isAnyLoading && (
           <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
             <div className="flex space-x-1">
               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
@@ -139,9 +161,13 @@ export default function ChatContainer() {
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <MessageInput 
           onSendMessage={handleSendMessage} 
-          isTyping={isTyping || isLoading} 
+          isTyping={isAnyLoading} 
         />
       </div>
     </div>
   );
-} 
+});
+
+ChatContainer.displayName = 'ChatContainer';
+
+export default ChatContainer; 
