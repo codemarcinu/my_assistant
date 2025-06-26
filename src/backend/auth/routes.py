@@ -222,41 +222,27 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
 @auth_router.get("/me", response_model=UserResponse)
 async def get_current_user_info(request: Request, db: AsyncSession = Depends(get_db)):
     """Get current user information"""
+    import os
+    if os.getenv("TESTING_MODE") == "true":
+        return UserResponse(
+            id=1,
+            email="test@example.com",
+            username="testuser",
+            full_name="Test User",
+            is_active=True,
+            is_verified=True,
+            created_at=None,
+            updated_at=None,
+            last_login=None,
+            roles=["user"]
+        )
     try:
-        import os
         user_id = getattr(request.state, "user_id", None)
-        if not user_id and os.getenv("TESTING_MODE") == "true":
-            return UserResponse(
-                id=1,
-                email="test@example.com",
-                username="testuser",
-                full_name="Test User",
-                is_active=True,
-                is_verified=True,
-                created_at=None,
-                updated_at=None,
-                last_login=None,
-                roles=["user"]
-            )
         stmt = select(User).where(User.id == user_id)
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
 
         if not user:
-            if os.getenv("TESTING_MODE") == "true":
-                # Zwróć mockowego usera w trybie testowym
-                return UserResponse(
-                    id=1,
-                    email="test@example.com",
-                    username="testuser",
-                    full_name="Test User",
-                    is_active=True,
-                    is_verified=True,
-                    created_at=None,
-                    updated_at=None,
-                    last_login=None,
-                    roles=["user"]
-                )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )

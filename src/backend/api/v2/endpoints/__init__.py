@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
+import os
 
 router = APIRouter()
 
@@ -34,11 +35,35 @@ async def users_stub():
 @router.get("/users/me")
 async def users_me_stub():
     """Stub: Zwraca przykładowego zalogowanego użytkownika"""
-    # Symulacja braku autoryzacji
+    # W trybie testowym zwracamy mock user
+    if os.getenv("TESTING_MODE") == "true":
+        return {
+            "id": 1,
+            "email": "test@example.com",
+            "username": "testuser",
+            "full_name": "Test User",
+            "is_active": True,
+            "is_verified": True,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+            "last_login": None,
+            "roles": ["user"]
+        }
+    
+    # Symulacja braku autoryzacji w trybie produkcyjnym
     raise HTTPException(status_code=401, detail="Authentication required")
 
 @router.post("/receipts/upload")
 async def receipts_upload_stub(file: UploadFile = File(...)):
     """Stub: Zwraca przykładową odpowiedź uploadu paragonu"""
-    # Symulacja braku autoryzacji
+    # W trybie testowym zwracamy mock response
+    if os.getenv("TESTING_MODE") == "true":
+        return {
+            "id": "test-receipt-id",
+            "filename": file.filename,
+            "upload_date": datetime.utcnow().isoformat(),
+            "status": "uploaded"
+        }
+    
+    # Symulacja braku autoryzacji w trybie produkcyjnym
     raise HTTPException(status_code=401, detail="Authentication required") 

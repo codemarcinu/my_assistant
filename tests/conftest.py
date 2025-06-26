@@ -1,4 +1,20 @@
+"""
+Global test configuration and fixtures
+"""
+import os
 import pytest
+
+# Set testing mode before any imports that might create the app
+os.environ["TESTING_MODE"] = "true"
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_environment():
+    """Setup test environment variables"""
+    # Ensure TESTING_MODE is set for all tests
+    os.environ["TESTING_MODE"] = "true"
+    yield
+    # Cleanup if needed
+    pass
 
 class MockAuthHandler:
     """Mock authentication handler for testing"""

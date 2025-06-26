@@ -8,17 +8,17 @@ Zgodnie z regułami projektu:
 - Testy kontraktów błędów
 """
 
+import os
+# Ustaw tryb testowy dla autoryzacji PRZED importem aplikacji
+os.environ["TESTING_MODE"] = "true"
+
 import pytest
 import jsonschema
-import os
 from fastapi.testclient import TestClient
 from typing import Dict, Any
 from unittest.mock import Mock
 
 from backend.main import app
-
-# Ustaw tryb testowy dla autoryzacji
-os.environ["TESTING_MODE"] = "true"
 
 @pytest.fixture(scope="session")
 def auth_client():

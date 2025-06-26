@@ -37,14 +37,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> None:
         """Process request with authentication"""
+        logger.debug(f"AuthMiddleware dispatch called for path: {request.url.path}")
 
         # Skip authentication for excluded paths
         if any(request.url.path.startswith(path) for path in self.exclude_paths):
+            logger.debug(f"Skipping auth for excluded path: {request.url.path}")
             return await call_next(request)
 
         # Skip authentication in testing mode
         if os.getenv("TESTING_MODE") == "true":
-            # Set mock user data for tests
+            logger.debug("TESTING_MODE active: setting mock user in request.state")
             request.state.user = {
                 "sub": "1",
                 "email": "test@example.com",
@@ -52,7 +54,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
             }
             request.state.user_id = "1"
             request.state.user_roles = ["user"]
-            logger.debug("Testing mode: skipping authentication")
             return await call_next(request)
 
         # Extract token from Authorization header
