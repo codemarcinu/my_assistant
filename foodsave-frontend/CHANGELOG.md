@@ -2,6 +2,15 @@
 
 ## [Unreleased] – 2024-06-xx
 
+### 🔧 Naprawy i optymalizacje
+
+- **Naprawa błędów streaming response w backendzie**
+  - Rozwiązanie błędu "TypeError: 'coroutine' object is not iterable" w streaming HTTP responses
+  - Konwersja synchronicznych generatorów na asynchroniczne w LLM client
+  - Implementacja robust pattern z threading i queue dla kompatybilności z FastAPI streaming
+  - Aktualizacja endpointów `/api/chat` i `/api/v2/chat` dla prawidłowej obsługi streaming responses
+  - Zastosowanie best practices dla asynchronicznego streamingu w FastAPI
+
 ### 🚀 Najważniejsze zmiany
 
 - **Nowa architektura frontendu**
@@ -11,7 +20,7 @@
 - **System czatu**
   - Nowy komponent `ChatContainer` z obsługą loading, skeletonów, concise responses (bąbelki z typem: info, warning, success, error).
   - Globalny store (Zustand) do zarządzania stanem czatu.
-  - Przykładowe komendy aktywujące odpowiednie moduły (np. „co mam do jedzenia” → PantryModule).
+  - Przykładowe komendy aktywujące odpowiednie moduły (np. "co mam do jedzenia" → PantryModule).
 
 - **Moduły**
   - **PantryModule**: szybki podgląd produktów, statusy (świeży, kończy się, przeterminowany), badge, mock API.

@@ -76,4 +76,24 @@ MIT License - zobacz [LICENSE](LICENSE) dla szczegółów.
 
 ---
 
-Zgodność z `.cursorrules` i najlepszymi praktykami FastAPI. 
+Zgodność z `.cursorrules` i najlepszymi praktykami FastAPI.
+
+## 🔄 Streaming Responses
+
+Backend obsługuje streaming responses dla czatu AI z następującymi endpointami:
+- `/api/chat` - Podstawowy endpoint czatu ze streamingiem
+- `/api/v2/chat` - Rozszerzony endpoint czatu z dodatkowymi funkcjami
+
+### Implementacja streaming
+- Asynchroniczne generatory dla kompatybilności z FastAPI
+- Konwersja synchronicznych generatorów LLM na asynchroniczne
+- Robust pattern z threading i queue dla stabilności
+- Obsługa błędów i graceful degradation
+
+### Przykład użycia
+```python
+# Streaming response w FastAPI
+async def chat_stream_generator():
+    async for chunk in llm_client.stream_chat(messages):
+        yield f"data: {chunk}\n\n"
+``` 
