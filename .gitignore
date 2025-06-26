@@ -167,3 +167,32 @@ intent_*_test_results_*.json
 
 # Local development files
 foodsave_dev.db
+
+# Playwright test results and reports
+playwright-report/
+test-results/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Docker files (if not needed in repo)
+Dockerfile.dev
+Dockerfile.prod
+docker-compose.dev.yaml
+docker-compose.prod.yaml
+.dockerignore
+
+# Nginx configs (if local)
+nginx/
+
+# Scripts that might be local
+scripts/docker-setup.sh
+scripts/init-db.sql
+scripts/nginx/
+
+# Environment files
+.env.local
+.env.development
+.env.production
