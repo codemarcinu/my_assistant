@@ -11,6 +11,12 @@
   - Aktualizacja endpointów `/api/chat` i `/api/v2/chat` dla prawidłowej obsługi streaming responses
   - Zastosowanie best practices dla asynchronicznego streamingu w FastAPI
 
+- **Optymalizacja konfiguracji API**
+  - Usunięcie niepotrzebnych kluczy API: `WEATHER_API_KEY`, `NEWS_API_KEY`, `BING_SEARCH_API_KEY`
+  - Uproszczenie konfiguracji weather agent - tylko `OPENWEATHER_API_KEY`
+  - Usunięcie newsapi i bing search z domyślnej konfiguracji web search
+  - Zachowanie tylko Wikipedia jako źródło wyszukiwania (bez klucza API)
+
 ### 🚀 Najważniejsze zmiany
 
 - **Nowa architektura frontendu**

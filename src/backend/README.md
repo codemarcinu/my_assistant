@@ -61,6 +61,20 @@ src/backend/
 - Zmienna środowiskowa `SECRET_KEY` (w .env)
 - Brak kluczy w kodzie źródłowym
 - CORS: domyślnie tylko `http://localhost:3000`
+- Wymagane klucze API: `OPENWEATHER_API_KEY`, `PERPLEXITY_API_KEY` (opcjonalne)
+
+## 🔑 Konfiguracja API Keys
+Dla pełnej funkcjonalności aplikacji, ustaw następujące klucze w pliku `.env`:
+
+```bash
+# Wymagane dla pogody
+OPENWEATHER_API_KEY=your_openweather_api_key_here
+
+# Opcjonalne dla zaawansowanych funkcji
+PERPLEXITY_API_KEY=your_perplexity_api_key_here
+```
+
+**Uwaga**: Aplikacja działa również bez kluczy API - funkcje wymagające kluczy będą wyłączone automatycznie.
 
 ## 🧩 Najważniejsze zależności
 - FastAPI, Uvicorn, SQLAlchemy, Pydantic, Prometheus, OpenTelemetry, Redis, pytest, slowapi (rate limiting)
