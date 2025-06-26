@@ -75,11 +75,11 @@ def test_client() -> TestClient:
 
 # Mock external services for tests
 @pytest.fixture(autouse=True)
-def mock_external_services():
+def mock_external_services(request):
     """Mock external services to avoid real API calls during tests."""
-    with patch("backend.core.llm_client.llm_client.generate_stream_from_prompt_async") as mock_llm:
-        mock_llm.return_value = iter([{"response": "Test response from LLM"}])
-        
+    # Check if we're testing real LLM models
+    if request.node.get_closest_marker("real_llm") or os.environ.get("TEST_REAL_LLM"):
+        # Don't mock LLM for real model tests
         with patch("backend.core.perplexity_client.perplexity_client.search") as mock_search:
             mock_search.return_value = {
                 "results": [{"title": "Test news", "snippet": "Test news content"}]
@@ -89,6 +89,20 @@ def mock_external_services():
                 mock_ocr.return_value = "FAKE_OCR_TEXT_FROM_RECEIPT"
                 
                 yield
+    else:
+        # Mock everything for regular tests
+        with patch("backend.core.llm_client.llm_client.generate_stream_from_prompt_async") as mock_llm:
+            mock_llm.return_value = iter([{"response": "Test response from LLM"}])
+            
+            with patch("backend.core.perplexity_client.perplexity_client.search") as mock_search:
+                mock_search.return_value = {
+                    "results": [{"title": "Test news", "snippet": "Test news content"}]
+                }
+                
+                with patch("backend.core.ocr._extract_text_from_image_obj") as mock_ocr:
+                    mock_ocr.return_value = "FAKE_OCR_TEXT_FROM_RECEIPT"
+                    
+                    yield
 
 
 @pytest.fixture

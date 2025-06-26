@@ -47,21 +47,16 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Modele językowe - z fallback na działające modele
-    OLLAMA_MODEL: str = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Główny model
-    DEFAULT_CODE_MODEL: str = (
-        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Fallback zamiast problematycznego bielik
-    )
-    DEFAULT_CHAT_MODEL: str = (
-        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Model do ogólnej konwersacji
-    )
+    OLLAMA_MODEL: str = "mistral:7b"  # Główny model
+    DEFAULT_CODE_MODEL: str = "mistral:7b"  # Model do kodu
+    DEFAULT_CHAT_MODEL: str = "mistral:7b"  # Model do ogólnej konwersacji
     DEFAULT_EMBEDDING_MODEL: str = "nomic-embed-text"  # Model do embeddingów
 
     # Lista dostępnych modeli (w kolejności preferencji)
     AVAILABLE_MODELS: list = [
-        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",  # Główny model
-        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",  # Jedyny dostępny model
-        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",  # Jedyny dostępny model
-        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",  # Jedyny dostępny model
+        "mistral:7b",  # Główny model
+        "llama3.2:3b",  # Fallback model
+        "SpeakLeash/bielik-1.5b-v3.0-instruct:FP16",  # Polski model
     ]
 
     # Konfiguracja dla modelu MMLW (opcjonalny, lepszy dla języka polskiego)

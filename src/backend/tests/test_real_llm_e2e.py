@@ -26,6 +26,7 @@ from backend.models.rag_document import RAGDocument
 from datetime import date
 
 
+@pytest.mark.real_llm
 class TestRealLLME2E:
     """Testy E2E z rzeczywistymi modelami LLM"""
     
@@ -722,6 +723,72 @@ class TestRealLLME2E:
         
         print("✅ FINALNY TEST INTEGRACJI ZAKOŃCZONY SUKCESEM!")
         print("🎉 System AI działa poprawnie z rzeczywistymi modelami LLM!")
+
+    @pytest.mark.asyncio
+    async def test_async_generator_conversion(self, test_client):
+        """Test that sync generator is properly converted to async generator."""
+        from backend.core.llm_client import llm_client
+        import inspect
+        
+        # Patch _stream_response to always return a new generator
+        def mock_sync_gen(*args, **kwargs):
+            for i in range(3):
+                yield {"message": {"content": f"chunk {i}"}}
+        llm_client._stream_response = mock_sync_gen
+        
+        # Diagnostic: check what type of object is returned
+        gen = llm_client.generate_stream_from_prompt_async("test prompt", "mistral:7b")
+        print(f"Type of returned object: {type(gen)}")
+        print(f"Has __aiter__: {hasattr(gen, '__aiter__')}")
+        print(f"Is async generator: {inspect.isasyncgen(gen)}")
+        print(f"Dir: {[attr for attr in dir(gen) if not attr.startswith('_')]}")
+        
+        # Test async generator
+        chunks = []
+        async for chunk in llm_client.generate_stream_from_prompt_async("test prompt", "mistral:7b"):
+            chunks.append(chunk)
+        
+        assert len(chunks) == 3
+        assert chunks[0]["message"]["content"] == "chunk 0"
+        assert chunks[1]["message"]["content"] == "chunk 1"
+        assert chunks[2]["message"]["content"] == "chunk 2"
+        print(f"✅ Async generator conversion test passed - {len(chunks)} chunks received")
+
+    @pytest.mark.asyncio
+    async def test_ollama_client_direct(self, test_client):
+        """Test ollama_client.chat() directly to see what it returns."""
+        import ollama
+        from backend.core.llm_client import ollama_client
+        from backend.config import settings
+        
+        print(f"Testing ollama_client directly...")
+        print(f"ollama_client type: {type(ollama_client)}")
+        print(f"OLLAMA_URL from settings: {settings.OLLAMA_URL}")
+        
+        try:
+            # Test direct ollama_client.chat() call
+            messages = [{"role": "user", "content": "Hello"}]
+            stream = ollama_client.chat(
+                model="mistral:7b",
+                messages=messages,
+                stream=True
+            )
+            
+            print(f"ollama_client.chat() returned type: {type(stream)}")
+            print(f"Is generator: {hasattr(stream, '__iter__')}")
+            print(f"Is async generator: {hasattr(stream, '__aiter__')}")
+            
+            # Test first chunk
+            try:
+                first_chunk = next(stream)
+                print(f"First chunk: {first_chunk}")
+            except Exception as e:
+                print(f"Error getting first chunk: {e}")
+                
+        except Exception as e:
+            print(f"Error in ollama_client.chat(): {e}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
 
 
 if __name__ == "__main__":

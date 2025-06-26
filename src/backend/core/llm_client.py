@@ -261,68 +261,54 @@ class EnhancedLLMClient:
 
             return fallback_response
 
+    async def _convert_to_async_generator(self, sync_gen):
+        """Helper method to properly convert sync generator to async."""
+        try:
+            for item in sync_gen:
+                yield item
+                await asyncio.sleep(0)  # Allow other coroutines to run
+        except Exception as e:
+            logger.error(f"Error in async generator conversion: {e}")
+            raise
+
     def _stream_response(
         self, model: str, messages: List[Dict[str, str]], options: Dict[str, Any], original_messages: Optional[List[Dict[str, str]]] = None
     ) -> Generator[Dict[str, Any], None, None]:
-        """Stream response from LLM"""
-        start_time = time.time()
-        if original_messages is None:
-            original_messages = messages
-        # Log prompt for streaming
-        logger.info(
-            "ollama_prompt",
-            model=model,
-            messages=original_messages,
-            options=options,
-            stream=True,
-            timestamp=datetime.now().isoformat(),
-        )
+        """
+        Synchronous streaming using Ollama client.
+        Returns a proper generator for streaming responses.
+        """
         try:
-            # Call Ollama's streaming API - this returns a synchronous generator
-            response_stream = ollama_client.chat(
+            logger.debug(f"Starting _stream_response for model: {model}")
+            logger.debug(f"Messages count: {len(messages)}")
+            logger.debug(f"Options: {options}")
+            
+            # Używaj stream=True dla streamingu z Ollama
+            stream = ollama_client.chat(
                 model=model,
-                messages=[
-                    {"role": m["role"], "content": m["content"]} for m in messages
-                ],
-                options=options,
+                messages=messages,
                 stream=True,
+                **options
             )
-
-            # Process and yield each chunk synchronously
-            full_response = ""
-            for chunk in response_stream:
-                content = chunk["message"]["content"]
-                full_response += content
-                yield {
-                    "message": {
-                        "role": "assistant",
-                        "content": content,
-                    },
-                    "response": content,
-                }
-            # Log full response after streaming
-            logger.info(
-                "ollama_response",
-                model=model,
-                messages=original_messages,
-                options=options,
-                response=full_response,
-                duration=time.time() - start_time,
-                timestamp=datetime.now().isoformat(),
-            )
-
+            
+            logger.debug(f"Ollama stream type: {type(stream)}")
+            logger.debug(f"Ollama stream is generator: {inspect.isgenerator(stream)}")
+            
+            # Ollama zwraca iterator, nie async generator
+            chunk_count = 0
+            for chunk in stream:
+                chunk_count += 1
+                logger.debug(f"Ollama chunk {chunk_count}: {type(chunk)}")
+                yield chunk
+            
+            logger.debug(f"Total Ollama chunks: {chunk_count}")
+            
         except Exception as e:
-            self.last_error = str(e)
-            self.error_count += 1
-            logger.error(f"Error in streaming LLM request to {model}: {str(e)}")
-
-            # Yield a fallback response instead of an error
-            fallback_message = "I'm sorry, but I'm currently unable to process your request. Please try again later."
-            yield {
-                "message": {"role": "assistant", "content": fallback_message},
-                "response": fallback_message,
-                "error": str(e),
-            }
+            logger.error(f"Error in Ollama streaming: {e}")
+            logger.error(f"Error type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
     async def embed(
         self, model: str, text: str, options: Optional[Dict[str, Any]] = None
@@ -423,8 +409,6 @@ class EnhancedLLMClient:
         Async version of generate_stream_from_prompt for FastAPI compatibility.
         Converts synchronous generator to asynchronous generator.
         """
-        import inspect
-        
         # Walidacja prompt
         if not prompt or prompt.strip() == "":
             logger.error("Empty or null prompt provided to generate_stream_from_prompt_async")
@@ -435,40 +419,13 @@ class EnhancedLLMClient:
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
-
-        # Debug: sprawdź typ obiektu zwracanego przez _stream_response
-        logger.debug(f"Calling _stream_response with model={model}, messages={messages}")
-        logger.debug(f"Self object: {self}")
-        logger.debug(f"Self type: {type(self)}")
         
-        try:
-            # Get the synchronous generator
-            sync_generator = self._stream_response(model, messages, options or {})
-            
-            # Debug: sprawdź typ zwracanego obiektu
-            logger.debug(f"_stream_response returned: {type(sync_generator)}")
-            logger.debug(f"Is generator: {inspect.isgenerator(sync_generator)}")
-            
-            # Validate that we got a generator
-            if not inspect.isgenerator(sync_generator):
-                logger.error(f"Expected generator, got {type(sync_generator)}")
-                yield {"error": "Internal error: invalid generator type"}
-                return
-
-            # Convert to async generator - simpler approach
-            try:
-                for chunk in sync_generator:
-                    yield chunk
-            except StopIteration:
-                # Handle normal generator completion
-                return
-            except Exception as e:
-                logger.error(f"Error in async streaming: {e}")
-                yield {"error": f"Streaming error: {str(e)}"}
-                
-        except Exception as e:
-            logger.error(f"Error in generate_stream_from_prompt_async: {e}")
-            yield {"error": f"LLM client error: {str(e)}"}
+        sync_generator = self._stream_response(model, messages, options or {})
+        await asyncio.sleep(0)  # Ensure this is always an async generator
+        for chunk in sync_generator:
+            yield chunk
+            await asyncio.sleep(0)
+        # No return here – ensures this is a true async generator
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the LLM client"""
