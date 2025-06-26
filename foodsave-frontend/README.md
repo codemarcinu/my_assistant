@@ -100,14 +100,14 @@ npm >= 9
 
 ### Instalacja
 ```bash
-cd myappassistant-chat-frontend
+cd foodsave-frontend
 npm install
 ```
 
 ### Development
 ```bash
 npm run dev
-# Otwórz http://localhost:5173
+# Otwórz http://localhost:3000
 ```
 
 ### Build
@@ -116,7 +116,13 @@ npm run build
 npm run preview
 ```
 
-### Docker
+### Docker Compose
+
+- Frontend uruchamiany jest przez `docker-compose.yaml` z katalogu głównego projektu.
+- Port domyślny: 3000
+- Hot reload i healthcheck w trybie dev.
+
+### Docker (standalone)
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app

@@ -18,45 +18,41 @@ AIASISSTMARUBO/
 │   ├── tests/
 │   └── ...
 ├── docker-compose.yaml    # Główna konfiguracja usług
-├── pyproject.toml         # Konfiguracja backendu (Poetry)
+├── .env.example           # Wzorcowy plik środowiskowy
+├── .env                   # Twój plik środowiskowy (NIE commituj!)
+├── run_project.sh         # Skrypt uruchamiający całość
 ├── README.md
 └── ...
 ```
 
 ## 🚀 Szybki Start
 
-### ⚠️ Ważne: Frontend znajduje się w katalogu `foodsave-frontend/`!
+### 1. Przygotowanie środowiska
 
-### Instalacja wszystkich zależności
+- Wymagane: Docker, Docker Compose, Node.js >= 18, Python >= 3.12
+- Skopiuj plik środowiskowy:
 ```bash
-npm run install:all
+cp .env.example .env
+```
+- (Opcjonalnie) Uzupełnij .env swoimi kluczami API, hasłami itp.
+
+### 2. Uruchomienie wszystkich usług
+
+**Najprościej:**
+```bash
+./run_project.sh
 ```
 
-### Backend (Python)
+**Ręcznie:**
 ```bash
-npm run dev:backend
-# lub ręcznie:
-cd src/backend
-poetry install
-PYTHONPATH=src pytest tests
+docker-compose up -d --build
 ```
 
-### Frontend (React)
-```bash
-npm run dev:frontend
-# lub ręcznie:
-cd foodsave-frontend
-npm install
-npm run dev
-```
-
-### Testy E2E
-```bash
-npm run test:e2e
-# lub ręcznie:
-cd foodsave-frontend
-npm run test:e2e
-```
+### 3. Dostęp do aplikacji
+- Backend API:     http://localhost:8000
+- Frontend:        http://localhost:3000
+- API Docs:        http://localhost:8000/docs
+- Health Check:    http://localhost:8000/health
 
 ## 📋 Dostępne Skrypty
 
@@ -70,43 +66,6 @@ npm run build:frontend   # Buduje frontend do produkcji
 npm run clean            # Czyści node_modules z obu katalogów
 ```
 
-## ❌ Typowe Błędy i Rozwiązania
-
-### Błąd: "Missing script: dev"
-```
-npm ERR! Missing script: "dev"
-```
-**Rozwiązanie:** Upewnij się, że jesteś w katalogu `foodsave-frontend/`:
-```bash
-cd foodsave-frontend
-npm run dev
-```
-
-### Błąd: "Command not found: python"
-**Rozwiązanie:** Zainstaluj Python lub użyj `python3`:
-```bash
-cd src/backend
-python3 -m uvicorn src.main:app --reload
-```
-
-### Błąd: "Module not found"
-**Rozwiązanie:** Zainstaluj zależności:
-```bash
-# Backend
-cd src/backend
-poetry install
-
-# Frontend
-cd foodsave-frontend
-npm install
-```
-
-## 📚 Dokumentacja
-
-- [Backend README](src/backend/README.md)
-- [Frontend README](foodsave-frontend/README.md)
-- [Development Roadmap](foodsave-frontend/DEVELOPMENT_ROADMAP.md)
-
 ## 🧪 Testowanie
 
 ```bash
@@ -116,71 +75,19 @@ cd src/backend          # Testy backendu
 poetry run pytest
 ```
 
-## 🐳 Docker
+## 🐳 Docker Compose
 
-```bash
-cd src/backend
-docker-compose up -d
-```
+- Wszystkie usługi (backend, frontend, postgres, redis, ollama, monitoring) uruchamiane są przez `docker-compose.yaml`.
+- Każdy serwis ma zdefiniowany healthcheck.
+- Frontend budowany jest z katalogu `foodsave-frontend`.
 
 ## 🧪 Best Practices for Async Tests
 
-- Every async test function **must** be decorated with `@pytest.mark.asyncio`:
-
-```python
-import pytest
-
-@pytest.mark.asyncio
-async def test_example():
-    ...
-```
-
-- This ensures proper execution and compatibility with pytest-asyncio.
-- Run all tests with:
-
-```bash
-poetry run pytest
-```
-
-- Run coverage:
-
-```bash
-poetry run pytest --cov=src --cov-report=html
-```
+- Każda funkcja async testowana pytestem musi mieć dekorator `@pytest.mark.asyncio`.
 
 ## 📄 Licencja
 
-MIT License - zobacz plik [LICENSE](src/backend/LICENSE) dla szczegółów. 
-
-## Uruchamianie backendu
-
-```bash
-cd src/backend
-poetry install
-PYTHONPATH=src pytest tests
-```
-
-## Uruchamianie frontendu
-
-```bash
-cd foodsave-frontend
-npm install
-npm run dev
-```
-
-## Testy backendu
-
-```bash
-cd src/backend
-PYTHONPATH=src pytest tests --cov=src --cov-report=html
-```
-
-## Testy frontendu
-
-```bash
-cd foodsave-frontend
-npm run test
-```
+MIT License - zobacz plik [LICENSE](src/backend/LICENSE) dla szczegółów.
 
 ## Zasady i dobre praktyki
 - Kod backendu tylko w `src/backend/`, testy w `src/backend/tests/`
@@ -190,4 +97,4 @@ npm run test
 
 ---
 
-Zaktualizowano strukturę projektu i dokumentację zgodnie z najlepszymi praktykami. 
+Zaktualizowano dokumentację zgodnie z najnowszą strukturą i zaleceniami. 

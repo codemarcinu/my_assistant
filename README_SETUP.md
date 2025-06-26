@@ -49,12 +49,12 @@ AIASISSTMARUBO/
 │   ├── models/                # SQLAlchemy + Pydantic models
 │   ├── services/              # Business logic
 │   └── tests/                 # Unit + integration tests
-├── myappassistant-chat-frontend/  # Next.js 14 (TypeScript strict)
+├── foodsave-frontend/         # Next.js 14 (TypeScript strict)
 │   └── tests/                 # Jest + Playwright tests
 ├── docker-compose.yaml        # Complete services + healthchecks
-├── .env.example              # Required environment variables
-├── pytest.ini               # Test configuration
-└── run_project.sh           # Startup script
+├── .env.example               # Required environment variables
+├── pytest.ini                 # Test configuration
+└── run_project.sh             # Startup script
 ```
 
 ## 🔧 Development Setup
@@ -62,7 +62,7 @@ AIASISSTMARUBO/
 ### Backend Development
 
 ```bash
-cd myappassistant
+cd src/backend
 
 # Install dependencies
 poetry install
@@ -71,13 +71,13 @@ poetry install
 poetry run pytest
 
 # Run with hot reload
-poetry run uvicorn src.backend.main:app --reload --host 0.0.0.0 --port 8000
+poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend Development
 
 ```bash
-cd myappassistant/myappassistant-chat-frontend
+cd foodsave-frontend
 
 # Install dependencies
 npm install
@@ -110,7 +110,7 @@ async def test_example():
 - Przykład uruchomienia testów:
 
 ```bash
-cd myappassistant
+cd src/backend
 poetry run pytest
 poetry run pytest --cov=src --cov-report=html
 ```
@@ -126,7 +126,7 @@ poetry run pytest -m e2e
 ### Frontend Tests
 
 ```bash
-cd myappassistant/myappassistant-chat-frontend
+cd foodsave-frontend
 
 # Unit tests
 npm run test
@@ -228,7 +228,7 @@ docker compose down --rmi all
 
 Before deploying to production:
 
-- [ ] Run `./myappassistant/scripts/pr_checklist.sh`
+- [ ] Run `./scripts/pr_checklist.sh`
 - [ ] All tests pass (`poetry run pytest`)
 - [ ] Type checking passes (`npm run type-check`)
 - [ ] No TODO/FIXME in code
@@ -243,7 +243,7 @@ Before deploying to production:
 2. Write tests for new features
 3. Use type hints and Pydantic models
 4. Follow the project structure
-5. Run validation: `python3 myappassistant/scripts/validate_rules.py`
+5. Run validation: `python3 scripts/validate_rules.py`
 
 ## 📄 License
 
