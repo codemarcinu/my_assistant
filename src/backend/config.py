@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
 
     # Redis Configuration
-    REDIS_HOST: str = "redis"
-    REDIS_PORT: int = 6379
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6380
     REDIS_DB: int = 0
     REDIS_PASSWORD: str = ""
     REDIS_USE_CACHE: bool = True

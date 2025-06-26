@@ -169,11 +169,10 @@ async def chat_with_model_stream(request: Request) -> StreamingResponse:
         )
     
     model = body.get("model") or get_selected_model()
-    gen = chat_response_generator(prompt, model)
-    if inspect.iscoroutine(gen) or inspect.isawaitable(gen):
-        raise RuntimeError("chat_response_generator returned coroutine instead of async generator! Popraw implementację generatora.")
+    
+    # ✅ FIXED: chat_response_generator is already an async generator, no need for inspection
     return StreamingResponse(
-        gen, 
+        chat_response_generator(prompt, model), 
         media_type="text/plain"
     )
 
@@ -298,4 +297,93 @@ async def test_chat_simple(request: ChatRequest) -> Dict[str, Any]:
         "response": f"Test response for: {request.message}",
         "success": True,
         "metadata": {"test": True}
-    } 
+    }
+
+
+@router.get("/memory_chat")
+async def get_chat_history(
+    session_id: str = "default",
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Get chat history for a session"""
+    try:
+        # Get orchestrator to access memory manager
+        orchestrator = await orchestrator_pool.get_healthy_orchestrator()
+        if not orchestrator:
+            return {
+                "success": False,
+                "error": "No healthy orchestrator available",
+                "data": []
+            }
+        
+        # Get context from memory manager
+        context = await orchestrator.memory_manager.get_context(session_id)
+        
+        # Extract chat history from context
+        history = []
+        if hasattr(context, 'history') and context.history:
+            # Take last 'limit' items
+            recent_history = context.history[-limit:] if limit > 0 else context.history
+            
+            for i, entry in enumerate(recent_history):
+                if isinstance(entry, dict) and 'data' in entry:
+                    data = entry['data']
+                    if isinstance(data, dict):
+                        # Extract message content from various possible formats
+                        content = data.get('message') or data.get('content') or data.get('text', '')
+                        role = data.get('role') or data.get('type', 'user')
+                        
+                        history.append({
+                            "id": f"history-{i}",
+                            "content": content,
+                            "type": role,
+                            "timestamp": entry.get('timestamp', datetime.now().isoformat()),
+                            "metadata": data
+                        })
+        
+        return {
+            "success": True,
+            "data": history,
+            "session_id": session_id,
+            "total_count": len(history)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting chat history: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "data": []
+        }
+
+
+@router.delete("/memory_chat")
+async def clear_chat_history(
+    session_id: str = "default",
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Clear chat history for a session"""
+    try:
+        # Get orchestrator to access memory manager
+        orchestrator = await orchestrator_pool.get_healthy_orchestrator()
+        if not orchestrator:
+            return {
+                "success": False,
+                "error": "No healthy orchestrator available"
+            }
+        
+        # Clear context from memory manager
+        await orchestrator.memory_manager.clear_context(session_id)
+        
+        return {
+            "success": True,
+            "message": f"Chat history cleared for session: {session_id}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error clearing chat history: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        } 

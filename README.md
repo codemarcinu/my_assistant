@@ -54,6 +54,45 @@ docker-compose up -d --build
 - API Docs:        http://localhost:8000/docs
 - Health Check:    http://localhost:8000/health
 
+## 🔧 Naprawy i Ulepszenia (v1.1.0)
+
+### ✅ Naprawione problemy:
+- **Błąd bazy danych**: Naprawiono `AsyncAdaptedQueuePool` - usunięto nieistniejący atrybut `'invalid'`
+- **Generator odpowiedzi**: Naprawiono async generator w `/chat/stream` endpoint
+- **Health checks**: Wszystkie kontenery teraz przechodzą health checks ✅
+- **Redis konfiguracja**: Poprawiono host i port dla kontenera
+- **Zależności**: Dodano brakujące pakiety (`langdetect`, `sentence-transformers`, `redis`)
+
+### 📊 Aktualny stan systemu:
+```bash
+# Wszystkie główne usługi działają poprawnie:
+- foodsave-frontend:    ✅ healthy
+- foodsave-backend:     ✅ healthy  
+- foodsave-postgres:    ✅ healthy
+- foodsave-ollama:      ✅ healthy
+- foodsave-redis:       ✅ healthy
+```
+
+## 🛠️ Troubleshooting
+
+### Sprawdzenie stanu systemu:
+```bash
+# Sprawdź status kontenerów
+docker ps
+
+# Sprawdź health backendu
+curl http://localhost:8000/health
+
+# Sprawdź logi
+docker logs foodsave-backend --tail 50
+docker logs foodsave-frontend --tail 50
+```
+
+### Częste problemy:
+1. **Kontenery unhealthy**: Zwiększono `start_period` w health checks
+2. **Błędy Redis**: Sprawdź czy Redis działa na porcie 6380
+3. **Błędy bazy danych**: Sprawdź logi PostgreSQL
+
 ## 📋 Dostępne Skrypty
 
 ```bash
@@ -78,7 +117,7 @@ poetry run pytest
 ## 🐳 Docker Compose
 
 - Wszystkie usługi (backend, frontend, postgres, redis, ollama, monitoring) uruchamiane są przez `docker-compose.yaml`.
-- Każdy serwis ma zdefiniowany healthcheck.
+- Każdy serwis ma zdefiniowany healthcheck z odpowiednimi timeoutami.
 - Frontend budowany jest z katalogu `foodsave-frontend`.
 
 ## 🧪 Best Practices for Async Tests
@@ -97,4 +136,4 @@ MIT License - zobacz plik [LICENSE](src/backend/LICENSE) dla szczegółów.
 
 ---
 
-Zaktualizowano dokumentację zgodnie z najnowszą strukturą i zaleceniami. 
+**Ostatnia aktualizacja**: 2025-06-26 - Naprawy stabilności systemu v1.1.0 
