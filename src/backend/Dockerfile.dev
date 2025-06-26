@@ -1,0 +1,54 @@
+# Stage 1: Base image with Python and Poetry
+FROM python:3.12-slim as base
+
+# Prevents Python from writing pyc files.
+ENV PYTHONDONTWRITEBYTECODE 1
+# Ensures Python output is sent straight to the terminal without buffering.
+ENV PYTHONUNBUFFERED 1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
+# Add Poetry to PATH
+ENV PATH="/root/.local/bin:$PATH"
+
+WORKDIR /app
+
+# Stage 2: Install dependencies
+FROM base as dependencies
+
+# Copy only files required for dependency installation
+COPY pyproject.toml poetry.lock ./
+
+# Install dependencies, without creating a virtualenv in the project
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-root --only main --no-interaction --no-ansi
+
+# Install OpenTelemetry packages
+RUN pip install --no-cache-dir \
+    opentelemetry-api==1.21.0 \
+    opentelemetry-sdk==1.21.0 \
+    opentelemetry-instrumentation-fastapi==0.42b0 \
+    opentelemetry-instrumentation-sqlalchemy==0.42b0 \
+    opentelemetry-instrumentation-httpx==0.42b0 \
+    opentelemetry-exporter-jaeger==1.21.0 \
+    prometheus-client==0.19.0 \
+    prometheus-fastapi-instrumentator==6.1.0
+
+# Stage 3: Application image
+FROM dependencies as application
+
+# Copy the entire application source code
+COPY . .
+
+# Ensure the main.py file uses the correct import path
+RUN echo 'from backend.app_factory import create_app\napp = create_app()' > main.py
+
+# Command to run the application
+CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
