@@ -2,7 +2,7 @@ import asyncio
 import os
 import time
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union, Generator
 
 import ollama
 import requests  # type: ignore
@@ -265,9 +265,9 @@ class EnhancedLLMClient:
 
             return fallback_response
 
-    async def _stream_response(
+    def _stream_response(
         self, model: str, messages: List[Dict[str, str]], options: Dict[str, Any], original_messages: Optional[List[Dict[str, str]]] = None
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> Generator[Dict[str, Any], None, None]:
         """Stream response from LLM"""
         start_time = time.time()
         if original_messages is None:
@@ -282,7 +282,7 @@ class EnhancedLLMClient:
             timestamp=datetime.now().isoformat(),
         )
         try:
-            # Call Ollama's streaming API - no await needed for stream=True
+            # Call Ollama's streaming API - this returns a synchronous generator
             response_stream = ollama_client.chat(
                 model=model,
                 messages=[
@@ -292,7 +292,7 @@ class EnhancedLLMClient:
                 stream=True,
             )
 
-            # Process and yield each chunk
+            # Process and yield each chunk synchronously
             full_response = ""
             for chunk in response_stream:
                 content = chunk["message"]["content"]
@@ -390,30 +390,30 @@ class EnhancedLLMClient:
             logger.error(f"Error getting models: {str(e)}")
             return []
 
-    async def generate_stream(
+    def generate_stream(
         self,
         model: str,
         messages: List[Dict[str, str]],
         options: Optional[Dict[str, Any]] = None,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> Generator[Dict[str, Any], None, None]:
         """Generate streaming response from model"""
-        async for chunk in self._stream_response(model, messages, options or {}):
+        for chunk in self._stream_response(model, messages, options or {}):
             yield chunk
 
-    async def generate_stream_from_prompt(
+    def generate_stream_from_prompt(
         self,
         model: str,
         prompt: str,
         system_prompt: str = "",
         options: Optional[Dict[str, Any]] = None,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> Generator[Dict[str, Any], None, None]:
         """Generate streaming response from prompt and system prompt"""
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        async for chunk in self._stream_response(model, messages, options or {}):
+        for chunk in self._stream_response(model, messages, options or {}):
             yield chunk
 
     def get_health_status(self) -> Dict[str, Any]:

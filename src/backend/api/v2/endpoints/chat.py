@@ -7,7 +7,9 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, cast
+from typing import Any, AsyncGenerator, Dict, cast, Generator
+import queue
+import threading
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import StreamingResponse
@@ -96,24 +98,27 @@ llm_circuit_breaker = CircuitBreakerConfig(
 @with_backpressure(max_concurrent=20)
 async def chat_response_generator(prompt: str, model: str) -> AsyncGenerator[str, None]:
     """
-    Asynchroniczny generator. Pobiera kawałki odpowiedzi od klienta
-    Ollama i od razu przesyła je dalej (yield).
+    Asynchroniczny generator streamujący odpowiedzi LLM do FastAPI (zgodny z najlepszymi praktykami).
     """
-    try:
-        async with timeout_context(30.0):  # 30 second timeout
-            async for chunk in llm_client.generate_stream_from_prompt(
-                model=model, prompt=prompt, system_prompt=""
-            ):
-                if not isinstance(chunk, dict):
-                    continue
-                chunk_dict = cast(Dict[str, Any], chunk)
-                if "response" in chunk_dict:
-                    yield chunk_dict["response"]
-    except Exception as e:
-        logger.error(f"Błąd podczas streamowania: {e}")
-        yield f"Wystąpił błąd serwera: {str(e)}"
-    # Jeśli nie było żadnego yielda (np. pusta odpowiedź)
-    yield "[Brak odpowiedzi od modelu]"
+    q: queue.Queue = queue.Queue()
+    sentinel = object()
+
+    def sync_gen():
+        for chunk in llm_client.generate_stream_from_prompt(model=model, prompt=prompt, system_prompt=""):
+            if not isinstance(chunk, dict):
+                continue
+            chunk_dict = cast(Dict[str, Any], chunk)
+            if "response" in chunk_dict:
+                q.put(chunk_dict["response"])
+        q.put(sentinel)
+
+    threading.Thread(target=sync_gen, daemon=True).start()
+    loop = asyncio.get_event_loop()
+    while True:
+        chunk = await loop.run_in_executor(None, q.get)
+        if chunk is sentinel:
+            break
+        yield chunk
 
 
 @router.post("/chat")
