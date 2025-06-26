@@ -120,6 +120,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     cache_manager = CacheManager()
     await cache_manager.connect()
 
+    # Initialize MMLW embeddings if enabled
+    if settings.USE_MMLW_EMBEDDINGS:
+        try:
+            from backend.core.mmlw_embedding_client import mmlw_client
+            logger.info("Initializing MMLW embeddings...")
+            await mmlw_client.initialize()
+            if mmlw_client.is_available():
+                logger.info("MMLW embeddings initialized successfully")
+            else:
+                logger.warning("MMLW embeddings initialization failed")
+        except Exception as e:
+            logger.error(f"Failed to initialize MMLW embeddings: {e}")
+
     logger.info("Initializing orchestrator pool and request queue...")
     # Initialize orchestrator pool with default orchestrator
     async for db in get_db():

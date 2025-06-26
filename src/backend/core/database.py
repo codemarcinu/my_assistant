@@ -19,8 +19,10 @@ engine = create_async_engine(
     echo=False,  # Disable SQL logging in production
     pool_pre_ping=True,  # Verify connections before use
     pool_recycle=3600,  # Recycle connections after 1 hour
-    pool_size=10,  # Connection pool size
-    max_overflow=20,  # Maximum overflow connections
+    pool_size=20,  # Increased connection pool size (was 10)
+    max_overflow=40,  # Increased maximum overflow connections (was 20)
+    pool_timeout=30,  # Connection timeout in seconds
+    pool_reset_on_return='commit',  # Reset connections on return
 )
 
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)

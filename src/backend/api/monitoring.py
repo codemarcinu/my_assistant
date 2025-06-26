@@ -96,7 +96,7 @@ async def check_external_apis_health() -> Dict[str, Any]:
 
         mmlw_status = await mmlw_client.health_check()
         api_status["mmlw"] = {
-            "status": "healthy" if mmlw_status.get("status") == "ok" else "unhealthy",
+            "status": "healthy" if mmlw_status.get("is_available", False) else "unhealthy",
             "details": mmlw_status,
             "last_check": datetime.now().isoformat(),
         }
