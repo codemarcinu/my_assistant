@@ -170,27 +170,10 @@ class WebSearchClient:
             {
                 "name": "wikipedia",
                 "enabled": True,
-                "api_key_env_var": "WIKIPEDIA_API_KEY",  # Optional
+                "api_key_env_var": "",
                 "base_url": WIKIPEDIA_API_BASE,
                 "priority": 1,
                 "whitelist": ["wikipedia.org"],
-            },
-            {
-                "name": "newsapi",
-                "enabled": True,
-                "api_key_env_var": "NEWS_API_KEY",
-                "base_url": "https://newsapi.org/v2",
-                "quota_per_day": 100,
-                "priority": 2,
-                "whitelist": ["bbc.co.uk", "cnn.com", "reuters.com", "nytimes.com"],
-            },
-            {
-                "name": "bing",
-                "enabled": True,
-                "api_key_env_var": "BING_SEARCH_API_KEY",
-                "base_url": "https://api.bing.microsoft.com/v7.0/search",
-                "quota_per_minute": 3,
-                "priority": 3,
             },
         ]
 

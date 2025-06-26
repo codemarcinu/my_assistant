@@ -125,9 +125,7 @@ class WeatherAgent(BaseAgent):
                 provider.api_key = "mock_key"
                 continue
 
-            if provider.api_key_env_var == "WEATHER_API_KEY":
-                provider.api_key = settings.OPENWEATHER_API_KEY
-            elif provider.api_key_env_var == "OPENWEATHER_API_KEY":
+            if provider.api_key_env_var == "OPENWEATHER_API_KEY":
                 provider.api_key = settings.OPENWEATHER_API_KEY
                 if (
                     provider.api_key

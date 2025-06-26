@@ -79,7 +79,6 @@ class Settings(BaseSettings):
     # API keys for external services
     LLM_API_KEY: str = ""
     OPENWEATHER_API_KEY: str = ""
-    WEATHER_API_KEY: str = ""  # For WeatherAPI.com
     PERPLEXITY_API_KEY: str = ""
 
     # Konfiguracja Tesseract OCR
