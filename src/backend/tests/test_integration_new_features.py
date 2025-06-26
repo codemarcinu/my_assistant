@@ -87,10 +87,10 @@ class TestIntegrationNewFeatures:
         """Test complete flow using Bielik model"""
         query = "What is the weather like today?"
 
-        with patch("src.backend.core.llm_client.llm_client.chat") as mock_llm, patch(
-            "src.backend.agents.general_conversation_agent.vector_store"
+        with patch("backend.core.llm_client.llm_client.chat") as mock_llm, patch(
+            "backend.agents.general_conversation_agent.vector_store"
         ) as mock_vector_store, patch(
-            "src.backend.agents.general_conversation_agent.perplexity_client"
+            "backend.agents.general_conversation_agent.perplexity_client"
         ) as mock_perplexity:
 
             # Mock LLM responses
@@ -125,10 +125,10 @@ class TestIntegrationNewFeatures:
         """Test complete flow using Gemma model"""
         query = "How to cook pasta?"
 
-        with patch("src.backend.core.llm_client.llm_client.chat") as mock_llm, patch(
-            "src.backend.agents.general_conversation_agent.vector_store"
+        with patch("backend.core.llm_client.llm_client.chat") as mock_llm, patch(
+            "backend.agents.general_conversation_agent.vector_store"
         ) as mock_vector_store, patch(
-            "src.backend.agents.general_conversation_agent.perplexity_client"
+            "backend.agents.general_conversation_agent.perplexity_client"
         ) as mock_perplexity:
 
             # Mock LLM responses
@@ -169,7 +169,7 @@ class TestIntegrationNewFeatures:
         ]
 
         for query, expected_agent_type in test_cases:
-            with patch("src.backend.core.llm_client.llm_client.chat") as mock_llm:
+            with patch("backend.core.llm_client.llm_client.chat") as mock_llm:
                 # Mock LLM to trigger fallback detection
                 mock_llm.return_value = None
 
@@ -284,7 +284,7 @@ class TestIntegrationNewFeatures:
         query = "Test query that will fail"
 
         with patch(
-            "src.backend.agents.orchestrator.Orchestrator.process_query"
+            "backend.agents.orchestrator.Orchestrator.process_query"
         ) as mock_process:
             mock_process.side_effect = Exception("Integration error")
 
@@ -302,7 +302,7 @@ class TestIntegrationNewFeatures:
 
         async def process_with_model(use_bielik) -> None:
             with patch(
-                "src.backend.core.hybrid_llm_client.hybrid_llm_client.chat"
+                "backend.core.hybrid_llm_client.hybrid_llm_client.chat"
             ) as mock_llm:
                 mock_llm.return_value = {
                     "message": {

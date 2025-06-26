@@ -129,7 +129,7 @@ class TestAgentFactoryNew:
 
         assert isinstance(agents, dict)
         assert "general_conversation" in agents
-        assert "chef" in agents
+        assert "cooking" in agents
         assert "search" in agents
         assert "weather" in agents
 

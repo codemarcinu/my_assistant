@@ -10,6 +10,7 @@ Zgodnie z regułami MDC dla testowania i monitoringu
 
 import os
 import sys
+import tracemalloc
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -19,6 +20,8 @@ from fastapi.testclient import TestClient
 from backend.core.middleware import MemoryMonitoringMiddleware
 from backend.core.telemetry import get_tracer
 
+# Włącz tracemalloc dla testów monitorowania pamięci
+tracemalloc.start()
 
 # GLOBALNY PATCH dla async_memory_profiling_context
 @pytest.fixture(autouse=True)
@@ -59,7 +62,8 @@ def app_with_memory_middleware() -> None:
     async def memory_intensive_endpoint() -> None:
         # Symulacja operacji intensywnej pamięciowo
         large_list = [i for i in range(10000)]
-        return {"count": len(large_list)}
+        # Zwracamy None zamiast dict, zgodnie z typem zwracanym
+        return None
 
     app.add_middleware(MemoryMonitoringMiddleware, enable_memory_profiling=True)
     return app
