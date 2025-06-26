@@ -416,6 +416,48 @@ class EnhancedLLMClient:
         for chunk in self._stream_response(model, messages, options or {}):
             yield chunk
 
+    async def generate_stream_from_prompt_async(
+        self,
+        model: str,
+        prompt: str,
+        system_prompt: str = "",
+        options: Optional[Dict[str, Any]] = None,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Async version of generate_stream_from_prompt for FastAPI compatibility.
+        Converts synchronous generator to asynchronous generator.
+        """
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        # Get the synchronous generator
+        sync_generator = self._stream_response(model, messages, options or {})
+        
+        # Convert to async generator using asyncio event loop
+        loop = asyncio.get_event_loop()
+        
+        try:
+            while True:
+                # Run the next iteration of the sync generator in a thread
+                chunk = await loop.run_in_executor(None, lambda: next(sync_generator))
+                yield chunk
+        except StopIteration:
+            # Generator is exhausted
+            pass
+        except Exception as e:
+            logger.error(f"Error in async streaming: {e}")
+            # Yield error response
+            yield {
+                "message": {
+                    "role": "assistant",
+                    "content": "Przepraszam, wystąpił błąd podczas przetwarzania odpowiedzi.",
+                },
+                "response": "Przepraszam, wystąpił błąd podczas przetwarzania odpowiedzi.",
+                "error": str(e),
+            }
+
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the LLM client"""
         return {
