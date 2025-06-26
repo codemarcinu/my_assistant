@@ -1,15 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Bezpieczne sprawdzanie zmiennych środowiskowych
+const isCI = process.env.CI === 'true';
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  forbidOnly: isCI,
+  retries: isCI ? 2 : 0,
+  workers: isCI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
+    actionTimeout: 10000,
+    navigationTimeout: 30000,
   },
   projects: [
     {
@@ -25,9 +30,4 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-  },
 }); 
