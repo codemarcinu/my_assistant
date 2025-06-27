@@ -40,7 +40,10 @@ const ReceiptUploadModule: React.FC<ReceiptUploadModuleProps> = ({
     setReceiptData(null);
 
     try {
-      const response = await receiptAPI.uploadReceipt(file);
+      const response = await receiptAPI.processReceipt(file);
+      
+      console.log('Receipt processing response:', response);
+      
       setReceiptData(response.data);
       onReceiptProcessed?.(response.data);
     } catch (err) {
@@ -84,12 +87,15 @@ const ReceiptUploadModule: React.FC<ReceiptUploadModuleProps> = ({
     }).format(price);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string | undefined | null) => {
+    if (!date) return 'Brak daty';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Nieprawidłowa data';
     return new Intl.DateTimeFormat('pl-PL', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
-    }).format(new Date(date));
+    }).format(d);
   };
 
   const handleAddToPantry = () => {
@@ -259,27 +265,47 @@ const ReceiptUploadModule: React.FC<ReceiptUploadModuleProps> = ({
           {/* Items Preview */}
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
             <h4 className="font-medium text-gray-900 dark:text-white mb-3">
-              Produkty ({receiptData.items.length})
+              Produkty ({Array.isArray(receiptData.items) ? receiptData.items.length : 0})
             </h4>
             
             <div className="space-y-2 max-h-32 overflow-y-auto">
-              {receiptData.items.slice(0, 5).map((item: ReceiptItem, index: number) => (
-                <div key={index} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-700 dark:text-gray-300 truncate">
-                    {item.name}
-                  </span>
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    {formatPrice(item.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
-              {receiptData.items.length > 5 && (
+              {Array.isArray(receiptData.items)
+                ? receiptData.items.slice(0, 5).map((item: ReceiptItem, index: number) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 dark:text-gray-300 truncate">
+                        {item.name}
+                      </span>
+                      <span className="text-gray-900 dark:text-white font-medium">
+                        {formatPrice(item.price * item.quantity)}
+                      </span>
+                    </div>
+                  ))
+                : <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Brak produktów</p>
+              }
+              {Array.isArray(receiptData.items) && receiptData.items.length > 5 && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                   +{receiptData.items.length - 5} więcej produktów
                 </p>
               )}
             </div>
           </div>
+
+          {/* Raw OCR Text (for debugging and fallback) */}
+          {receiptData.ocr_text && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                Rozpoznany tekst paragonu
+              </h4>
+              <div className="bg-white dark:bg-gray-700 rounded p-3 max-h-32 overflow-y-auto">
+                <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono">
+                  {receiptData.ocr_text}
+                </pre>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Jeśli produkty nie zostały rozpoznane, sprawdź powyższy tekst
+              </p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-2">

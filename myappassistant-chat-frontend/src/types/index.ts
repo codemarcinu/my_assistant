@@ -89,6 +89,7 @@ export interface ReceiptData {
   date: Date;
   imageUrl: string;
   status: ReceiptStatus;
+  ocr_text?: string; // Raw OCR text for debugging and fallback
 }
 
 export interface ReceiptItem {
@@ -117,7 +118,7 @@ export interface WeatherData {
 }
 
 export interface WeatherForecast {
-  date: Date;
+  date: string;
   temperature: {
     min: number;
     max: number;

@@ -190,7 +190,31 @@ export const receiptAPI = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    
+    // Map backend response to frontend expected format
+    const backendData = response.data.data;
+    const mappedData: ReceiptData = {
+      id: `receipt_${Date.now()}`,
+      items: backendData.analysis?.items?.map((item: any) => ({
+        name: item.name,
+        price: item.total_price,
+        quantity: item.quantity,
+        category: item.category as any
+      })) || [],
+      total: backendData.analysis?.total_amount || 0,
+      store: backendData.analysis?.store_name || 'Nieznany sklep',
+      date: new Date(backendData.analysis?.date || Date.now()),
+      imageUrl: '',
+      status: 'completed' as any,
+      ocr_text: backendData.ocr_text
+    };
+    
+    return {
+      data: mappedData,
+      status: 'success',
+      message: response.data.message,
+      timestamp: new Date().toISOString()
+    };
   },
 
   // Analyze receipt data
@@ -229,15 +253,23 @@ export const weatherAPI = {
   // Get current weather
   getCurrentWeather: async (location?: string): Promise<ApiResponse<WeatherData>> => {
     const params = location ? { locations: [location] } : { locations: ['Warszawa'] };
-    const response = await apiClient.get('/api/v2/weather/weather/', { params });
-    return response.data;
+    const response = await apiClient.get('/api/v2/weather/', { params });
+    return {
+      data: response.data,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
   },
 
   // Get weather forecast
   getForecast: async (location?: string, days: number = 7): Promise<ApiResponse<WeatherData>> => {
     const params = { locations: [location || 'Warszawa'], days };
-    const response = await apiClient.get('/api/v2/weather/weather/', { params });
-    return response.data;
+    const response = await apiClient.get('/api/v2/weather/', { params });
+    return {
+      data: response.data,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
   },
 };
 
@@ -320,42 +352,66 @@ export const ragAPI = {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await apiClient.post('/api/v2/rag/rag/upload', formData, {
+    const response = await apiClient.post('/api/v2/rag/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return {
+      data: response.data,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
   },
 
   // Get all documents
   getDocuments: async (): Promise<ApiResponse<any[]>> => {
-    const response = await apiClient.get('/api/v2/rag/rag/documents');
-    return response.data;
+    const response = await apiClient.get('/api/v2/rag/documents');
+    return {
+      data: response.data,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
   },
 
   // Search documents
   searchDocuments: async (query: string, k: number = 5): Promise<ApiResponse<any[]>> => {
-    const response = await apiClient.get(`/api/v2/rag/rag/search?query=${encodeURIComponent(query)}&k=${k}`);
-    return response.data;
+    const response = await apiClient.get(`/api/v2/rag/search?query=${encodeURIComponent(query)}&k=${k}`);
+    return {
+      data: response.data.data || response.data,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
   },
 
   // Query RAG system
   queryRAG: async (question: string): Promise<ApiResponse<any>> => {
-    const response = await apiClient.post('/api/v2/rag/rag/query', { question });
-    return response.data;
+    const response = await apiClient.post('/api/v2/rag/query', { question });
+    return {
+      data: response.data,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
   },
 
   // Delete document
   deleteDocument: async (documentId: string): Promise<ApiResponse<void>> => {
-    const response = await apiClient.delete(`/api/v2/rag/rag/documents/${documentId}`);
-    return response.data;
+    const response = await apiClient.delete(`/api/v2/rag/documents/${documentId}`);
+    return {
+      data: undefined,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
   },
 
   // Get RAG stats
   getStats: async (): Promise<ApiResponse<any>> => {
-    const response = await apiClient.get('/api/v2/rag/rag/stats');
-    return response.data;
+    const response = await apiClient.get('/api/v2/rag/stats');
+    return {
+      data: response.data.data || response.data,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
   },
 };
 
