@@ -55,7 +55,7 @@ export const useChatStore = create<ChatStore & ChatState>((set, get) => ({
     const message: ChatMessage = {
       id: Date.now().toString(),
       content: messageData.content,
-      role: messageData.role || 'user',
+      type: messageData.type || 'user',
       timestamp: new Date(),
       metadata: messageData.metadata,
     };
@@ -137,7 +137,7 @@ export const useChatStore = create<ChatStore & ChatState>((set, get) => ({
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: response.data?.content || response.message || 'Przepraszam, wystąpił błąd.',
+        content: response.data || response.message || 'Przepraszam, wystąpił błąd.',
         type: 'assistant',
         timestamp: new Date(),
       };

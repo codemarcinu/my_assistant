@@ -35,6 +35,8 @@ const PersonalDashboardPage: React.FC = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showRAGModal, setShowRAGModal] = useState(false);
   const [recentReceipts, setRecentReceipts] = useState<ReceiptData[]>([]);
+  const [aiMessage, setAiMessage] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
 
   // Mock data - w przyszłości z API
   const quickActions: QuickAction[] = [
@@ -151,6 +153,35 @@ const PersonalDashboardPage: React.FC = () => {
     setShowReceiptModal(false);
   };
 
+  const handleAskAI = async () => {
+    if (!aiMessage.trim()) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/chat/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: aiMessage
+        }),
+      });
+      
+      const data = await response.json();
+      setAiResponse(data.data || 'Przepraszam, wystąpił błąd.');
+    } catch (error) {
+      console.error('Error asking AI:', error);
+      setAiResponse('Przepraszam, wystąpił błąd komunikacji z serwerem.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuickQuestion = (question: string) => {
+    setAiMessage(question);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -262,22 +293,33 @@ const PersonalDashboardPage: React.FC = () => {
             <div className="flex-1">
               <input
                 type="text"
+                value={aiMessage}
+                onChange={(e) => setAiMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAskAI()}
                 placeholder="Ask me anything about your food, expenses, or documents..."
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <Button variant="primary" size="lg" disabled={isLoading}>
+            <Button variant="primary" size="lg" disabled={isLoading || !aiMessage.trim()} onClick={handleAskAI}>
               {isLoading ? <Spinner size="sm" /> : 'Ask'}
             </Button>
           </div>
+          
+          {aiResponse && (
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">AI Response:</h3>
+              <p className="text-blue-800 dark:text-blue-200 whitespace-pre-wrap">{aiResponse}</p>
+            </div>
+          )}
+          
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => handleQuickQuestion("What's expiring soon?")}>
               "What's expiring soon?"
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => handleQuickQuestion("Show me this month's expenses")}>
               "Show me this month's expenses"
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => handleQuickQuestion("Find recipe for chicken")}>
               "Find recipe for chicken"
             </Button>
           </div>

@@ -53,9 +53,9 @@ export default function ChatContainer() {
     return responses[Math.floor(Math.random() * responses.length)];
   };
 
-  const renderMessage = (message: Message) => {
+  const renderMessage = (message: ChatMessage) => {
     // Check if it's a concise response
-    if (message.sender === 'ai' && message.metadata?.isConcise) {
+    if (message.type === 'assistant' && message.metadata?.isConcise) {
       return (
         <ConciseResponseBubble
           key={message.id}
