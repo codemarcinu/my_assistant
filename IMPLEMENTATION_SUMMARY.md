@@ -23,9 +23,28 @@
 
 ## Szczegółowa roadmapa i zadania
 
+### ✅ Faza 1: Stabilizacja i Fundamenty (Tydzień 1-2) - ZREALIZOWANE
 - [x] Naprawa duplikatów i brakujących plików w backendzie
 - [x] Utworzenie plików search_cache.py i search_providers.py
 - [x] Aktualizacja dokumentacji (IMPLEMENTATION_SUMMARY.md, README.md, ROADMAP.md) o powyższy plan
+- [x] Rozszerzenie konfiguracji Tailwind o pełną paletę kolorów, typografię i spacing
+- [x] Migracja atomów (Button, Input, Badge, Card, Spinner) do atomic design
+- [x] Utworzenie pliku design-tokens.ts z tokenami kolorów, fontów i spacingu
+- [x] Aktualizacja Node.js z v18.19.1 do v20.19.3 (wymagane dla Storybook 9.0.13)
+- [x] Wdrożenie Storybook 9.0.13 z konfiguracją Vite + React
+- [x] Utworzenie stories dla wszystkich atomów (Button, Input, Badge, Card, Spinner)
+
+### 🔄 Faza 2: Badania i Architektura Informacji (Tydzień 3-4) - W TRAKCIE
+- [ ] User Research (wywiady, user journey mapping)
+- [ ] Architektura informacji (nawigacja, przepływy użytkownika)
+
+### ⏳ Faza 3: Accessibility & Performance (Tydzień 5-6)
+- [ ] Dostępność (testy, focus, klawiatura)
+- [ ] Optymalizacja wydajności (lazy loading, monitoring)
+
+### ⏳ Faza 4: Zaawansowane Funkcje i Launch (Tydzień 7-8)
+- [ ] AI & Community (asystent, społeczność, gamifikacja)
+- [ ] Przygotowanie do launchu (audyt, testy, dokumentacja)
 
 ---
 
@@ -219,4 +238,33 @@
 
 Wszystkie zalecenia z priorytetu wysokiego i średniego zostały **w pełni zaimplementowane** zgodnie z regułami projektu. System testów jest teraz kompleksowy, bezpieczny i wydajny, z pokryciem testami przekraczającym cele.
 
-**Status:** ✅ **ZREALIZOWANE** 
+**Status:** ✅ **ZREALIZOWANE**
+
+## 🎨 Design System - ZREALIZOWANE
+
+### Atomic Design Structure
+```
+src/components/ui/
+├── atoms/
+│   ├── Button.tsx + Button.stories.tsx
+│   ├── Input.tsx + Input.stories.tsx
+│   ├── Badge.tsx + Badge.stories.tsx
+│   ├── Card.tsx + Card.stories.tsx
+│   ├── Spinner.tsx + Spinner.stories.tsx
+│   └── index.ts
+├── design-tokens.ts
+└── index.ts
+```
+
+### Storybook Documentation
+- **URL**: http://localhost:6006 (lub 6007 jeśli 6006 zajęty)
+- **Stories**: Wszystkie atomy mają pełną dokumentację z kontrolkami
+- **Addons**: Accessibility, Docs, Vitest integration
+- **Framework**: Vite + React + TypeScript
+
+### Design Tokens
+- **Kolory**: Primary (green, orange, blue), Secondary (gray scale), Semantic (success, warning, info)
+- **Typografia**: Inter font family, h1-h3, base, sm, xs
+- **Spacing**: Dodatkowe wartości 18, 22, 26
+
+--- 
