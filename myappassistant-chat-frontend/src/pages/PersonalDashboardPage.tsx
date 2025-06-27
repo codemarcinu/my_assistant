@@ -6,6 +6,7 @@ import { Spinner } from '../components/ui/atoms/Spinner';
 import ReceiptUploadModule from '../components/modules/ReceiptUploadModule';
 import RAGManagerModule from '../components/modules/RAGManagerModule';
 import type { ReceiptData } from '../types';
+import { chatAPI } from '../services/api';
 
 interface QuickAction {
   id: string;
@@ -158,18 +159,8 @@ const PersonalDashboardPage: React.FC = () => {
     
     setIsLoading(true);
     try {
-      const response = await fetch('/api/chat/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: aiMessage
-        }),
-      });
-      
-      const data = await response.json();
-      setAiResponse(data.data || 'Przepraszam, wystąpił błąd.');
+      const response = await chatAPI.sendMessage(aiMessage);
+      setAiResponse(response.data || 'Przepraszam, wystąpił błąd.');
     } catch (error) {
       console.error('Error asking AI:', error);
       setAiResponse('Przepraszam, wystąpił błąd komunikacji z serwerem.');
