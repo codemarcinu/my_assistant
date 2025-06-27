@@ -1,6 +1,6 @@
-# FoodSave AI - Roadmap
+# Personal AI Assistant - Roadmap
 
-## Status projektu: 🔄 **FAZA 2 - BADANIA I ARCHITEKTURA INFORMACJI**
+## Status projektu: 🔄 **FAZA 2 - PERSONAL WORKFLOW AUDIT**
 
 ### ✅ Faza 1: Stabilizacja i Fundamenty (ZREALIZOWANE)
 - [x] Naprawa backend errors i duplikatów
@@ -9,38 +9,38 @@
 - [x] Utworzenie wszystkich atomów (Button, Input, Badge, Card, Spinner)
 - [x] Aktualizacja Node.js do v20.19.3
 
-### 🔄 Faza 2: Badania i Architektura Informacji (W TRAKCIE)
-**Cel:** Zrozumienie potrzeb użytkowników i optymalizacja UX
+### 🔄 Faza 2: Personal Workflow Audit (W TRAKCIE)
+**Cel:** Zrozumienie osobistych potrzeb i optymalizacja workflow dla jednego użytkownika
 
-#### User Research (Tydzień 3)
-- [x] Plan user research z metodologią
-- [x] User personas validation (Eco-Conscious Millennials, Busy Families, Food Service)
-- [x] User journey mapping scenarios
-- [x] Usability testing framework
+#### Personal Needs Analysis (Tydzień 3)
+- [x] Personal AI Assistant Audit
+- [x] Workflow analysis (zakupy, wydatki, żywność)
+- [x] RAG requirements definition
+- [x] Telegram integration planning
 
-#### Information Architecture (Tydzień 4)
-- [x] Analiza obecnej struktury nawigacji
-- [x] Propozycja nowej architektury informacji
-- [x] User flow redesign
-- [x] Adaptive interface system (Beginner/Expert mode)
+#### Personal Interface Design (Tydzień 4)
+- [ ] Personal dashboard design
+- [ ] Quick actions implementation
+- [ ] Telegram bot commands
+- [ ] Cross-module integration
 
 #### Następne kroki w Fazie 2:
-- [ ] Przeprowadzenie user research (wywiady, usability testing)
-- [ ] Implementacja nowej struktury nawigacji
-- [ ] Utworzenie komponentów molecules i organisms
-- [ ] Testowanie user flows
+- [ ] Audit obecnego workflow użytkownika
+- [ ] Implementacja personal dashboard
+- [ ] Podstawowa integracja Telegram
+- [ ] Testowanie personal workflow
 
-### ⏳ Faza 3: Accessibility & Performance (Tydzień 5-6)
-- [ ] Dostępność (WCAG 2.1 AA compliance)
-- [ ] Optymalizacja wydajności (lazy loading, monitoring)
-- [ ] Keyboard navigation
-- [ ] Screen reader support
+### ⏳ Faza 3: Core Personal Assistant (Tydzień 5-6)
+- [ ] Receipt OCR i expense tracking
+- [ ] Pantry management z expiry alerts
+- [ ] RAG chat system
+- [ ] Smart recommendations
 
-### ⏳ Faza 4: Zaawansowane Funkcje i Launch (Tydzień 7-8)
-- [ ] AI & Community features
-- [ ] Social sharing i gamifikacja
-- [ ] Przygotowanie do launchu
-- [ ] Dokumentacja końcowa
+### ⏳ Faza 4: Advanced Personal Features (Tydzień 7-8)
+- [ ] Email integration
+- [ ] Calendar management
+- [ ] Cross-module intelligence
+- [ ] Advanced personalization
 
 ---
 
@@ -58,76 +58,122 @@
 - ✅ Agent registration fixes
 - ✅ Dependency cleanup
 
-### Documentation
-- ✅ User research methodology
-- ✅ Information architecture plan
-- ✅ Component documentation
-- ✅ Development guidelines
+### Personal Assistant Foundation
+- ✅ Personal workflow audit framework
+- ✅ Core modules architecture
+- ✅ Telegram integration planning
+- ✅ RAG system requirements
 
 ---
 
-## Metryki sukcesu
+## Personal Success Metrics
 
-### Technical Metrics:
-- **Backend errors:** 0 critical errors
-- **Test coverage:** >80%
-- **Page load time:** <2 seconds
-- **Bundle size:** <500KB
+### Efficiency Metrics:
+- **Time saved per day:** >30 minutes
+- **Reduced food waste:** >50%
+- **Expense tracking accuracy:** >95%
+- **Response time to questions:** <2 seconds
 
-### UX Metrics:
-- **Task completion rate:** >90%
-- **User satisfaction:** >80%
-- **Navigation efficiency:** <3 clicks
-- **Accessibility score:** 100% WCAG 2.1 AA
+### Personal Satisfaction:
+- **Daily usage:** >5 interactions
+- **Feature adoption:** >80% of core features
+- **Personal satisfaction score:** >90%
+
+---
+
+## Core Modules Architecture
+
+### Shopping & Expenses Module
+- Receipt OCR processing
+- Automatic expense categorization
+- Shopping list management
+- Budget analysis and insights
+
+### Food Management Module
+- Pantry inventory tracking
+- Expiry date alerts
+- Recipe suggestions
+- Waste reduction analytics
+
+### RAG Chat Module
+- Document indexing and search
+- Contextual conversations
+- Knowledge base management
+- Quick information retrieval
+
+### Telegram Integration
+- Bot commands for quick actions
+- Push notifications
+- Status updates
+- Voice/photo input support
+
+### Future Integrations
+- Email processing and prioritization
+- Calendar event management
+- Cross-module intelligence
+- Advanced personalization
 
 ---
 
 ## Następne milestone'y
 
-### Tydzień 3-4: User Research & IA
-1. **User Research Execution**
-   - Conduct user interviews (15-20 participants)
-   - Usability testing sessions
-   - Data analysis and insights
+### Tydzień 3-4: Personal Workflow Implementation
+1. **Personal Dashboard Development**
+   - Quick actions interface
+   - Today's alerts widget
+   - Recent activity feed
+   - Personal metrics display
 
-2. **Information Architecture Implementation**
-   - New navigation structure
-   - User flow optimization
-   - Component architecture
+2. **Telegram Bot Integration**
+   - Basic bot commands
+   - Notification system
+   - Quick action shortcuts
+   - Status reporting
 
-### Tydzień 5-6: Accessibility & Performance
-1. **Accessibility Implementation**
-   - WCAG 2.1 AA compliance
-   - Keyboard navigation
-   - Screen reader support
+### Tydzień 5-6: Core Assistant Features
+1. **Receipt & Expense Management**
+   - OCR processing
+   - Automatic categorization
+   - Expense tracking
+   - Budget insights
 
-2. **Performance Optimization**
-   - Lazy loading
-   - Bundle optimization
-   - Monitoring setup
+2. **Food Management System**
+   - Pantry tracking
+   - Expiry alerts
+   - Recipe suggestions
+   - Waste analytics
 
 ---
 
-## Zespół i odpowiedzialności
+## Personal Interface Design
 
-### Frontend Development
-- Design system implementation
-- Component development
-- Performance optimization
+### Dashboard Layout:
+```
+┌─────────────────────────────────────┐
+│ Personal AI Assistant Dashboard     │
+├─────────────────────────────────────┤
+│ Quick Actions:                      │
+│ • Add Receipt                       │
+│ • Check Pantry                      │
+│ • Ask AI Assistant                  │
+│ • View Expenses                     │
+├─────────────────────────────────────┤
+│ Today's Alerts:                     │
+│ • 3 items expiring soon             │
+│ • 2 upcoming bills                  │
+│ • 1 unread important email          │
+├─────────────────────────────────────┤
+│ Recent Activity:                    │
+│ • Added milk to pantry              │
+│ • Spent $45.20 on groceries         │
+│ • Asked about recipe for chicken    │
+└─────────────────────────────────────┘
+```
 
-### UX Research
-- User research execution
-- Information architecture
-- Usability testing
-
-### Backend Development
-- API optimization
-- Error handling
-- Performance monitoring
-
-### Quality Assurance
-- Accessibility testing
-- Performance testing
-- User acceptance testing
-
-# ...reszta istniejącej dokumentacji... 
+### Telegram Commands:
+- `/status` - Check pantry and expenses
+- `/add [item]` - Add item to pantry
+- `/receipt [photo]` - Process receipt
+- `/expenses` - Show recent expenses
+- `/ask [question]` - Ask AI assistant
+- `/recipe [ingredients]` - Get recipe suggestions 

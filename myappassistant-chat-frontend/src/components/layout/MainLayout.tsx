@@ -42,7 +42,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           transition-all duration-300
         `}>
           <p className="text-gray-500 dark:text-gray-400">
-            FoodSave AI v1.0 • Powered by Claude AI • 
+            Personal AI Assistant v1.0 • Powered by Claude AI • 
             <span className="ml-1">
               Ostatnia aktualizacja: {new Date().toLocaleDateString('pl-PL')}
             </span>

@@ -9,20 +9,20 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { name: "Dashboard", icon: "🏠", path: "/dashboard" },
-  { name: "Chat", icon: "💬", path: "/chat" },
-  { name: "Zakupy", icon: "🛒", path: "/shopping" },
-  { name: "Produkty", icon: "📦", path: "/pantry" },
-  { name: "OCR", icon: "📷", path: "/ocr" },
-  { name: "Pogoda", icon: "🌤️", path: "/weather" },
-  { name: "Ustawienia", icon: "⚙️", path: "/settings" },
+  { name: "Personal Assistant", icon: "🤖", path: "/personal" },
+  { name: "My Food", icon: "🏠", path: "/pantry" },
+  { name: "Shopping", icon: "🛒", path: "/shopping" },
+  { name: "Expenses", icon: "💰", path: "/dashboard" },
+  { name: "OCR Receipts", icon: "📷", path: "/ocr" },
+  { name: "Weather", icon: "🌤️", path: "/weather" },
+  { name: "Settings", icon: "⚙️", path: "/settings" },
 ];
 
 /**
- * Sidebar component for navigation.
+ * Sidebar component for Personal AI Assistant navigation.
  * 
  * This component provides the main navigation structure with
- * proper active states and responsive design, following the .cursorrules guidelines.
+ * proper active states and responsive design.
  */
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { resolvedTheme } = useTheme();
@@ -46,8 +46,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         {!collapsed && (
           <div className="flex items-center space-x-2">
-            <span className="text-2xl">🍽️</span>
-            <span className="text-lg font-bold text-gray-900 dark:text-white">FoodSave AI</span>
+            <span className="text-2xl">🤖</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">AI Assistant</span>
           </div>
         )}
         <button
