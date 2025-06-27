@@ -118,4 +118,61 @@
 ✅ **D. Personal Workflow Testing** - Przetestowane
 ⏳ **A. Telegram Bot Integration** - Do implementacji
 
-**Personal AI Assistant jest gotowy do użytku z pełną funkcjonalnością OCR i RAG!** 
+**Personal AI Assistant jest gotowy do użytku z pełną funkcjonalnością OCR i RAG!**
+
+## Checklist testów produkcyjnych (Docker)
+
+1. **Uruchomienie środowiska prod**
+   - [x] Build backend (FastAPI, OCR, RAG)
+   - [x] Build frontend (Vite/React, Nginx)
+   - [x] Build i start bazy danych (Postgres) i cache (Redis)
+   - [x] Healthcheck backendu (`/health`)
+   - [x] Healthcheck frontendu (`/health`)
+
+2. **Testy funkcjonalne przez UI**
+   - [ ] Upload i OCR paragonów (ReceiptUploadModule)
+   - [ ] Dodawanie do spiżarni/listy zakupów
+   - [ ] RAG chat: upload dokumentu, zadawanie pytań, podgląd źródeł
+   - [ ] Dashboard: szybkie akcje, alerty, aktywność, AI widget
+   - [ ] Responsywność i UX
+
+3. **Testy API (opcjonalnie)**
+   - [ ] Testy endpointów backendu przez curl/httpie/postman
+   - [ ] Testy błędów i edge-case (duże pliki, złe formaty, brak uprawnień)
+
+4. **Testy wydajności i stabilności**
+   - [ ] Restart kontenerów, sprawdzenie odporności
+   - [ ] Testy pod obciążeniem (opcjonalnie: locust, ab)
+
+5. **Testy bezpieczeństwa**
+   - [ ] CORS, brak wycieków danych, brak debug info
+   - [ ] Brak nieautoryzowanego dostępu do endpointów
+
+6. **Logi i monitoring**
+   - [ ] Sprawdzenie logów backendu i frontendu
+   - [ ] Sprawdzenie logów bazy i redis
+   - [ ] Monitoring (opcjonalnie: Prometheus, Grafana)
+
+## Kolejne kroki po testach produkcyjnych
+
+1. **Zakończ checklistę testów powyżej**
+2. **Zgłoś i napraw ewentualne błędy**
+3. **Wdrożenie integracji z Telegramem**
+   - Implementacja TelegramSettings w frontendzie
+   - Konfiguracja webhook i testy powiadomień
+   - Szybkie akcje przez Telegram
+4. **Rozszerzenia**
+   - Integracja z e-mail i kalendarzem
+   - Zaawansowana analityka wydatków
+   - Mobile optimization
+5. **Automatyzacja testów E2E (np. Playwright, Cypress)**
+6. **Dokumentacja wdrożenia i użytkowania**
+
+---
+
+**Status na dziś:**
+- Pełna produkcyjna wersja backendu i frontendu działa w Dockerze
+- Wszystkie kluczowe funkcje (OCR, RAG, dashboard) gotowe do testów manualnych
+- Repozytorium zaktualizowane i wypchnięte
+
+**Kolejny krok: przeprowadź testy manualne i zgłoś ewentualne uwagi!** 
