@@ -2,6 +2,8 @@ import io
 import logging
 import tempfile
 import tracemalloc
+import threading
+import time
 from typing import Any, Dict, List, Optional
 
 import fitz  # Import biblioteki PyMuPDF
@@ -26,7 +28,7 @@ class OCRProcessor:
     """Główna klasa do przetwarzania OCR z optymalizacją dla polskich paragonów"""
 
     def __init__(
-        self, languages: List[str] = ["pol"], tesseract_config: Optional[str] = None
+        self, languages: List[str] = ["eng"], tesseract_config: Optional[str] = None
     ) -> None:
         self.languages = languages
         self.default_config = tesseract_config or self._get_default_receipt_config()
@@ -43,8 +45,30 @@ class OCRProcessor:
             "-c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "abcdefghijklmnopqrstuvwxyzĄĆĘŁŃÓŚŹŻąćęłńóśźż.,:-/%()[] "
         )
-        lang_part = f"-l {'+'.join(self.languages)}" if self.languages else "-l pol"
+        # Use English as default, with fallback to no language specification
+        # Check if Polish is available, if not use English only
+        available_langs = ["eng"]  # Always include English
+        if "pol" in self.languages:
+            # Check if Polish language data is actually available
+            try:
+                import subprocess
+                result = subprocess.run(["tesseract", "--list-langs"], 
+                                      capture_output=True, text=True, timeout=5)
+                if "pol" in result.stdout:
+                    available_langs.append("pol")
+            except Exception:
+                logger.warning("Could not check available languages, using English only")
+        
+        lang_part = f"-l {'+'.join(available_langs)}"
         return f"{receipt_config} {lang_part}"
+
+    def _get_fallback_config(self) -> str:
+        """Fallback configuration without language specification"""
+        return (
+            "--oem 3 --psm 6 "
+            "-c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyzĄĆĘŁŃÓŚŹŻąćęłńóśźż.,:-/%()[] "
+        )
 
     def _preprocess_receipt_image(self, image: Image.Image) -> Image.Image:
         """Preprocessing obrazu paragonu dla lepszego OCR"""
@@ -204,25 +228,69 @@ class OCRProcessor:
 
 @handle_exceptions(max_retries=1)
 def _extract_text_from_image_obj(
-    image: Image.Image, config: Optional[str] = None
+    image: Image.Image, config: Optional[str] = None, timeout: int = 25
 ) -> str:
     """
-    Prywatna funkcja pomocnicza, która wykonuje OCR na obiekcie obrazu PIL.
+    Prywatna funkcja pomocnicza, która wykonuje OCR na obiekcie obrazu PIL z timeout.
     """
     # Użyj konfiguracji zoptymalizowanej dla paragonów
     custom_config = (
         config
-        or r"--oem 3 --psm 6 -l pol -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzĄĆĘŁŃÓŚŹŻąćęłńóśźż.,:-/%()[] "
+        or r"--oem 3 --psm 6 -l eng -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzĄĆĘŁŃÓŚŹŻąćęłńóśźż.,:-/%()[] "
     )
-    return pytesseract.image_to_string(image, config=custom_config)
+    
+    def ocr_with_timeout():
+        try:
+            return pytesseract.image_to_string(image, config=custom_config)
+        except Exception as e:
+            # If language-specific config fails, try without language specification
+            if "tessdata" in str(e) and "pol.traineddata" in str(e):
+                logger.warning("Polish language data not found, falling back to English")
+                fallback_config = r"--oem 3 --psm 6 -l eng -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzĄĆĘŁŃÓŚŹŻąćęłńóśźż.,:-/%()[] "
+                try:
+                    return pytesseract.image_to_string(image, config=fallback_config)
+                except Exception as e2:
+                    logger.warning("English language also failed, trying without language specification")
+                    basic_config = r"--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzĄĆĘŁŃÓŚŹŻąćęłńóśźż.,:-/%()[] "
+                    return pytesseract.image_to_string(image, config=basic_config)
+            else:
+                # For other errors, try basic config
+                logger.warning(f"OCR failed with custom config, trying basic config: {e}")
+                basic_config = r"--oem 3 --psm 6"
+                return pytesseract.image_to_string(image, config=basic_config)
+    
+    # Run OCR with timeout using threading
+    result = [None]
+    exception = [None]
+    
+    def run_ocr():
+        try:
+            result[0] = ocr_with_timeout()
+        except Exception as e:
+            exception[0] = e
+    
+    thread = threading.Thread(target=run_ocr)
+    thread.daemon = True
+    thread.start()
+    thread.join(timeout=timeout)
+    
+    if thread.is_alive():
+        logger.error(f"OCR processing timed out after {timeout} seconds")
+        raise TimeoutError(f"OCR processing timed out after {timeout} seconds")
+    
+    if exception[0]:
+        logger.error(f"OCR processing failed: {exception[0]}")
+        raise exception[0]
+    
+    return result[0]
 
 
 @handle_exceptions(max_retries=1, retry_delay=0.5)
 def process_image_file(
-    file_bytes: bytes, config: Optional[str] = None
+    file_bytes: bytes, config: Optional[str] = None, timeout: int = 25
 ) -> Optional[str]:
     """
-    Przetwarza plik obrazu (jpg, png) i wyciąga z niego tekst z preprocessingiem.
+    Przetwarza plik obrazu (jpg, png) i wyciąga z niego tekst z preprocessingiem i timeout.
     """
     try:
         logger.info("OCR: Rozpoczynam odczyt pliku obrazu...")
@@ -230,18 +298,21 @@ def process_image_file(
             # Preprocessing obrazu dla lepszego OCR
             processor = OCRProcessor()
             processed_image = processor._preprocess_receipt_image(image)
-            text = _extract_text_from_image_obj(processed_image, config=config)
+            text = _extract_text_from_image_obj(processed_image, config=config, timeout=timeout)
         logger.info("OCR: Odczyt obrazu zakończony sukcesem.")
         return text
+    except TimeoutError:
+        logger.error("OCR: Timeout podczas przetwarzania obrazu")
+        return None
     except Exception as e:
         logger.error(f"Błąd podczas przetwarzania obrazu: {e}")
         return None
 
 
 @handle_exceptions(max_retries=1, retry_delay=1.0)
-def process_pdf_file(file_bytes: bytes, config: Optional[str] = None) -> Optional[str]:
+def process_pdf_file(file_bytes: bytes, config: Optional[str] = None, timeout: int = 30) -> Optional[str]:
     """
-    Przetwarza plik PDF, konwertując każdą stronę na obraz i odczytując tekst.
+    Przetwarza plik PDF, konwertując każdą stronę na obraz i odczytując tekst z timeout.
     """
     try:
         logger.info("OCR: Rozpoczynam odczyt pliku PDF...")
@@ -257,7 +328,7 @@ def process_pdf_file(file_bytes: bytes, config: Optional[str] = None) -> Optiona
                 with Image.frombytes(
                     "RGB", (pix.width, pix.height), pix.samples
                 ) as image:
-                    page_text = _extract_text_from_image_obj(image, config=config)
+                    page_text = _extract_text_from_image_obj(image, config=config, timeout=timeout//len(pdf_document))
                     full_text.append(page_text)
 
         logger.info(
@@ -265,6 +336,9 @@ def process_pdf_file(file_bytes: bytes, config: Optional[str] = None) -> Optiona
         )
         return "\n".join(full_text)
 
+    except TimeoutError:
+        logger.error("OCR: Timeout podczas przetwarzania PDF")
+        return None
     except Exception as e:
         logger.error(f"Błąd podczas przetwarzania PDF: {e}")
         return None

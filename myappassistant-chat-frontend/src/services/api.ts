@@ -19,7 +19,7 @@ import type {
 
 // API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const API_TIMEOUT = 30000; // 30 seconds
+const API_TIMEOUT = 60000; // 60 seconds for OCR processing
 
 // Create axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({
