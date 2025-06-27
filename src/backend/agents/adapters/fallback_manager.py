@@ -3,8 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from backend.core.hybrid_llm_client import ModelComplexity, hybrid_llm_client
-
-from ..interfaces import AgentResponse, ErrorSeverity, IFallbackProvider
+from backend.agents.interfaces import AgentResponse, ErrorSeverity, IFallbackProvider
 
 
 class FallbackStrategy(ABC):

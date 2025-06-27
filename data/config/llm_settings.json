@@ -1,3 +1,11 @@
 {
-  "selected_model": "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M"
-}
+  "selected_model": "gemma3:12b",
+  "available_models": [
+    "gemma3:12b",
+    "mistral:7b",
+    "llama3.2:3b", 
+    "SpeakLeash/bielik-1.5b-v3.0-instruct:FP16"
+  ],
+  "fallback_model": "llama3.2:3b",
+  "polish_model": "SpeakLeash/bielik-1.5b-v3.0-instruct:FP16"
+} 

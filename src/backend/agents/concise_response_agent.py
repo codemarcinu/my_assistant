@@ -8,17 +8,17 @@ with controlled length and formatting.
 import logging
 from typing import Any, Dict, Optional
 
-from .base_agent import BaseAgent
-from .interfaces import AgentResponse
-from ..core.response_length_config import (
+from backend.agents.base_agent import BaseAgent
+from backend.agents.interfaces import AgentResponse
+from backend.core.response_length_config import (
     ResponseLengthConfig, 
     ConciseMetrics, 
     ResponseStyle,
     get_config_for_style
 )
-from ..core.concise_rag_processor import ConciseRAGProcessor, MapReduceResult
-from ..core.hybrid_llm_client import hybrid_llm_client
-from .prompts import CONCISE_SYSTEM_PROMPT, CONCISE_RAG_PROMPT, EXPAND_RESPONSE_PROMPT
+from backend.core.concise_rag_processor import ConciseRAGProcessor, MapReduceResult
+from backend.core.hybrid_llm_client import hybrid_llm_client
+from backend.agents.prompts import CONCISE_SYSTEM_PROMPT, CONCISE_RAG_PROMPT, EXPAND_RESPONSE_PROMPT
 
 logger = logging.getLogger(__name__)
 

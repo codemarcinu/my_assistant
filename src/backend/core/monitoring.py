@@ -1,752 +1,494 @@
 """
-✅ REQUIRED: Performance monitoring and metrics collection
-This module provides comprehensive monitoring for FoodSave AI application.
+Monitoring System for FoodSave AI
+
+This module provides monitoring capabilities including:
+- Performance metrics collection
+- Health checks for services
+- Alerting system
+- Dashboard endpoints
+- System metrics monitoring
 """
 
 import asyncio
-import gc
-import logging
-import os
 import time
-import tracemalloc
-from contextlib import asynccontextmanager, contextmanager
-from dataclasses import dataclass
-from datetime import datetime
-from functools import wraps
-from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Tuple
-from weakref import WeakSet
-
+import logging
 import psutil
-import structlog
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any, Callable
+from dataclasses import dataclass
+from enum import Enum
+from collections import defaultdict, deque
+import threading
+from contextlib import asynccontextmanager
 
-from backend.core.telemetry import get_tracer
+logger = logging.getLogger(__name__)
 
-# Prometheus metrics
-try:
-    from prometheus_client import Counter, Gauge, Histogram, Summary
+class MetricType(Enum):
+    COUNTER = "counter"
+    GAUGE = "gauge"
+    HISTOGRAM = "histogram"
 
-    PROMETHEUS_AVAILABLE = True
-except ImportError:
-    PROMETHEUS_AVAILABLE = False
-
-    # Fallback mock classes
-    class MockMetric:
-        def __init__(self, *args: Any, **kwargs: Any) -> None:
-            pass
-
-        def inc(self, *args: Any, **kwargs: Any) -> None:
-            pass
-
-        def observe(self, *args: Any, **kwargs: Any) -> None:
-            pass
-
-        def set(self, *args: Any, **kwargs: Any) -> None:
-            pass
-
-    Counter = Histogram = Gauge = Summary = MockMetric
-
-logger = structlog.get_logger(__name__)
-
+class AlertSeverity(Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
 
 @dataclass
-class MemorySnapshot:
-    """Snapshot pamięci z tracemalloc"""
-
-    timestamp: float
-    memory_usage: int  # bytes
-    peak_memory: int  # bytes
-    top_allocations: List[Tuple[str, int]]  # (traceback, size)
-
+class Metric:
+    name: str
+    value: float
+    type: MetricType
+    labels: Dict[str, str]
+    timestamp: datetime
 
 @dataclass
-class SystemPerformanceSnapshot:
-    """Snapshot systemowych metryk wydajności"""
+class Alert:
+    id: str
+    title: str
+    message: str
+    severity: AlertSeverity
+    source: str
+    timestamp: datetime
+    resolved: bool = False
+    resolved_at: Optional[datetime] = None
 
-    timestamp: float
-    cpu_percent: float
-    memory_percent: float
-    memory_rss: int
-    memory_vms: int
-    open_files: int
-    threads: int
+@dataclass
+class HealthCheck:
+    name: str
+    status: str
+    response_time: float
+    last_check: datetime
+    error_message: Optional[str] = None
 
+class MonitoringSystem:
+    """Central monitoring system for FoodSave AI."""
+    
+    def __init__(self):
+        self.metrics: deque = deque(maxlen=5000)
+        self.alerts: List[Alert] = []
+        self.health_checks: Dict[str, HealthCheck] = {}
+        self.alert_handlers: List[Callable] = []
+        self.monitoring_enabled = True
+        self._lock = threading.Lock()
+        self._start_time = datetime.now()
+        
+        # Performance tracking
+        self.request_times: deque = deque(maxlen=500)
+        self.error_counts: Dict[str, int] = defaultdict(int)
+        self.cache_hit_rates: Dict[str, float] = defaultdict(float)
+        
+        # System metrics
+        self.system_metrics = {
+            'cpu_usage': 0.0,
+            'memory_usage': 0.0,
+            'disk_usage': 0.0,
+            'network_io': {'bytes_sent': 0, 'bytes_recv': 0}
+        }
+        
+        logger.info("Monitoring system initialized")
 
-class PerformanceMetrics:
-    """✅ REQUIRED: Performance metrics collection for FoodSave AI"""
-
-    _instance: Optional["PerformanceMetrics"] = None
-    _initialized: bool = False
-
-    def __new__(cls) -> "PerformanceMetrics":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self) -> None:
-        if self._initialized:
+    async def start_monitoring(self):
+        """Start background monitoring tasks."""
+        if not self.monitoring_enabled:
             return
+            
+        logger.info("Starting monitoring system...")
+        
+        # Start background tasks
+        asyncio.create_task(self._run_health_checks())
+        asyncio.create_task(self._cleanup_old_data())
+        asyncio.create_task(self._collect_system_metrics())
+        asyncio.create_task(self._check_alerts())
+        
+        logger.info("Monitoring system started successfully")
 
-        self._initialized = True
-
-        if PROMETHEUS_AVAILABLE:
-            # Request metrics
-            self.request_count = Counter(
-                "foodsave_requests_total",
-                "Total requests",
-                ["method", "endpoint", "status"],
-            )
-            self.request_duration = Histogram(
-                "foodsave_request_duration_seconds",
-                "Request duration",
-                ["method", "endpoint"],
-            )
-
-            # Agent metrics
-            self.agent_request_count = Counter(
-                "foodsave_agent_requests_total",
-                "Total agent requests",
-                ["agent_type", "status"],
-            )
-            self.agent_response_time = Histogram(
-                "foodsave_agent_response_time_seconds",
-                "Agent response time",
-                ["agent_type"],
-            )
-            self.active_agents = Gauge(
-                "foodsave_active_agents", "Number of active agents", ["agent_type"]
-            )
-
-            # Database metrics
-            self.db_query_count = Counter(
-                "foodsave_db_queries_total",
-                "Total database queries",
-                ["operation", "table"],
-            )
-            self.db_query_duration = Histogram(
-                "foodsave_db_query_duration_seconds",
-                "Database query duration",
-                ["operation", "table"],
-            )
-            self.db_connections = Gauge(
-                "foodsave_db_connections_active", "Active database connections"
-            )
-
-            # External API metrics
-            self.external_api_calls = Counter(
-                "foodsave_external_api_calls_total",
-                "Total external API calls",
-                ["api_name", "endpoint", "status"],
-            )
-            self.external_api_duration = Histogram(
-                "foodsave_external_api_duration_seconds",
-                "External API call duration",
-                ["api_name", "endpoint"],
-            )
-
-            # System metrics
-            self.memory_usage = Gauge(
-                "foodsave_memory_usage_bytes", "Memory usage in bytes"
-            )
-            self.cpu_usage = Gauge("foodsave_cpu_usage_percent", "CPU usage percentage")
-
-            # Error metrics
-            self.error_count = Counter(
-                "foodsave_errors_total", "Total errors", ["error_type", "component"]
-            )
-
-            # Processing metrics
-            self.food_items_processed = Counter(
-                "foodsave_food_items_processed_total",
-                "Total food items processed",
-                ["operation", "status"],
-            )
-            self.processing_duration = Histogram(
-                "foodsave_processing_duration_seconds",
-                "Food processing duration",
-                ["operation"],
-            )
-        else:
-            logger.warning("Prometheus client not available, using mock metrics")
-            self.request_count = Counter()
-            self.request_duration = Histogram()
-            self.agent_request_count = Counter()
-            self.agent_response_time = Histogram()
-            self.active_agents = Gauge()
-            self.db_query_count = Counter()
-            self.db_query_duration = Histogram()
-            self.db_connections = Gauge()
-            self.external_api_calls = Counter()
-            self.external_api_duration = Histogram()
-            self.memory_usage = Gauge()
-            self.cpu_usage = Gauge()
-            self.error_count = Counter()
-            self.food_items_processed = Counter()
-            self.processing_duration = Histogram()
-
-
-class MemoryProfiler:
-    """Profiler pamięci z tracemalloc i psutil"""
-
-    def __init__(self, enable_tracemalloc: bool = True) -> None:
-        self.enable_tracemalloc = enable_tracemalloc
-        self.process = psutil.Process()
-        self.snapshots: List[MemorySnapshot] = []
-        self.performance_metrics: List[SystemPerformanceSnapshot] = []
-        self._active_contexts: WeakSet = WeakSet()
-
-        if enable_tracemalloc:
-            tracemalloc.start(25)  # Track top 25 allocations
-
-    def __enter__(self) -> "MemoryProfiler":
-        """Context manager entry"""
-        self._active_contexts.add(self)
-        return self
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Context manager exit z cleanup"""
-        self._active_contexts.discard(self)
-        if self.enable_tracemalloc:
-            tracemalloc.stop()
-
-    def take_snapshot(self) -> MemorySnapshot:
-        """Pobiera snapshot pamięci"""
-        current, peak = tracemalloc.get_traced_memory()
-
-        # Get top allocations
-        top_allocations = []
-
-        if self.enable_tracemalloc:
-            snapshot = tracemalloc.take_snapshot()
-            top_stats = snapshot.statistics("lineno")[:10]
-            top_allocations = [
-                (f"{stat.traceback.format()}", stat.size) for stat in top_stats
-            ]
-
-        memory_snapshot = MemorySnapshot(
-            timestamp=time.time(),
-            memory_usage=current,
-            peak_memory=peak,
-            top_allocations=top_allocations,
-        )
-
-        self.snapshots.append(memory_snapshot)
-        return memory_snapshot
-
-    def get_performance_metrics(self) -> SystemPerformanceSnapshot:
-        """Pobiera metryki wydajności procesu"""
-        with self.process.oneshot():
-            metrics = SystemPerformanceSnapshot(
-                timestamp=time.time(),
-                cpu_percent=self.process.cpu_percent(),
-                memory_percent=self.process.memory_percent(),
-                memory_rss=self.process.memory_info().rss,
-                memory_vms=self.process.memory_info().vms,
-                open_files=len(self.process.open_files()),
-                threads=self.process.num_threads(),
-            )
-
-        self.performance_metrics.append(metrics)
-        return metrics
-
-    def log_memory_usage(self, context: str = "general") -> None:
-        """Loguje aktualne użycie pamięci"""
-        snapshot = self.take_snapshot()
-        metrics = self.get_performance_metrics()
-
-        logger.info(
-            "memory_usage",
-            context=context,
-            memory_mb=snapshot.memory_usage / 1024 / 1024,
-            peak_mb=snapshot.peak_memory / 1024 / 1024,
-            cpu_percent=metrics.cpu_percent,
-            memory_percent=metrics.memory_percent,
-            memory_rss_mb=metrics.memory_rss / (1024 * 1024),
-            memory_vms_mb=metrics.memory_vms / (1024 * 1024),
-            open_files=metrics.open_files,
-            threads=metrics.threads,
-            top_allocations=snapshot.top_allocations,
-        )
-
-    def detect_memory_leak(self, threshold_mb: float = 50.0) -> bool:
-        """Detects if memory usage has increased beyond a threshold."""
-        if len(self.snapshots) < 2:
-            return False
-
-        # Compare last two snapshots
-        latest_usage = self.snapshots[-1].memory_usage
-        previous_usage = self.snapshots[-2].memory_usage
-
-        diff_mb = (latest_usage - previous_usage) / (1024 * 1024)
-
-        if diff_mb > threshold_mb:
-            logger.warning(
-                "memory_leak_detected",
-                threshold_mb=threshold_mb,
-                current_diff_mb=diff_mb,
-            )
-            return True
-        return False
-
-    def cleanup(self) -> None:
-        """Cleans up profiler resources."""
-        if self.enable_tracemalloc and tracemalloc.is_tracing():
-            tracemalloc.stop()
-        self.snapshots = []
-        self.performance_metrics = []
-        self._active_contexts.clear()
-
-
-class AsyncMemoryProfiler(MemoryProfiler):
-    """Asynchronous memory profiler for async contexts."""
-
-    async def __aenter__(self) -> "AsyncMemoryProfiler":
-        """Asynchronous context manager entry"""
-        await asyncio.to_thread(MemoryProfiler.__enter__, self)
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: Any,
-        exc_val: Any,
-        exc_tb: Any,
-    ) -> None:
-        """Asynchronous context manager exit with cleanup"""
-        await asyncio.to_thread(
-            MemoryProfiler.__exit__, self, exc_type, exc_val, exc_tb
-        )
-
-    async def take_snapshot_async(self) -> MemorySnapshot:
-        return await asyncio.to_thread(self.take_snapshot)
-
-    async def get_performance_metrics_async(self) -> SystemPerformanceSnapshot:
-        return await asyncio.to_thread(self.get_performance_metrics)
-
-    async def log_memory_usage_async(self, context: str = "general") -> None:
-        await asyncio.to_thread(self.log_memory_usage, context)
-
-    async def detect_memory_leak_async(self, threshold_mb: float = 50.0) -> bool:
-        """Asynchronously detects if memory usage has increased beyond a threshold."""
-        return await asyncio.to_thread(self.detect_memory_leak, threshold_mb)
-
-
-@contextmanager
-def memory_profiling_context(context_name: str = "operation") -> Any:
-    """Context manager for synchronous memory profiling."""
-    profiler = get_memory_profiler(context_name)
-    try:
-        profiler.__enter__()
-        yield profiler
-    finally:
-        profiler.log_memory_usage(f"{context_name}_exit")
-        profiler.__exit__(None, None, None)
-
-
-@asynccontextmanager
-async def async_memory_profiling_context(
-    context_name: str = "async_operation",
-) -> AsyncGenerator[Any, None]:
-    """Async context manager for asynchronous memory profiling."""
-    profiler = get_async_memory_profiler(
-        context_name
-    )  # Ensure this gets an AsyncMemoryProfiler if needed
-    try:
-        await profiler.__aenter__()
-        yield profiler
-    finally:
-        await profiler.log_memory_usage_async(f"{context_name}_exit")
-        await profiler.__aexit__(None, None, None)
-
-
-class MemoryMonitor:
-    """Centralized memory monitoring for different components."""
-
-    _instance: Optional["MemoryMonitor"] = None
-    _initialized: bool = False
-
-    def __new__(cls) -> "MemoryMonitor":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self) -> None:
-        if self._initialized:
+    def record_metric(self, name: str, value: float, metric_type: MetricType = MetricType.GAUGE, 
+                     labels: Optional[Dict[str, str]] = None):
+        """Record a new metric."""
+        if not self.monitoring_enabled:
             return
-        self._initialized = True
-        self.profilers: Dict[str, MemoryProfiler] = {}
-        self.async_profilers: Dict[str, AsyncMemoryProfiler] = {}
+            
+        metric = Metric(
+            name=name,
+            value=value,
+            type=metric_type,
+            labels=labels or {},
+            timestamp=datetime.now()
+        )
+        
+        with self._lock:
+            self.metrics.append(metric)
+        
+        logger.debug(f"Recorded metric: {name}={value}")
 
-    def get_profiler(self, name: str) -> MemoryProfiler:
-        """Get a synchronous memory profiler by name."""
-        if name not in self.profilers:
-            self.profilers[name] = MemoryProfiler(enable_tracemalloc=True)
-        return self.profilers[name]
+    def record_request_time(self, endpoint: str, method: str, duration: float, status_code: int):
+        """Record request performance metrics."""
+        self.record_metric(
+            name="http_request_duration_seconds",
+            value=duration,
+            metric_type=MetricType.HISTOGRAM,
+            labels={
+                "endpoint": endpoint,
+                "method": method,
+                "status_code": str(status_code)
+            }
+        )
+        
+        self.request_times.append({
+            'endpoint': endpoint,
+            'method': method,
+            'duration': duration,
+            'status_code': status_code,
+            'timestamp': datetime.now()
+        })
+        
+        # Track error rates
+        if status_code >= 400:
+            self.error_counts[f"{method}_{endpoint}"] += 1
 
-    def get_async_profiler(self, name: str) -> AsyncMemoryProfiler:
-        """Get an asynchronous memory profiler by name."""
-        if name not in self.async_profilers:
-            self.async_profilers[name] = AsyncMemoryProfiler(enable_tracemalloc=True)
-        return self.async_profilers[name]
-
-    def log_all_components(self) -> None:
-        """Log memory usage for all registered profilers."""
-        for name, profiler in self.profilers.items():
-            profiler.log_memory_usage(name)
-        for name, profiler in self.async_profilers.items():
-            asyncio.run(
-                profiler.log_memory_usage_async(name)
-            )  # This might need to be awaited in an async context
-
-    def detect_leaks_all_components(
-        self, threshold_mb: float = 50.0
-    ) -> Dict[str, bool]:
-        """Detects memory leaks across all registered profilers."""
-        leaks_detected: Dict[str, bool] = {}
-        for name, profiler in self.profilers.items():
-            leaks_detected[name] = profiler.detect_memory_leak(threshold_mb)
-        for name, profiler in self.async_profilers.items():
-            # For async profilers, you might need to run this in an async loop or adjust
-            # how detect_memory_leak is called if it relies on async operations.
-            leaks_detected[name] = asyncio.run(
-                profiler.detect_memory_leak_async(threshold_mb)
+    def record_cache_metric(self, cache_name: str, hit: bool):
+        """Record cache performance metrics."""
+        if cache_name not in self.cache_hit_rates:
+            self.cache_hit_rates[cache_name] = {'hits': 0, 'misses': 0}
+        
+        if hit:
+            self.cache_hit_rates[cache_name]['hits'] += 1
+        else:
+            self.cache_hit_rates[cache_name]['misses'] += 1
+        
+        # Calculate hit rate
+        total = self.cache_hit_rates[cache_name]['hits'] + self.cache_hit_rates[cache_name]['misses']
+        if total > 0:
+            hit_rate = self.cache_hit_rates[cache_name]['hits'] / total
+            self.record_metric(
+                name="cache_hit_rate",
+                value=hit_rate,
+                metric_type=MetricType.GAUGE,
+                labels={"cache": cache_name}
             )
-        return leaks_detected
 
-    def cleanup_all(self) -> None:
-        """Cleans up all profiler resources."""
-        for profiler in self.profilers.values():
-            profiler.cleanup()
-        for profiler in self.async_profilers.values():
-            profiler.cleanup()
-        self.profilers.clear()
-        self.async_profilers.clear()
-        PerformanceMetrics._instance = None  # Reset singleton instances
-        MemoryMonitor._instance = None
+    async def add_health_check(self, name: str, check_func):
+        """Add a health check function."""
+        self.health_checks[name] = HealthCheck(
+            name=name,
+            status="unknown",
+            response_time=0.0,
+            last_check=datetime.now()
+        )
+        
+        setattr(self, f"_check_{name}", check_func)
+        logger.info(f"Added health check: {name}")
 
-
-metrics = PerformanceMetrics()
-memory_monitor = MemoryMonitor()
-
-
-def get_memory_profiler(name: str) -> MemoryProfiler:
-    """Get a specific memory profiler instance."""
-    return memory_monitor.get_profiler(name)
-
-
-def get_async_memory_profiler(name: str) -> AsyncMemoryProfiler:
-    """Get a specific asynchronous memory profiler instance."""
-    return memory_monitor.get_async_profiler(name)
-
-
-def log_memory_usage(context: str = "general") -> None:
-    """Log current memory usage for a given context."""
-    get_memory_profiler(context).log_memory_usage()
-
-
-def monitor_request(method: str, endpoint: str) -> Any:
-    """✅ REQUIRED: Monitor HTTP requests with proper metrics"""
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.time()
-            status = "success"
-
+    async def _run_health_checks(self):
+        """Run all health checks periodically."""
+        while self.monitoring_enabled:
             try:
-                result = await func(*args, **kwargs)
-                return result
+                for name in self.health_checks.keys():
+                    await self._execute_health_check(name)
+                
+                await asyncio.sleep(30)
             except Exception as e:
-                status = "error"
-                metrics.error_count.labels(
-                    error_type=type(e).__name__, component="http_request"
-                ).inc()
-                raise
-            finally:
-                duration = time.time() - start_time
-                metrics.request_count.labels(
-                    method=method, endpoint=endpoint, status=status
-                ).inc()
-                metrics.request_duration.labels(
-                    method=method, endpoint=endpoint
-                ).observe(duration)
+                logger.error(f"Error running health checks: {e}")
+                await asyncio.sleep(60)
 
-        @wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+    async def _execute_health_check(self, name: str):
+        """Execute a specific health check."""
+        try:
             start_time = time.time()
-            status = "success"
-
-            try:
-                result = func(*args, **kwargs)
-                return result
-            except Exception as e:
-                status = "error"
-                metrics.error_count.labels(
-                    error_type=type(e).__name__, component="http_request"
-                ).inc()
-                raise
-            finally:
-                duration = time.time() - start_time
-                metrics.request_count.labels(
-                    method=method, endpoint=endpoint, status=status
-                ).inc()
-                metrics.request_duration.labels(
-                    method=method, endpoint=endpoint
-                ).observe(duration)
-
-        # Return appropriate wrapper
-        if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        else:
-            return sync_wrapper
-
-    return decorator
-
-
-def monitor_agent(agent_type: str) -> Any:
-    """✅ REQUIRED: Monitor agent performance"""
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.time()
-            status = "success"
-
-            # Increment active agents
-            metrics.active_agents.labels(agent_type=agent_type).inc()
-
-            try:
-                result = await func(*args, **kwargs)
-                return result
-            except Exception as e:
-                status = "error"
-                metrics.error_count.labels(
-                    error_type=type(e).__name__, component=f"agent_{agent_type}"
-                ).inc()
-                raise
-            finally:
-                duration = time.time() - start_time
-                metrics.agent_request_count.labels(
-                    agent_type=agent_type, status=status
-                ).inc()
-                metrics.agent_response_time.labels(agent_type=agent_type).observe(
-                    duration
+            check_func = getattr(self, f"_check_{name}", None)
+            
+            if check_func:
+                if asyncio.iscoroutinefunction(check_func):
+                    result = await check_func()
+                else:
+                    result = check_func()
+                
+                response_time = time.time() - start_time
+                
+                self.health_checks[name] = HealthCheck(
+                    name=name,
+                    status="healthy" if result else "unhealthy",
+                    response_time=response_time,
+                    last_check=datetime.now(),
+                    error_message=None if result else f"Health check {name} failed"
                 )
+                
+        except Exception as e:
+            logger.error(f"Error executing health check {name}: {e}")
+            self.health_checks[name] = HealthCheck(
+                name=name,
+                status="unhealthy",
+                response_time=0.0,
+                last_check=datetime.now(),
+                error_message=str(e)
+            )
 
-                # Decrement active agents
-                metrics.active_agents.labels(agent_type=agent_type).dec()
-
-        @wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.time()
-            status = "success"
-
-            # Increment active agents
-            metrics.active_agents.labels(agent_type=agent_type).inc()
-
+    async def _collect_system_metrics(self):
+        """Collect system-level metrics."""
+        while self.monitoring_enabled:
             try:
-                result = func(*args, **kwargs)
-                return result
+                # CPU usage
+                cpu_percent = psutil.cpu_percent(interval=1)
+                self.record_metric("system_cpu_usage", cpu_percent, MetricType.GAUGE)
+                
+                # Memory usage
+                memory = psutil.virtual_memory()
+                self.record_metric("system_memory_usage", memory.percent, MetricType.GAUGE)
+                
+                # Disk usage
+                disk = psutil.disk_usage('/')
+                disk_percent = (disk.used / disk.total) * 100
+                self.record_metric("system_disk_usage", disk_percent, MetricType.GAUGE)
+                
+                # Network I/O
+                network = psutil.net_io_counters()
+                self.record_metric("system_network_bytes_sent", network.bytes_sent, MetricType.COUNTER)
+                self.record_metric("system_network_bytes_recv", network.bytes_recv, MetricType.COUNTER)
+                
+                await asyncio.sleep(60)  # Collect every minute
+                
             except Exception as e:
-                status = "error"
-                metrics.error_count.labels(
-                    error_type=type(e).__name__, component=f"agent_{agent_type}"
-                ).inc()
-                raise
-            finally:
-                duration = time.time() - start_time
-                metrics.agent_request_count.labels(
-                    agent_type=agent_type, status=status
-                ).inc()
-                metrics.agent_response_time.labels(agent_type=agent_type).observe(
-                    duration
+                logger.error(f"Error collecting system metrics: {e}")
+                await asyncio.sleep(120)
+
+    def create_alert(self, title: str, message: str, severity: AlertSeverity, source: str):
+        """Create a new alert."""
+        alert = Alert(
+            id=f"{source}_{int(time.time())}",
+            title=title,
+            message=message,
+            severity=severity,
+            source=source,
+            timestamp=datetime.now()
+        )
+        
+        with self._lock:
+            self.alerts.append(alert)
+        
+        logger.warning(f"Alert created: {title} ({severity.value})")
+        
+        # Trigger alert handlers
+        asyncio.create_task(self._trigger_alert_handlers(alert))
+
+    def add_alert_handler(self, handler: Callable):
+        """Add an alert handler function."""
+        self.alert_handlers.append(handler)
+        logger.info(f"Added alert handler: {handler.__name__}")
+
+    async def _trigger_alert_handlers(self, alert: Alert):
+        """Trigger all registered alert handlers."""
+        for handler in self.alert_handlers:
+            try:
+                if asyncio.iscoroutinefunction(handler):
+                    await handler(alert)
+                else:
+                    handler(alert)
+            except Exception as e:
+                logger.error(f"Error in alert handler: {e}")
+
+    async def _check_alerts(self):
+        """Check for conditions that should trigger alerts."""
+        while self.monitoring_enabled:
+            try:
+                # Check error rates
+                for endpoint, count in self.error_counts.items():
+                    if count > 10:  # Alert if more than 10 errors
+                        self.create_alert(
+                            title=f"High Error Rate: {endpoint}",
+                            message=f"Endpoint {endpoint} has {count} errors",
+                            severity=AlertSeverity.HIGH,
+                            source="error_monitoring"
+                        )
+                
+                # Check system metrics
+                recent_metrics = [m for m in self.metrics if 
+                                m.timestamp > datetime.now() - timedelta(minutes=5)]
+                
+                cpu_metrics = [m for m in recent_metrics if m.name == "system_cpu_usage"]
+                if cpu_metrics and any(m.value > 80 for m in cpu_metrics):
+                    self.create_alert(
+                        title="High CPU Usage",
+                        message="CPU usage is above 80%",
+                        severity=AlertSeverity.MEDIUM,
+                        source="system_monitoring"
+                    )
+                
+                memory_metrics = [m for m in recent_metrics if m.name == "system_memory_usage"]
+                if memory_metrics and any(m.value > 90 for m in memory_metrics):
+                    self.create_alert(
+                        title="High Memory Usage",
+                        message="Memory usage is above 90%",
+                        severity=AlertSeverity.HIGH,
+                        source="system_monitoring"
+                    )
+                
+                await asyncio.sleep(300)  # Check every 5 minutes
+                
+            except Exception as e:
+                logger.error(f"Error checking alerts: {e}")
+                await asyncio.sleep(600)
+
+    async def _cleanup_old_data(self):
+        """Clean up old metrics and alerts."""
+        while self.monitoring_enabled:
+            try:
+                cutoff_time = datetime.now() - timedelta(hours=24)
+                
+                # Clean up old metrics
+                with self._lock:
+                    self.metrics = deque(
+                        [m for m in self.metrics if m.timestamp > cutoff_time],
+                        maxlen=5000
+                    )
+                
+                # Clean up old alerts (keep last 50)
+                with self._lock:
+                    self.alerts = self.alerts[-50:]
+                
+                # Clean up old request times
+                self.request_times = deque(
+                    [r for r in self.request_times if r['timestamp'] > cutoff_time],
+                    maxlen=500
                 )
-
-                # Decrement active agents
-                metrics.active_agents.labels(agent_type=agent_type).dec()
-
-        # Return appropriate wrapper
-        if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        else:
-            return sync_wrapper
-
-    return decorator
-
-
-def monitor_database_operation(operation: str, table: str = "unknown") -> Any:
-    """✅ REQUIRED: Monitor database operations"""
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.time()
-
-            try:
-                result = await func(*args, **kwargs)
-                metrics.db_query_count.labels(operation=operation, table=table).inc()
-                return result
+                
+                await asyncio.sleep(3600)  # Clean up every hour
+                
             except Exception as e:
-                metrics.error_count.labels(
-                    error_type=type(e).__name__, component="database"
-                ).inc()
-                raise
-            finally:
-                duration = time.time() - start_time
-                metrics.db_query_duration.labels(
-                    operation=operation, table=table
-                ).observe(duration)
+                logger.error(f"Error cleaning up old data: {e}")
+                await asyncio.sleep(7200)
 
-        @wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.time()
+    def get_metrics_summary(self) -> Dict[str, Any]:
+        """Get a summary of current metrics."""
+        with self._lock:
+            recent_metrics = [m for m in self.metrics if 
+                            m.timestamp > datetime.now() - timedelta(hours=1)]
+            
+            summary = {
+                'total_metrics': len(self.metrics),
+                'recent_metrics': len(recent_metrics),
+                'active_alerts': len([a for a in self.alerts if not a.resolved]),
+                'health_checks': {
+                    name: {
+                        'status': check.status,
+                        'response_time': check.response_time,
+                        'last_check': check.last_check.isoformat()
+                    }
+                    for name, check in self.health_checks.items()
+                },
+                'uptime': (datetime.now() - self._start_time).total_seconds(),
+                'system_metrics': self.system_metrics,
+                'cache_performance': {
+                    name: {
+                        'hit_rate': (data['hits'] / (data['hits'] + data['misses'])) if (data['hits'] + data['misses']) > 0 else 0,
+                        'total_requests': data['hits'] + data['misses']
+                    }
+                    for name, data in self.cache_hit_rates.items()
+                }
+            }
+            
+            return summary
 
-            try:
-                result = func(*args, **kwargs)
-                metrics.db_query_count.labels(operation=operation, table=table).inc()
-                return result
-            except Exception as e:
-                metrics.error_count.labels(
-                    error_type=type(e).__name__, component="database"
-                ).inc()
-                raise
-            finally:
-                duration = time.time() - start_time
-                metrics.db_query_duration.labels(
-                    operation=operation, table=table
-                ).observe(duration)
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """Get performance statistics."""
+        if not self.request_times:
+            return {'message': 'No request data available'}
+        
+        recent_requests = [r for r in self.request_times if 
+                          r['timestamp'] > datetime.now() - timedelta(minutes=5)]
+        
+        if not recent_requests:
+            return {'message': 'No recent request data'}
+        
+        durations = [r['duration'] for r in recent_requests]
+        
+        return {
+            'total_requests': len(recent_requests),
+            'average_response_time': sum(durations) / len(durations),
+            'min_response_time': min(durations),
+            'max_response_time': max(durations),
+            'error_rate': len([r for r in recent_requests if r['status_code'] >= 400]) / len(recent_requests),
+            'requests_per_minute': len(recent_requests) / 5,
+            'endpoint_performance': self._get_endpoint_performance(recent_requests)
+        }
 
-        # Return appropriate wrapper
-        if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        else:
-            return sync_wrapper
+    def _get_endpoint_performance(self, requests: List[Dict]) -> Dict[str, Any]:
+        """Get performance breakdown by endpoint."""
+        endpoint_stats = defaultdict(lambda: {'count': 0, 'total_time': 0, 'errors': 0})
+        
+        for request in requests:
+            endpoint = request['endpoint']
+            endpoint_stats[endpoint]['count'] += 1
+            endpoint_stats[endpoint]['total_time'] += request['duration']
+            if request['status_code'] >= 400:
+                endpoint_stats[endpoint]['errors'] += 1
+        
+        return {
+            endpoint: {
+                'count': stats['count'],
+                'average_time': stats['total_time'] / stats['count'],
+                'error_rate': stats['errors'] / stats['count']
+            }
+            for endpoint, stats in endpoint_stats.items()
+        }
 
-    return decorator
+    def resolve_alert(self, alert_id: str):
+        """Resolve an alert."""
+        with self._lock:
+            for alert in self.alerts:
+                if alert.id == alert_id and not alert.resolved:
+                    alert.resolved = True
+                    alert.resolved_at = datetime.now()
+                    logger.info(f"Alert resolved: {alert_id}")
+                    break
 
+# Global monitoring instance
+monitoring = MonitoringSystem()
 
-def monitor_external_api(api_name: str, endpoint: str) -> Any:
-    """✅ REQUIRED: Monitor external API calls"""
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.time()
-            status = "success"
-
-            try:
-                result = await func(*args, **kwargs)
-                return result
-            except Exception as e:
-                status = "error"
-                metrics.external_api_calls.labels(
-                    api_name=api_name, endpoint=endpoint, status=status
-                ).inc()
-                metrics.error_count.labels(
-                    error_type=type(e).__name__, component=f"external_api_{api_name}"
-                ).inc()
-                raise
-            finally:
-                duration = time.time() - start_time
-                metrics.external_api_calls.labels(
-                    api_name=api_name, endpoint=endpoint, status=status
-                ).inc()
-                metrics.external_api_duration.labels(
-                    api_name=api_name, endpoint=endpoint
-                ).observe(duration)
-
-        @wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.time()
-            status = "success"
-
-            try:
-                result = func(*args, **kwargs)
-                return result
-            except Exception as e:
-                status = "error"
-                metrics.external_api_calls.labels(
-                    api_name=api_name, endpoint=endpoint, status=status
-                ).inc()
-                metrics.error_count.labels(
-                    error_type=type(e).__name__, component=f"external_api_{api_name}"
-                ).inc()
-                raise
-            finally:
-                duration = time.time() - start_time
-                metrics.external_api_calls.labels(
-                    api_name=api_name, endpoint=endpoint, status=status
-                ).inc()
-                metrics.external_api_duration.labels(
-                    api_name=api_name, endpoint=endpoint
-                ).observe(duration)
-
-        if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        else:
-            return sync_wrapper
-
-    return decorator
-
-
+# Memory profiling context manager
 @asynccontextmanager
-async def monitor_processing(operation: str) -> AsyncGenerator[None, None]:
-    """✅ REQUIRED: Monitor food processing operations"""
+async def async_memory_profiling_context(operation_name: str = "operation"):
+    """
+    Context manager for async memory profiling.
+    
+    Args:
+        operation_name: Name of the operation being profiled
+    """
+    process = psutil.Process()
+    start_memory = process.memory_info().rss
     start_time = time.time()
-    status = "success"
-
+    
     try:
         yield
-    except Exception as e:
-        status = "error"
-        metrics.error_count.labels(
-            error_type=type(e).__name__, component="food_processing"
-        ).inc()
-        raise
     finally:
-        duration = time.time() - start_time
-        metrics.processing_duration.labels(operation=operation).observe(duration)
-
-
-def update_system_metrics() -> Any:
-    """✅ REQUIRED: Update system metrics (memory, CPU)"""
-    try:
-        import psutil
-
-        # Memory usage
-        memory_info = psutil.virtual_memory()
-        metrics.memory_usage.set(memory_info.used)
-
-        # CPU usage
-        cpu_percent = psutil.cpu_percent(interval=1)
-        metrics.cpu_usage.set(cpu_percent)
-
-    except ImportError:
-        logger.warning("psutil not available, skipping system metrics")
-    except Exception as e:
-        logger.error(f"Failed to update system metrics: {e}")
-
-
-def record_food_item_processed(operation: str, status: str = "success") -> Any:
-    """Record food item processing"""
-    metrics.food_items_processed.labels(operation=operation, status=status).inc()
-
-
-def record_error(error_type: str, component: str) -> Any:
-    """Record error occurrence"""
-    metrics.error_count.labels(error_type=error_type, component=component).inc()
-
-
-def get_metrics_summary() -> Dict[str, Any]:
-    """Get summary of current metrics"""
-    return {
-        "timestamp": datetime.now().isoformat(),
-        "prometheus_available": PROMETHEUS_AVAILABLE,
-        "metrics_collected": {
-            "requests": "request_count, request_duration",
-            "agents": "agent_request_count, agent_response_time, active_agents",
-            "database": "db_query_count, db_query_duration, db_connections",
-            "external_apis": "external_api_calls, external_api_duration",
-            "system": "memory_usage, cpu_usage",
-            "errors": "error_count",
-            "processing": "food_items_processed, processing_duration",
-        },
-    }
+        end_time = time.time()
+        end_memory = process.memory_info().rss
+        
+        duration = end_time - start_time
+        memory_diff = end_memory - start_memory
+        
+        # Record metrics
+        monitoring.record_metric(
+            name="memory_usage_bytes",
+            value=end_memory,
+            metric_type=MetricType.GAUGE,
+            labels={"operation": operation_name}
+        )
+        
+        monitoring.record_metric(
+            name="memory_delta_bytes",
+            value=memory_diff,
+            metric_type=MetricType.GAUGE,
+            labels={"operation": operation_name}
+        )
+        
+        monitoring.record_metric(
+            name="operation_duration_seconds",
+            value=duration,
+            metric_type=MetricType.HISTOGRAM,
+            labels={"operation": operation_name}
+        )
+        
+        logger.debug(f"Memory profiling for {operation_name}: "
+                    f"duration={duration:.3f}s, "
+                    f"memory_diff={memory_diff/1024/1024:.2f}MB")

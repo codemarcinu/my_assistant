@@ -46,6 +46,10 @@ class MemoryContext:
         self.created_at: datetime = datetime.now()
         self.last_updated: datetime = datetime.now()
 
+    def set_last_command(self, command: str) -> None:
+        """Set the last command issued in this memory context."""
+        self.last_command = command
+
 
 class MemoryManager(IMemoryManager):
     """Implementation of memory management for conversation context with proper cleanup"""

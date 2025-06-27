@@ -13,15 +13,15 @@ async def run_migrations() -> None:
             text(
                 """
             CREATE TABLE IF NOT EXISTS products (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 name VARCHAR NOT NULL,
                 price FLOAT DEFAULT 0.0,
                 unit VARCHAR,
                 category VARCHAR,
                 discount FLOAT DEFAULT 0.0,
                 notes TEXT,
-                created_at DATETIME,
-                updated_at DATETIME
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
             )
         """
             )
@@ -33,12 +33,12 @@ async def run_migrations() -> None:
             text(
                 """
             CREATE TABLE IF NOT EXISTS shopping_trips (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                trip_date DATETIME,
+                id SERIAL PRIMARY KEY,
+                trip_date TIMESTAMP,
                 store_name VARCHAR,
                 total_amount FLOAT DEFAULT 0.0,
-                created_at DATETIME,
-                updated_at DATETIME
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
             )
         """
             )
@@ -50,8 +50,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('products')
-            WHERE name='discount'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'products' AND column_name = 'discount'
         """
             )
         )
@@ -73,8 +73,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('products')
-            WHERE name='category'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'products' AND column_name = 'category'
         """
             )
         )
@@ -96,8 +96,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('shopping_trips')
-            WHERE name='created_at'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'shopping_trips' AND column_name = 'created_at'
         """
             )
         )
@@ -107,7 +107,7 @@ async def run_migrations() -> None:
                 text(
                     """
                 ALTER TABLE shopping_trips
-                ADD COLUMN created_at DATETIME
+                ADD COLUMN created_at TIMESTAMP
             """
                 )
             )
@@ -119,8 +119,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('shopping_trips')
-            WHERE name='updated_at'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'shopping_trips' AND column_name = 'updated_at'
         """
             )
         )
@@ -130,7 +130,7 @@ async def run_migrations() -> None:
                 text(
                     """
                 ALTER TABLE shopping_trips
-                ADD COLUMN updated_at DATETIME
+                ADD COLUMN updated_at TIMESTAMP
             """
                 )
             )
@@ -142,8 +142,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('products')
-            WHERE name='created_at'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'products' AND column_name = 'created_at'
         """
             )
         )
@@ -153,7 +153,7 @@ async def run_migrations() -> None:
                 text(
                     """
                 ALTER TABLE products
-                ADD COLUMN created_at DATETIME
+                ADD COLUMN created_at TIMESTAMP
             """
                 )
             )
@@ -165,8 +165,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('products')
-            WHERE name='updated_at'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'products' AND column_name = 'updated_at'
         """
             )
         )
@@ -176,7 +176,7 @@ async def run_migrations() -> None:
                 text(
                     """
                 ALTER TABLE products
-                ADD COLUMN updated_at DATETIME
+                ADD COLUMN updated_at TIMESTAMP
             """
                 )
             )
@@ -188,8 +188,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('products')
-            WHERE name='price'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'products' AND column_name = 'price'
         """
             )
         )
@@ -211,8 +211,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('products')
-            WHERE name='unit'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'products' AND column_name = 'unit'
         """
             )
         )
@@ -234,8 +234,8 @@ async def run_migrations() -> None:
         result = await conn.execute(
             text(
                 """
-            SELECT name FROM pragma_table_info('products')
-            WHERE name='notes'
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'products' AND column_name = 'notes'
         """
             )
         )

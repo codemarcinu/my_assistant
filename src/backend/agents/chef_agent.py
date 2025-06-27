@@ -2,10 +2,10 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from ..core.llm_client import llm_client
-from .base_agent import BaseAgent
-from .interfaces import AgentResponse
-from .tools.tools import get_available_products_from_pantry
+from backend.core.llm_client import llm_client
+from backend.agents.base_agent import BaseAgent
+from backend.agents.interfaces import AgentResponse
+from backend.agents.tools.tools import get_available_products_from_pantry
 
 
 class ChefAgentInput(BaseModel):

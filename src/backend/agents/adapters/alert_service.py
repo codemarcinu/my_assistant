@@ -2,8 +2,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from ..error_types import ErrorSeverity
-from ..interfaces import IAlertService
+from backend.agents.error_types import ErrorSeverity
+from backend.agents.interfaces import IAlertService
 
 
 class AlertService(IAlertService):

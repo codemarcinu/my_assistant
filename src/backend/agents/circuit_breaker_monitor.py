@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from .circuit_breaker_wrapper import AgentCircuitBreaker
+from backend.agents.circuit_breaker_wrapper import AgentCircuitBreaker
 
 
 class CircuitBreakerMonitor:

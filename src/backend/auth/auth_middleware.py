@@ -11,7 +11,7 @@ from fastapi import HTTPException, Request, status
 from fastapi.security import HTTPBearer
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .jwt_handler import jwt_handler
+from backend.auth.jwt_handler import jwt_handler
 
 logger = logging.getLogger(__name__)
 

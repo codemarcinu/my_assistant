@@ -10,8 +10,8 @@ from backend.agents.orchestrator import Orchestrator
 from backend.agents.response_generator import ResponseGenerator
 from backend.core.profile_manager import ProfileManager
 
-from .agent_factory import AgentFactory
-from .agent_registry import AgentRegistry
+from backend.agents.agent_factory import AgentFactory
+from backend.agents.agent_registry import AgentRegistry
 
 
 def create_orchestrator(db: AsyncSession) -> Orchestrator:

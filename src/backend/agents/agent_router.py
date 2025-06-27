@@ -1,9 +1,11 @@
 import logging
 from typing import Any, Dict, Optional
 
-from .interfaces import AgentResponse, AgentType
-from .interfaces import BaseAgent as IBaseAgent
-from .interfaces import IAgentRouter, IntentData, MemoryContext
+from backend.agents.interfaces import AgentResponse, AgentType
+from backend.agents.interfaces import BaseAgent as IBaseAgent
+from backend.agents.interfaces import IAgentRouter, IntentData, MemoryContext
+from backend.agents.general_conversation_agent import \
+    GeneralConversationAgent
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +53,6 @@ class AgentRouter(IAgentRouter):
                 logger.warning(
                     f"No agent found for type {agent_type.value}, using GeneralConversationAgent as fallback"
                 )
-                from .general_conversation_agent import \
-                    GeneralConversationAgent
-
                 agent = GeneralConversationAgent()
 
             input_data = self._prepare_agent_input(
@@ -71,9 +70,6 @@ class AgentRouter(IAgentRouter):
             logger.error(f"Error routing to agent: {e}", exc_info=True)
             # Even in case of exception, return a fallback response
             try:
-                from .general_conversation_agent import \
-                    GeneralConversationAgent
-
                 fallback_agent = GeneralConversationAgent()
                 input_data = {
                     "query": user_command,

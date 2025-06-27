@@ -15,16 +15,17 @@ import numpy as np
 
 from backend.integrations.web_search import web_search
 
-from ..core.cache_manager import cached_async, internet_cache, rag_cache
-from ..core.decorators import handle_exceptions
-from ..core.hybrid_llm_client import ModelComplexity, hybrid_llm_client
-from ..core.mmlw_embedding_client import mmlw_client
-from ..core.perplexity_client import perplexity_client
-from ..core.rag_document_processor import RAGDocumentProcessor
-from ..core.rag_integration import RAGDatabaseIntegration
-from ..core.vector_store import vector_store
-from .base_agent import BaseAgent
-from .interfaces import AgentResponse
+from backend.core.cache_manager import cached_async, internet_cache, rag_cache
+from backend.core.decorators import handle_exceptions
+from backend.core.hybrid_llm_client import ModelComplexity, hybrid_llm_client
+from backend.core.mmlw_embedding_client import mmlw_client
+from backend.core.perplexity_client import perplexity_client
+from backend.core.rag_document_processor import RAGDocumentProcessor
+from backend.core.rag_integration import RAGDatabaseIntegration
+from backend.core.vector_store import vector_store
+from backend.agents.base_agent import BaseAgent
+from backend.agents.interfaces import AgentResponse
+from backend.agents.search_agent import SearchAgent
 
 logger = logging.getLogger(__name__)
 
@@ -246,8 +247,6 @@ class GeneralConversationAgent(BaseAgent):
                     # Fallback do starego systemu
                     from backend.core.hybrid_llm_client import hybrid_llm_client
                     from backend.core.vector_store import vector_store
-
-                    from .search_agent import SearchAgent
 
                     search_agent = SearchAgent(
                         vector_store=vector_store, llm_client=hybrid_llm_client

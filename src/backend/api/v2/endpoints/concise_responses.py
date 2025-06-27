@@ -12,15 +12,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from ....core.response_length_config import (
+from backend.core.response_length_config import (
     ResponseLengthConfig,
     ResponseStyle,
     ConciseMetrics,
     get_config_for_style,
 )
-from ....agents.concise_response_agent import concise_response_agent
-from ....core.concise_rag_processor import concise_rag_processor
-from ....core.vector_store import vector_store
+from backend.agents.concise_response_agent import concise_response_agent
+from backend.core.concise_rag_processor import concise_rag_processor
+from backend.core.vector_store import vector_store
 
 logger = logging.getLogger(__name__)
 

@@ -9,14 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.profile_manager import ProfileManager
 from backend.models.user_profile import InteractionType
 
-from .agent_router import AgentRouter
-from .base_agent import BaseAgent
-from .error_types import ErrorSeverity
-from .intent_detector import SimpleIntentDetector as IntentDetector
-from .interfaces import AgentResponse, AgentType, IntentData
-from .memory_manager import MemoryManager
-from .orchestrator_errors import OrchestratorError
-from .response_generator import ResponseGenerator
+from backend.agents.agent_router import AgentRouter
+from backend.agents.base_agent import BaseAgent
+from backend.agents.error_types import ErrorSeverity
+from backend.agents.intent_detector import SimpleIntentDetector as IntentDetector
+from backend.agents.interfaces import AgentResponse, AgentType, IntentData
+from backend.agents.memory_manager import MemoryManager
+from backend.agents.orchestrator_errors import OrchestratorError
+from backend.agents.response_generator import ResponseGenerator
 
 logger = logging.getLogger(__name__)
 

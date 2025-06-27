@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict
 from backend.core.language_detector import language_detector
 from backend.core.llm_client import LLMCache, llm_client
 from backend.core.model_selector import ModelTask, model_selector
-from .response_length_config import ResponseLengthConfig, ConciseMetrics, ResponseStyle
+from backend.core.response_length_config import ResponseLengthConfig, ConciseMetrics, ResponseStyle
 
 logger = logging.getLogger(__name__)
 

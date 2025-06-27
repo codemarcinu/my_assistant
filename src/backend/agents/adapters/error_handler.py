@@ -3,8 +3,8 @@ import traceback
 from datetime import datetime
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from ..error_types import ErrorSeverity
-from ..interfaces import IErrorHandler
+from backend.agents.error_types import ErrorSeverity
+from backend.agents.interfaces import IErrorHandler
 
 
 class ErrorHandler(IErrorHandler):

@@ -45,7 +45,6 @@ class DatabaseMetrics:
             "checked_in": 0,
             "checked_out": 0,
             "overflow": 0,
-            "invalid": 0,
         }
 
     def record_query(self, query_time: float, query: str) -> None:
@@ -61,16 +60,35 @@ class DatabaseMetrics:
         self.connection_errors += 1
 
     def update_pool_stats(self, pool: Any) -> None:
-        """Update connection pool statistics"""
-        if hasattr(pool, "_pool"):
-            self.connection_pool_stats.update(
-                {
-                    "checked_in": pool._pool.qsize(),
-                    "checked_out": pool.size() - pool._pool.qsize(),
-                    "overflow": pool.overflow(),
-                    "invalid": pool.invalid(),
-                }
-            )
+        """Update connection pool statistics - FIXED: removed invalid attribute reference"""
+        try:
+            if hasattr(pool, "_pool"):
+                # Get pool size safely
+                pool_size = getattr(pool, 'size', lambda: 0)()
+                checked_in = getattr(pool._pool, 'qsize', lambda: 0)()
+                checked_out = max(0, pool_size - checked_in)
+                overflow = getattr(pool, 'overflow', lambda: 0)()
+                
+                self.connection_pool_stats.update({
+                    "checked_in": checked_in,
+                    "checked_out": checked_out,
+                    "overflow": overflow,
+                })
+            else:
+                # Fallback for different pool types
+                self.connection_pool_stats.update({
+                    "checked_in": 0,
+                    "checked_out": 0,
+                    "overflow": 0,
+                })
+        except Exception as e:
+            logger.warning(f"Could not update pool stats: {e}")
+            # Set safe defaults
+            self.connection_pool_stats.update({
+                "checked_in": 0,
+                "checked_out": 0,
+                "overflow": 0,
+            })
 
     def get_stats(self) -> dict:
         """Get comprehensive database statistics"""
@@ -99,7 +117,7 @@ async def check_database_health() -> dict:
             # Simple query to test connection
             await session.execute(text("SELECT 1"))
 
-            # Update pool stats
+            # Update pool stats safely
             db_metrics.update_pool_stats(engine.pool)
 
             status_details = {

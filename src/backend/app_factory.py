@@ -106,7 +106,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup logic
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    await run_migrations()
+    
+    # Skip migrations for SQLite (they use PostgreSQL-specific queries)
+    if not settings.DATABASE_URL.startswith("sqlite"):
+        await run_migrations()
+    else:
+        logger.info("Skipping migrations for SQLite database")
+    
     logger.info("database.seeding.start")
     async with AsyncSessionLocal() as db:
         try:
@@ -119,6 +125,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Initialize cache
     cache_manager = CacheManager()
     await cache_manager.connect()
+
+    # Initialize MMLW embeddings if enabled
+    if settings.USE_MMLW_EMBEDDINGS:
+        try:
+            from backend.core.mmlw_embedding_client import mmlw_client
+            logger.info("Initializing MMLW embeddings...")
+            await mmlw_client.initialize()
+            if mmlw_client.is_available():
+                logger.info("MMLW embeddings initialized successfully")
+            else:
+                logger.warning("MMLW embeddings initialization failed")
+        except Exception as e:
+            logger.error(f"Failed to initialize MMLW embeddings: {e}")
 
     logger.info("Initializing orchestrator pool and request queue...")
     # Initialize orchestrator pool with default orchestrator
@@ -149,10 +168,10 @@ def create_app() -> FastAPI:
     app.add_middleware(SlowAPIMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.CORS_ORIGINS.split(",")],
+        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"],
+        allow_headers=["*"]
     )
     app.add_middleware(AuthMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)

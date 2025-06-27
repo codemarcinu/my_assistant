@@ -41,7 +41,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: ${BACKEND_DOCKERFILE:-src/backend/Dockerfile}
+      dockerfile: ${BACKEND_DOCKERFILE:-src/backend/Dockerfile.pip}
     container_name: foodsave-backend
     ports:
       - "8000:8000"
@@ -52,6 +52,7 @@ services:
       - PYTHONPATH=/app:/app/src
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - TESTING_MODE=true
       - DATABASE_URL=${DATABASE_URL:-postgresql://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev}
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_BASE_URL=http://ollama:11434
@@ -69,10 +70,11 @@ services:
     command: ["uvicorn", "src.backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level=debug"]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
     logging:
       driver: "json-file"
       options:
@@ -83,13 +85,13 @@ services:
   # Frontend Next.js
   frontend:
     build:
-      context: ./myappassistant-chat-frontend
+      context: ./foodsave-frontend
       dockerfile: Dockerfile.dev
     container_name: foodsave-frontend
     ports:
       - "3000:3000"
     volumes:
-      - ./myappassistant-chat-frontend:/app
+      - ./foodsave-frontend:/app
       - frontend_node_modules:/app/node_modules
       - ./logs/frontend:/app/logs
     environment:
@@ -102,11 +104,11 @@ services:
       - backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || wget -q --spider http://localhost:3000/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 120s
+      start_period: 180s
     logging:
       driver: "json-file"
       options:
@@ -147,11 +149,10 @@ services:
     image: redis:7-alpine
     container_name: foodsave-redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
-      - ./logs/redis:/var/log/redis
-    command: ["redis-server", "--save", "60", "1", "--loglevel", "notice", "--logfile", "/var/log/redis/redis.log"]
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "notice"]
     networks:
       - foodsave-network
     restart: unless-stopped

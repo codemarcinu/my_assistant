@@ -1,38 +1,35 @@
 import asyncio
+import inspect
 import os
 import time
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union, Generator
 
 import ollama
 import requests  # type: ignore
 import structlog
 
+from ..config import OLLAMA_URL, settings
+
 logger = structlog.get_logger()
 
-# Configure ollama client to use the correct host
-ollama_host = os.getenv("OLLAMA_HOST", "localhost")
-ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+# Configure ollama client to use the correct host from OLLAMA_URL
+ollama_url = OLLAMA_URL
+logger.info(f"Raw OLLAMA_URL from config: {ollama_url}")
 
-# Set the host for the ollama library
-if ollama_host != "localhost":
-    # The ollama library uses OLLAMA_HOST environment variable
-    os.environ["OLLAMA_HOST"] = ollama_host
-    logger.info(f"Configured ollama client to use host: {ollama_host}")
-    logger.info(f"Ollama URL: {ollama_url}")
+if not ollama_url or not ollama_url.startswith(('http://', 'https://')):
+    logger.error(f"Invalid OLLAMA_URL: {ollama_url}")
+    raise ValueError(f"OLLAMA_URL must start with http:// or https://, got: {ollama_url}")
 
-# Create a configured ollama client instance
-ollama_client = ollama.Client()
-logger.info(
-    f"Configured ollama client to use host: {ollama_host} and URL: {ollama_url}"
-)
-
+# Create a configured ollama client instance with the correct host
+ollama_client = ollama.Client(host=ollama_url)
+logger.info(f"Configured ollama client with host: {ollama_url}")
 
 # Test Ollama connection on startup
 def test_ollama_connection() -> bool:
     """Test if Ollama server is accessible"""
     try:
-        response = requests.get(f"{ollama_url}/api/version", timeout=5)
+        response = requests.get(f"{OLLAMA_URL}/api/version", timeout=5)
         if response.status_code == 200:
             logger.info("Ollama server is accessible")
             return True
@@ -46,6 +43,57 @@ def test_ollama_connection() -> bool:
 
 # Test connection on module import
 OLLAMA_AVAILABLE = test_ollama_connection()
+
+
+class ModelFallbackManager:
+    """Manages model fallback strategy when primary model fails"""
+    
+    def __init__(self):
+        self.available_models = settings.AVAILABLE_MODELS
+        self.fallback_strategy = settings.FALLBACK_STRATEGY
+        self.enable_fallback = settings.ENABLE_MODEL_FALLBACK
+        self.fallback_timeout = settings.FALLBACK_TIMEOUT
+        self.model_health: Dict[str, bool] = {}
+        self.last_fallback_time: Dict[str, datetime] = {}
+        
+    async def get_working_model(self, preferred_model: str) -> str:
+        """Get a working model, starting with preferred and falling back if needed"""
+        if not self.enable_fallback:
+            return preferred_model
+            
+        # Check if preferred model is healthy
+        if await self._is_model_healthy(preferred_model):
+            return preferred_model
+            
+        # Try fallback models
+        for model in self.available_models:
+            if model != preferred_model and await self._is_model_healthy(model):
+                logger.info(f"Falling back from {preferred_model} to {model}")
+                return model
+                
+        # If no model is healthy, return preferred model anyway
+        logger.warning(f"No healthy models found, using {preferred_model}")
+        return preferred_model
+        
+    async def _is_model_healthy(self, model: str) -> bool:
+        """Check if a specific model is healthy and available"""
+        try:
+            # Check if model exists and is accessible
+            response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+            if response.status_code == 200:
+                models_data = response.json()
+                available_models = [m.get('name', '') for m in models_data.get('models', [])]
+                return model in available_models
+        except Exception as e:
+            logger.debug(f"Health check failed for model {model}: {e}")
+            
+        return False
+        
+    def mark_model_failed(self, model: str):
+        """Mark a model as failed for fallback purposes"""
+        self.model_health[model] = False
+        self.last_fallback_time[model] = datetime.now()
+        logger.warning(f"Model {model} marked as failed")
 
 
 class LLMCache:
@@ -113,12 +161,13 @@ class EnhancedLLMClient:
         self.last_request_time = datetime.now()
         self.connection_retries = 3
         self.retry_delay = 1.0
+        self.model_fallback_manager = ModelFallbackManager()
 
     async def _check_ollama_availability(self) -> bool:
         """Check if Ollama is available with retries"""
         for attempt in range(self.connection_retries):
             try:
-                response = requests.get(f"{ollama_url}/api/version", timeout=5)
+                response = requests.get(f"{OLLAMA_URL}/api/version", timeout=5)
                 if response.status_code == 200:
                     return True
             except Exception as e:
@@ -137,7 +186,7 @@ class EnhancedLLMClient:
         options: Optional[Dict[str, Any]] = None,
     ) -> Union[Dict[str, Any], AsyncGenerator[Dict[str, Any], None]]:
         """
-        Send chat messages to the LLM
+        Send chat messages to the LLM with automatic fallback
 
         Args:
             model: Model name
@@ -150,6 +199,12 @@ class EnhancedLLMClient:
         """
         start_time = time.time()
         options = options or {}
+
+        # Get working model with fallback
+        working_model = await self.model_fallback_manager.get_working_model(model)
+        if working_model != model:
+            logger.info(f"Using fallback model: {working_model} instead of {model}")
+            model = working_model
 
         # Log prompt
         logger.info(
@@ -248,6 +303,9 @@ class EnhancedLLMClient:
             self.last_error = str(e)
             self.error_count += 1
             logger.error(f"Error in LLM request to {model}: {str(e)}")
+            
+            # Mark model as failed for fallback
+            self.model_fallback_manager.mark_model_failed(model)
 
             # Return a fallback response instead of raising an exception
             fallback_response = {
@@ -265,68 +323,54 @@ class EnhancedLLMClient:
 
             return fallback_response
 
-    async def _stream_response(
-        self, model: str, messages: List[Dict[str, str]], options: Dict[str, Any], original_messages: Optional[List[Dict[str, str]]] = None
-    ) -> AsyncGenerator[Dict[str, Any], None]:
-        """Stream response from LLM"""
-        start_time = time.time()
-        if original_messages is None:
-            original_messages = messages
-        # Log prompt for streaming
-        logger.info(
-            "ollama_prompt",
-            model=model,
-            messages=original_messages,
-            options=options,
-            stream=True,
-            timestamp=datetime.now().isoformat(),
-        )
+    async def _convert_to_async_generator(self, sync_gen):
+        """Helper method to properly convert sync generator to async."""
         try:
-            # Call Ollama's streaming API - no await needed for stream=True
-            response_stream = ollama_client.chat(
-                model=model,
-                messages=[
-                    {"role": m["role"], "content": m["content"]} for m in messages
-                ],
-                options=options,
-                stream=True,
-            )
-
-            # Process and yield each chunk
-            full_response = ""
-            for chunk in response_stream:
-                content = chunk["message"]["content"]
-                full_response += content
-                yield {
-                    "message": {
-                        "role": "assistant",
-                        "content": content,
-                    },
-                    "response": content,
-                }
-            # Log full response after streaming
-            logger.info(
-                "ollama_response",
-                model=model,
-                messages=original_messages,
-                options=options,
-                response=full_response,
-                duration=time.time() - start_time,
-                timestamp=datetime.now().isoformat(),
-            )
-
+            for item in sync_gen:
+                yield item
+                await asyncio.sleep(0)  # Allow other coroutines to run
         except Exception as e:
-            self.last_error = str(e)
-            self.error_count += 1
-            logger.error(f"Error in streaming LLM request to {model}: {str(e)}")
+            logger.error(f"Error in async generator conversion: {e}")
+            raise
 
-            # Yield a fallback response instead of an error
-            fallback_message = "I'm sorry, but I'm currently unable to process your request. Please try again later."
-            yield {
-                "message": {"role": "assistant", "content": fallback_message},
-                "response": fallback_message,
-                "error": str(e),
-            }
+    def _stream_response(
+        self, model: str, messages: List[Dict[str, str]], options: Dict[str, Any], original_messages: Optional[List[Dict[str, str]]] = None
+    ) -> Generator[Dict[str, Any], None, None]:
+        """
+        Synchronous streaming using Ollama client.
+        Returns a proper generator for streaming responses.
+        """
+        try:
+            logger.debug(f"Starting _stream_response for model: {model}")
+            logger.debug(f"Messages count: {len(messages)}")
+            logger.debug(f"Options: {options}")
+            
+            # Używaj stream=True dla streamingu z Ollama
+            stream = ollama_client.chat(
+                model=model,
+                messages=messages,
+                stream=True,
+                **options
+            )
+            
+            logger.debug(f"Ollama stream type: {type(stream)}")
+            logger.debug(f"Ollama stream is generator: {inspect.isgenerator(stream)}")
+            
+            # Ollama zwraca iterator, nie async generator
+            chunk_count = 0
+            for chunk in stream:
+                chunk_count += 1
+                logger.debug(f"Ollama chunk {chunk_count}: {type(chunk)}")
+                yield chunk
+            
+            logger.debug(f"Total Ollama chunks: {chunk_count}")
+            
+        except Exception as e:
+            logger.error(f"Error in Ollama streaming: {e}")
+            logger.error(f"Error type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
     async def embed(
         self, model: str, text: str, options: Optional[Dict[str, Any]] = None
@@ -390,31 +434,60 @@ class EnhancedLLMClient:
             logger.error(f"Error getting models: {str(e)}")
             return []
 
-    async def generate_stream(
+    def generate_stream(
         self,
         model: str,
         messages: List[Dict[str, str]],
         options: Optional[Dict[str, Any]] = None,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> Generator[Dict[str, Any], None, None]:
         """Generate streaming response from model"""
-        async for chunk in self._stream_response(model, messages, options or {}):
+        for chunk in self._stream_response(model, messages, options or {}):
             yield chunk
 
-    async def generate_stream_from_prompt(
+    def generate_stream_from_prompt(
         self,
         model: str,
         prompt: str,
         system_prompt: str = "",
         options: Optional[Dict[str, Any]] = None,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> Generator[Dict[str, Any], None, None]:
         """Generate streaming response from prompt and system prompt"""
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        async for chunk in self._stream_response(model, messages, options or {}):
+        for chunk in self._stream_response(model, messages, options or {}):
             yield chunk
+
+    async def generate_stream_from_prompt_async(
+        self,
+        model: str,
+        prompt: str,
+        system_prompt: str = "",
+        options: Optional[Dict[str, Any]] = None,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Async version of generate_stream_from_prompt for FastAPI compatibility.
+        Converts synchronous generator to asynchronous generator.
+        """
+        # Walidacja prompt
+        if not prompt or prompt.strip() == "":
+            logger.error("Empty or null prompt provided to generate_stream_from_prompt_async")
+            yield {"error": "Prompt cannot be empty or null"}
+            return
+        
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        
+        sync_generator = self._stream_response(model, messages, options or {})
+        await asyncio.sleep(0)  # Ensure this is always an async generator
+        for chunk in sync_generator:
+            yield chunk
+            await asyncio.sleep(0)
+        # No return here – ensures this is a true async generator
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the LLM client"""

@@ -1,6 +1,6 @@
 from typing import Dict, Optional, Type
 
-from .interfaces import BaseAgent
+from backend.agents.interfaces import BaseAgent
 
 
 class AgentRegistry:

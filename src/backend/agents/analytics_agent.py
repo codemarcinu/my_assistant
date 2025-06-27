@@ -1,8 +1,8 @@
 from typing import Any, Dict
 
-from ..core.crud import get_summary
-from .base_agent import BaseAgent
-from .interfaces import AgentResponse
+from backend.core.crud import get_summary
+from backend.agents.base_agent import BaseAgent
+from backend.agents.interfaces import AgentResponse
 
 
 class AnalyticsAgent(BaseAgent):

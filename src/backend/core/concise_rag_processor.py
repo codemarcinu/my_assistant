@@ -10,8 +10,8 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
-from .response_length_config import ResponseLengthConfig, ConciseMetrics, ResponseStyle
-from .hybrid_llm_client import hybrid_llm_client
+from backend.core.response_length_config import ResponseLengthConfig, ConciseMetrics, ResponseStyle
+from backend.core.hybrid_llm_client import hybrid_llm_client
 
 logger = logging.getLogger(__name__)
 

@@ -10,11 +10,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from .jwt_handler import jwt_handler
-from .models import Role, User, UserRole
-from .schemas import (PasswordChange, PasswordReset, PasswordResetConfirm,
+from backend.auth.jwt_handler import jwt_handler
+from backend.auth.models import Role, User, UserRole
+from backend.auth.schemas import (PasswordChange, PasswordReset, PasswordResetConfirm,
                       RoleCreate, RoleResponse, TokenResponse, UserCreate,
                       UserLogin, UserResponse, UserRoleAssign, UserUpdate)
+from backend.infrastructure.database.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,6 @@ auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # Dependency to get database session
 def get_db() -> AsyncSession:
-    from ..infrastructure.database.database import AsyncSessionLocal
-
     db = AsyncSessionLocal()
     try:
         yield db
