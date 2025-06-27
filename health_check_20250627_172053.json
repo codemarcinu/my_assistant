@@ -1,0 +1,76 @@
+{
+  "results": {
+    "system_status": {
+      "timestamp": "2025-06-27T17:20:53.191931",
+      "services": {
+        "Backend": {
+          "status": "healthy",
+          "response_time": 0.003441,
+          "status_code": 200
+        },
+        "Frontend": {
+          "status": "healthy",
+          "response_time": 0.002177,
+          "status_code": 200
+        },
+        "Ollama": {
+          "status": "healthy",
+          "response_time": 0.000837,
+          "status_code": 200
+        }
+      },
+      "overall_health": "healthy",
+      "containers": [
+        {
+          "name": "foodsave-backend",
+          "status": "Up 2 hours (unhealthy)",
+          "health": ""
+        },
+        {
+          "name": "foodsave-frontend",
+          "status": "Up 2 hours (healthy)",
+          "health": ""
+        },
+        {
+          "name": "foodsave-postgres",
+          "status": "Up 2 hours (healthy)",
+          "health": ""
+        },
+        {
+          "name": "foodsave-ollama",
+          "status": "Up 9 seconds (healthy)",
+          "health": ""
+        }
+      ]
+    },
+    "ollama_status": {
+      "models": [
+        {
+          "name": "gemma3:12b",
+          "size_gb": 7.589524847455323,
+          "modified": "2025-06-27T15:20:43.179926153Z",
+          "format": "gguf",
+          "family": "gemma3"
+        }
+      ],
+      "api_version": "0.9.3",
+      "performance": {
+        "response_time": 0.2520732879638672,
+        "status": "working"
+      }
+    },
+    "backend_status": {
+      "endpoints": {
+        "total": 91
+      },
+      "authentication": "unexpected",
+      "database": "connected"
+    },
+    "frontend_status": {
+      "status": "healthy",
+      "response_time": 0.0024836063385009766
+    }
+  },
+  "duration": 0.2916996479034424,
+  "health_percentage": "Health: 75.0%"
+}
