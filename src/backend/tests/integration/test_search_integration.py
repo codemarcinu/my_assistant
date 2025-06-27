@@ -20,8 +20,13 @@ async def test_search_integration_wikipedia_encyclopedic():
         }
     }
     
-    with patch("aiohttp.ClientSession.get") as mock_get:
-        mock_get.return_value.__aenter__.return_value.json = AsyncMock(return_value=wiki_response)
+    with patch("httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_response = AsyncMock()
+        mock_response.json.return_value = wiki_response
+        mock_response.raise_for_status.return_value = None
+        mock_client.get.return_value = mock_response
+        mock_client_class.return_value = mock_client
         
         results = await agent.process_request("kto to Albert Einstein")
         
@@ -48,8 +53,13 @@ async def test_search_integration_duckduckgo_web():
         ]
     }
     
-    with patch("aiohttp.ClientSession.get") as mock_get:
-        mock_get.return_value.__aenter__.return_value.json = AsyncMock(return_value=duck_response)
+    with patch("httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_response = AsyncMock()
+        mock_response.json.return_value = duck_response
+        mock_response.raise_for_status.return_value = None
+        mock_client.get.return_value = mock_response
+        mock_client_class.return_value = mock_client
         
         results = await agent.process_request("szukaj informacji o Pythonie")
         
@@ -73,12 +83,16 @@ async def test_search_integration_fallback_scenario():
         "AbstractURL": "https://example.com/ml"
     }
     
-    with patch("aiohttp.ClientSession.get") as mock_get:
-        # Pierwsze wywołanie (Wikipedia) zwraca pustą odpowiedź
-        # Drugie wywołanie (DuckDuckGo) zwraca wyniki
-        mock_get.return_value.__aenter__.return_value.json = AsyncMock(
-            side_effect=[wiki_empty_response, duck_response]
-        )
+    with patch("httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_response1 = AsyncMock()
+        mock_response1.json.return_value = wiki_empty_response
+        mock_response1.raise_for_status.return_value = None
+        mock_response2 = AsyncMock()
+        mock_response2.json.return_value = duck_response
+        mock_response2.raise_for_status.return_value = None
+        mock_client.get.side_effect = [mock_response1, mock_response2]
+        mock_client_class.return_value = mock_client
         
         results = await agent.process_request("wikipedia: machine learning")
         
@@ -104,11 +118,13 @@ async def test_search_integration_error_recovery():
         }
     }
     
-    with patch("aiohttp.ClientSession.get") as mock_get:
-        # Pierwsze wywołanie zwraca błąd, drugie zwraca wyniki
-        mock_get.return_value.__aenter__.return_value.json = AsyncMock(
-            side_effect=[Exception("Network error"), wiki_response]
-        )
+    with patch("httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_response = AsyncMock()
+        mock_response.json.return_value = wiki_response
+        mock_response.raise_for_status.return_value = None
+        mock_client.get.side_effect = [Exception("Network error"), mock_response]
+        mock_client_class.return_value = mock_client
         
         results = await agent.process_request("test query")
         
@@ -127,8 +143,13 @@ async def test_search_integration_prefix_override():
         "AbstractURL": "https://example.com"
     }
     
-    with patch("aiohttp.ClientSession.get") as mock_get:
-        mock_get.return_value.__aenter__.return_value.json = AsyncMock(return_value=duck_response)
+    with patch("httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_response = AsyncMock()
+        mock_response.json.return_value = duck_response
+        mock_response.raise_for_status.return_value = None
+        mock_client.get.return_value = mock_response
+        mock_client_class.return_value = mock_client
         
         results = await agent.process_request("duck: kto to Albert Einstein")
         

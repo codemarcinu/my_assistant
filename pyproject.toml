@@ -44,6 +44,7 @@ opentelemetry-instrumentation-sqlalchemy = "^0.55b1"
 pytesseract = "^0.3.13"
 alembic = "^1.16.2"
 psycopg2-binary = "^2.9.10"
+psutil = "^6.1.0"
 
 [tool.poetry.group.dev.dependencies]
 memory-profiler = "^0.61.0"

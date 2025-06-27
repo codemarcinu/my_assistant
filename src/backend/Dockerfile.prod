@@ -50,16 +50,17 @@ RUN groupadd -r foodsave && useradd -r -g foodsave foodsave
 # Set working directory
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
+# Copy installed packages and python from builder
+COPY --from=builder /usr/local /usr/local
 ENV PATH="/usr/local/bin:$PATH"
-
 RUN pip install uvicorn
 
 # Copy application code (from root context)
 COPY src/backend ./backend
+
+# Copy dependency files for poetry
+COPY pyproject.toml poetry.lock ./
+RUN pip install poetry && poetry config virtualenvs.create false && poetry install --only=main --no-interaction --no-ansi
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/data /app/data/vector_store /app/data/search_cache /app/backups
@@ -83,4 +84,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Command to run the application
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"] 
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"] 

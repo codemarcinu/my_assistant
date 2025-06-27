@@ -5,11 +5,13 @@ Simple test script to verify FoodSave AI fixes
 
 import asyncio
 import sys
+import pytest
 
 # Add src to path
 sys.path.insert(0, "src")
 
 
+@pytest.mark.asyncio
 async def test_fixes():
     """Test that the fixes are working"""
     print("🧪 Testing FoodSave AI fixes...")

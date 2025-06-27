@@ -17,7 +17,7 @@ services:
       - PYTHONPATH=/app
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
-      - DATABASE_URL=${DATABASE_URL:-postgresql://foodsave:${POSTGRES_PASSWORD:-foodsave_prod_password}@postgres:5432/foodsave_prod}
+      - DATABASE_URL=postgresql+asyncpg://foodsave:${POSTGRES_PASSWORD:-foodsave_prod_password}@postgres:5432/foodsave_prod
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma3:12b}

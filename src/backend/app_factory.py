@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
+from datetime import datetime
 
 import structlog
 from fastapi import APIRouter, FastAPI, Request, HTTPException
@@ -202,6 +203,12 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=418, detail="I'm a teapot")
         else:
             raise Exception("Unexpected error")
+
+    # Add simple health check endpoint
+    @app.get("/health")
+    async def health_check():
+        """Simple health check endpoint for Docker healthcheck."""
+        return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
     # Setup telemetry if enabled
     if settings.TELEMETRY_ENABLED:

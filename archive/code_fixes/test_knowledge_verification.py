@@ -6,10 +6,12 @@ Simple test script to verify knowledge verification functionality
 import asyncio
 import sys
 import os
+import pytest
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
+@pytest.mark.asyncio
 async def test_knowledge_verification():
     """Test the knowledge verification functionality"""
     try:

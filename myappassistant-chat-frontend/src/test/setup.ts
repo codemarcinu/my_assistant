@@ -2,6 +2,11 @@
 import '@testing-library/jest-dom';
 import { vi, beforeAll, afterAll } from 'vitest';
 
+// Define global for test environment
+if (typeof global === 'undefined') {
+  (window as any).global = window;
+}
+
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
@@ -40,7 +45,10 @@ const localStorageMock = {
   length: 0,
   key: vi.fn(),
 };
-global.localStorage = localStorageMock;
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
 
 // Mock sessionStorage
 const sessionStorageMock = {
@@ -51,7 +59,10 @@ const sessionStorageMock = {
   length: 0,
   key: vi.fn(),
 };
-global.sessionStorage = sessionStorageMock;
+Object.defineProperty(window, 'sessionStorage', {
+  value: sessionStorageMock,
+  writable: true,
+});
 
 // Suppress console errors in tests unless explicitly needed
 const originalError = console.error;

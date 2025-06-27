@@ -442,10 +442,340 @@ class MonitoringSystem:
                     logger.info(f"Alert resolved: {alert_id}")
                     break
 
+# Agent monitoring function
+def monitor_agent(agent_name: str, operation: str, duration: float, success: bool, error: Optional[str] = None):
+    """Monitor agent operations and record metrics"""
+    # Record agent metrics
+    monitoring.record_metric(
+        name="agent_operation_duration",
+        value=duration,
+        metric_type=MetricType.HISTOGRAM,
+        labels={"agent": agent_name, "operation": operation}
+    )
+    
+    monitoring.record_metric(
+        name="agent_operation_success",
+        value=1.0 if success else 0.0,
+        metric_type=MetricType.COUNTER,
+        labels={"agent": agent_name, "operation": operation, "status": "success" if success else "error"}
+    )
+    
+    if error:
+        monitoring.record_metric(
+            name="agent_errors",
+            value=1.0,
+            metric_type=MetricType.COUNTER,
+            labels={"agent": agent_name, "operation": operation, "error": error}
+        )
+    
+    logger.debug(f"Agent monitoring: {agent_name}.{operation} - duration={duration:.3f}s, success={success}")
+
+def monitor_database_operation(operation: str, table: str, duration: float, success: bool, error: Optional[str] = None):
+    """Monitor database operations and record metrics"""
+    # Record database metrics
+    monitoring.record_metric(
+        name="database_operation_duration",
+        value=duration,
+        metric_type=MetricType.HISTOGRAM,
+        labels={"operation": operation, "table": table}
+    )
+    
+    monitoring.record_metric(
+        name="database_operation_success",
+        value=1.0 if success else 0.0,
+        metric_type=MetricType.COUNTER,
+        labels={"operation": operation, "table": table, "status": "success" if success else "error"}
+    )
+    
+    if error:
+        monitoring.record_metric(
+            name="database_errors",
+            value=1.0,
+            metric_type=MetricType.COUNTER,
+            labels={"operation": operation, "table": table, "error": error}
+        )
+    
+    logger.debug(f"Database monitoring: {operation}.{table} - duration={duration:.3f}s, success={success}")
+
+def monitor_external_api(api_name: str, endpoint: str, duration: float, success: bool, status_code: Optional[int] = None, error: Optional[str] = None):
+    """Monitor external API calls and record metrics"""
+    # Record external API metrics
+    monitoring.record_metric(
+        name="external_api_duration",
+        value=duration,
+        metric_type=MetricType.HISTOGRAM,
+        labels={"api": api_name, "endpoint": endpoint}
+    )
+    
+    monitoring.record_metric(
+        name="external_api_success",
+        value=1.0 if success else 0.0,
+        metric_type=MetricType.COUNTER,
+        labels={"api": api_name, "endpoint": endpoint, "status": "success" if success else "error"}
+    )
+    
+    if status_code:
+        monitoring.record_metric(
+            name="external_api_status_code",
+            value=float(status_code),
+            metric_type=MetricType.COUNTER,
+            labels={"api": api_name, "endpoint": endpoint, "status_code": str(status_code)}
+        )
+    
+    if error:
+        monitoring.record_metric(
+            name="external_api_errors",
+            value=1.0,
+            metric_type=MetricType.COUNTER,
+            labels={"api": api_name, "endpoint": endpoint, "error": error}
+        )
+    
+    logger.debug(f"External API monitoring: {api_name}.{endpoint} - duration={duration:.3f}s, success={success}")
+
+def monitor_processing(process_name: str, operation: str, duration: float, success: bool, input_size: Optional[int] = None, output_size: Optional[int] = None, error: Optional[str] = None):
+    """Monitor processing operations and record metrics"""
+    # Record processing metrics
+    monitoring.record_metric(
+        name="processing_duration",
+        value=duration,
+        metric_type=MetricType.HISTOGRAM,
+        labels={"process": process_name, "operation": operation}
+    )
+    
+    monitoring.record_metric(
+        name="processing_success",
+        value=1.0 if success else 0.0,
+        metric_type=MetricType.COUNTER,
+        labels={"process": process_name, "operation": operation, "status": "success" if success else "error"}
+    )
+    
+    if input_size:
+        monitoring.record_metric(
+            name="processing_input_size",
+            value=float(input_size),
+            metric_type=MetricType.GAUGE,
+            labels={"process": process_name, "operation": operation}
+        )
+    
+    if output_size:
+        monitoring.record_metric(
+            name="processing_output_size",
+            value=float(output_size),
+            metric_type=MetricType.GAUGE,
+            labels={"process": process_name, "operation": operation}
+        )
+    
+    if error:
+        monitoring.record_metric(
+            name="processing_errors",
+            value=1.0,
+            metric_type=MetricType.COUNTER,
+            labels={"process": process_name, "operation": operation, "error": error}
+        )
+    
+    logger.debug(f"Processing monitoring: {process_name}.{operation} - duration={duration:.3f}s, success={success}")
+
+def monitor_request(endpoint: str, method: str, duration: float, status_code: int, user_id: Optional[str] = None, error: Optional[str] = None):
+    """Monitor HTTP requests and record metrics"""
+    # Record request metrics
+    monitoring.record_request_time(endpoint, method, duration, status_code)
+    
+    # Record additional request metrics
+    monitoring.record_metric(
+        name="http_requests_total",
+        value=1.0,
+        metric_type=MetricType.COUNTER,
+        labels={"endpoint": endpoint, "method": method, "status_code": str(status_code)}
+    )
+    
+    if user_id:
+        monitoring.record_metric(
+            name="user_requests_total",
+            value=1.0,
+            metric_type=MetricType.COUNTER,
+            labels={"user_id": user_id, "endpoint": endpoint}
+        )
+    
+    if error:
+        monitoring.record_metric(
+            name="request_errors",
+            value=1.0,
+            metric_type=MetricType.COUNTER,
+            labels={"endpoint": endpoint, "method": method, "error": error}
+        )
+    
+    logger.debug(f"Request monitoring: {method} {endpoint} - duration={duration:.3f}s, status={status_code}")
+
+def update_system_metrics():
+    """Update system metrics and record them"""
+    try:
+        # CPU usage
+        cpu_percent = psutil.cpu_percent(interval=1)
+        monitoring.record_metric("system_cpu_usage", cpu_percent, MetricType.GAUGE)
+        
+        # Memory usage
+        memory = psutil.virtual_memory()
+        monitoring.record_metric("system_memory_usage", memory.percent, MetricType.GAUGE)
+        monitoring.record_metric("system_memory_available", memory.available, MetricType.GAUGE)
+        
+        # Disk usage
+        disk = psutil.disk_usage('/')
+        disk_percent = (disk.used / disk.total) * 100
+        monitoring.record_metric("system_disk_usage", disk_percent, MetricType.GAUGE)
+        
+        # Network I/O
+        network = psutil.net_io_counters()
+        monitoring.record_metric("system_network_bytes_sent", network.bytes_sent, MetricType.COUNTER)
+        monitoring.record_metric("system_network_bytes_recv", network.bytes_recv, MetricType.COUNTER)
+        
+        # Update system metrics dict
+        monitoring.system_metrics.update({
+            'cpu_usage': cpu_percent,
+            'memory_usage': memory.percent,
+            'disk_usage': disk_percent,
+            'network_io': {'bytes_sent': network.bytes_sent, 'bytes_recv': network.bytes_recv}
+        })
+        
+        logger.debug(f"System metrics updated: CPU={cpu_percent}%, Memory={memory.percent}%, Disk={disk_percent}%")
+        
+    except Exception as e:
+        logger.error(f"Error updating system metrics: {e}")
+
 # Global monitoring instance
 monitoring = MonitoringSystem()
 
-# Memory profiling context manager
+# Memory profiling classes
+@dataclass
+class MemorySnapshot:
+    """Memory snapshot data"""
+    timestamp: float
+    memory_usage: int
+    peak_memory: int
+    top_allocations: List[tuple]
+
+@dataclass
+class PerformanceMetrics:
+    """Performance metrics data"""
+    timestamp: float
+    cpu_percent: float
+    memory_percent: float
+    memory_rss: int
+    memory_vms: int
+    open_files: int
+    threads: int
+
+class MemoryProfiler:
+    """Synchronous memory profiler"""
+    
+    def __init__(self, enable_tracemalloc: bool = False):
+        self.enable_tracemalloc = enable_tracemalloc
+        self.snapshots: List[MemorySnapshot] = []
+        self.performance_metrics: List[PerformanceMetrics] = []
+        
+    def take_snapshot(self) -> MemorySnapshot:
+        """Take a memory snapshot"""
+        import psutil
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        
+        snapshot = MemorySnapshot(
+            timestamp=time.time(),
+            memory_usage=memory_info.rss,
+            peak_memory=memory_info.rss,
+            top_allocations=[]
+        )
+        
+        self.snapshots.append(snapshot)
+        return snapshot
+        
+    def get_performance_metrics(self) -> PerformanceMetrics:
+        """Get current performance metrics"""
+        import psutil
+        process = psutil.Process()
+        
+        metrics = PerformanceMetrics(
+            timestamp=time.time(),
+            cpu_percent=process.cpu_percent(),
+            memory_percent=process.memory_percent(),
+            memory_rss=process.memory_info().rss,
+            memory_vms=process.memory_info().vms,
+            open_files=len(process.open_files()),
+            threads=process.num_threads()
+        )
+        
+        self.performance_metrics.append(metrics)
+        return metrics
+        
+    def detect_memory_leak(self, threshold_mb: float = 50.0) -> bool:
+        """Detect memory leak based on snapshots"""
+        if len(self.snapshots) < 2:
+            return False
+            
+        first_snapshot = self.snapshots[0]
+        last_snapshot = self.snapshots[-1]
+        
+        memory_increase_mb = (last_snapshot.memory_usage - first_snapshot.memory_usage) / 1024 / 1024
+        return memory_increase_mb > threshold_mb
+        
+    def cleanup(self):
+        """Clean up profiler data"""
+        self.snapshots.clear()
+        self.performance_metrics.clear()
+
+class AsyncMemoryProfiler:
+    """Asynchronous memory profiler"""
+    
+    def __init__(self, enable_tracemalloc: bool = False):
+        self.profiler = MemoryProfiler(enable_tracemalloc)
+        
+    async def take_snapshot_async(self) -> MemorySnapshot:
+        """Take a memory snapshot asynchronously"""
+        return self.profiler.take_snapshot()
+        
+    async def get_performance_metrics_async(self) -> PerformanceMetrics:
+        """Get performance metrics asynchronously"""
+        return self.profiler.get_performance_metrics()
+        
+    async def log_memory_usage_async(self, operation_name: str):
+        """Log memory usage for an operation"""
+        metrics = await self.get_performance_metrics_async()
+        logger.debug(f"Memory usage for {operation_name}: {metrics.memory_rss / 1024 / 1024:.2f}MB")
+        
+    @property
+    def snapshots(self) -> List[MemorySnapshot]:
+        return self.profiler.snapshots
+
+class MemoryMonitor:
+    """Global memory monitor singleton"""
+    
+    def __init__(self):
+        self.profilers: Dict[str, MemoryProfiler] = {}
+        
+    def get_profiler(self, component_name: str) -> MemoryProfiler:
+        """Get or create a profiler for a component"""
+        if component_name not in self.profilers:
+            self.profilers[component_name] = MemoryProfiler()
+        return self.profilers[component_name]
+        
+    def cleanup_all(self):
+        """Clean up all profilers"""
+        for profiler in self.profilers.values():
+            profiler.cleanup()
+        self.profilers.clear()
+
+# Global memory monitor instance
+memory_monitor = MemoryMonitor()
+
+# Context managers
+@asynccontextmanager
+async def memory_profiling_context(operation_name: str = "operation"):
+    """Synchronous memory profiling context manager"""
+    profiler = MemoryProfiler()
+    try:
+        yield profiler
+    finally:
+        profiler.cleanup()
+
 @asynccontextmanager
 async def async_memory_profiling_context(operation_name: str = "operation"):
     """

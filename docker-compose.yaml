@@ -22,7 +22,6 @@ services:
     environment:
       - OLLAMA_HOST=${OLLAMA_HOST:-0.0.0.0}
       - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-24h}
-    command: serve
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:11434/api/version || exit 1"]
@@ -41,7 +40,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: ${BACKEND_DOCKERFILE:-src/backend/Dockerfile.pip}
+      dockerfile: src/backend/Dockerfile.prod
     container_name: foodsave-backend
     ports:
       - "8000:8000"
@@ -53,7 +52,7 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
       - TESTING_MODE=true
-      - DATABASE_URL=${DATABASE_URL:-postgresql://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev}
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma3:12b}

@@ -3,11 +3,13 @@
 
 import sys
 import asyncio
+import pytest
 sys.path.append('src/backend')
 
 from backend.core.llm_client import llm_client
 
-async def test_api(model_name):
+@pytest.mark.asyncio
+async def test_api(model_name='mistral:7b'):
     """Test our LLM API"""
     try:
         print(f"Testing LLM API with model: {model_name} ...")

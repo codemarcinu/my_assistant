@@ -13,6 +13,7 @@ import asyncio
 import logging
 import os
 import sys
+import pytest
 from pathlib import Path
 
 # Dodaj src/backend do PYTHONPATH dla importów absolutnych
@@ -34,6 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.asyncio
 async def test_document_processing():
     """Test document processing functionality"""
     logger.info("Testing document processing...")
@@ -80,6 +82,7 @@ async def test_document_processing():
     return result
 
 
+@pytest.mark.asyncio
 async def test_database_sync():
     """Test database synchronization"""
     logger.info("Testing database synchronization...")
@@ -104,6 +107,7 @@ async def test_database_sync():
         }
 
 
+@pytest.mark.asyncio
 async def test_search_functionality():
     """Test search functionality"""
     logger.info("Testing search functionality...")
@@ -145,6 +149,7 @@ async def test_search_functionality():
     return results
 
 
+@pytest.mark.asyncio
 async def test_vector_store_stats():
     """Test vector store statistics"""
     logger.info("Testing vector store statistics...")
@@ -155,6 +160,7 @@ async def test_vector_store_stats():
     return stats
 
 
+@pytest.mark.asyncio
 async def test_file_processing():
     """Test file processing"""
     logger.info("Testing file processing...")
@@ -207,6 +213,7 @@ async def test_file_processing():
         test_file_path.unlink(missing_ok=True)
 
 
+@pytest.mark.asyncio
 async def main():
     """Run all RAG system tests"""
     logger.info("Starting RAG system tests...")

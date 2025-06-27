@@ -113,7 +113,7 @@ create_env_file() {
 POSTGRES_DB=foodsave_prod
 POSTGRES_USER=foodsave
 POSTGRES_PASSWORD=foodsave_prod_password_$(openssl rand -hex 8)
-DATABASE_URL=postgresql://foodsave:\${POSTGRES_PASSWORD}@postgres:5432/foodsave_prod
+DATABASE_URL=postgresql+asyncpg://foodsave:\${POSTGRES_PASSWORD}@postgres:5432/foodsave_prod
 
 # Redis Configuration
 REDIS_URL=redis://redis:6379/0
