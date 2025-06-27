@@ -59,7 +59,7 @@ services:
   # Production Frontend with Nginx
   frontend:
     build:
-      context: ./foodsave-frontend
+      context: ./myappassistant-chat-frontend
       dockerfile: Dockerfile.prod
     container_name: foodsave-frontend-prod
     ports:

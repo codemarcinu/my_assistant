@@ -54,12 +54,12 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
+ENV PATH="/usr/local/bin:$PATH"
+
+RUN pip install uvicorn
+
 # Copy application code (from root context)
 COPY src/backend ./backend
-
-# Copy configuration files
-COPY alembic.ini ./
-COPY pytest.ini ./
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/data /app/data/vector_store /app/data/search_cache /app/backups

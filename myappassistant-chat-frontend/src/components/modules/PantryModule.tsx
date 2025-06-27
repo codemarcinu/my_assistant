@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../ThemeProvider';
-import { Badge } from '../ui/Badge';
+import { Badge } from '../ui/atoms/Badge';
 import type { FoodItem, FoodStatus } from '../../types';
 
 // src/modules/PantryModule.tsx

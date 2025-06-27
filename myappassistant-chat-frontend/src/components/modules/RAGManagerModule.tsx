@@ -1,145 +1,373 @@
-import React, { useState } from 'react';
-import { Modal, ModalHeader, ModalContent, ModalFooter } from '../ui/Modal';
-import { Input } from '../ui/Input';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Upload, FileText, Search, MessageSquare, Trash2, Eye, Plus } from 'lucide-react';
+import { ragAPI } from '../../services/api';
+import Card from '../ui/atoms/Card';
+import Button from '../ui/atoms/Button';
+import { Badge } from '../ui/atoms/Badge';
+import { Spinner } from '../ui/atoms/Spinner';
 
 interface RAGDocument {
   id: string;
-  name: string;
-  category: string;
-  date: string;
-  type: string;
-  content: string;
+  filename: string;
+  description?: string;
+  tags?: string[];
+  directory_path?: string;
+  created_at: string;
+  chunks_count?: number;
 }
 
-const initialDocs: RAGDocument[] = [
-  { id: '1', name: 'umowa_2024.pdf', category: 'Umowy', date: '2024-06-24', type: 'PDF', content: 'Treść umowy 2024...' },
-  { id: '2', name: 'notatka.txt', category: 'Notatki', date: '2024-06-20', type: 'TXT', content: 'To jest przykładowa notatka.' },
-  { id: '3', name: 'faktura_123.docx', category: 'Faktury', date: '2024-06-10', type: 'DOCX', content: 'Faktura za usługi...' },
-];
+interface RAGQueryResponse {
+  answer: string;
+  sources: string[];
+  confidence: number;
+}
 
-const categories = ['Umowy', 'Faktury', 'Notatki', 'Inne'];
+interface RAGManagerModuleProps {
+  compact?: boolean;
+  onClose?: () => void;
+}
 
-const RAGManagerModule: React.FC = () => {
-  const [docs, setDocs] = useState<RAGDocument[]>(initialDocs);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [modalDoc, setModalDoc] = useState<RAGDocument | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
+const RAGManagerModule: React.FC<RAGManagerModuleProps> = ({
+  compact = false,
+  onClose
+}) => {
+  const [documents, setDocuments] = useState<RAGDocument[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [response, setResponse] = useState<RAGQueryResponse | null>(null);
+  const [isQuerying, setIsQuerying] = useState(false);
+  const [activeTab, setActiveTab] = useState<'documents' | 'chat'>('documents');
 
-  const filteredDocs = docs.filter(doc =>
-    (category ? doc.category === category : true) &&
-    (search ? doc.name.toLowerCase().includes(search.toLowerCase()) : true)
-  );
+  // Load documents on mount
+  useEffect(() => {
+    loadDocuments();
+  }, []);
 
-  const handleUpload = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Mock upload: dodaj losowy dokument
-    setDocs(prev => [
-      ...prev,
-      { id: Date.now().toString(), name: 'nowy_dokument.txt', category: category || 'Inne', date: new Date().toISOString().slice(0,10), type: 'TXT', content: 'Przykładowa treść...' }
-    ]);
+  const loadDocuments = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await ragAPI.getDocuments();
+      setDocuments(response.data || []);
+    } catch (err) {
+      setError('Failed to load documents');
+      console.error('RAG documents error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!file.name) {
+      setError('Invalid file');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      await ragAPI.uploadDocument(file);
+      await loadDocuments(); // Reload documents
+    } catch (err) {
+      setError('Failed to upload document');
+      console.error('RAG upload error:', err);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [loadDocuments]);
+
+  const handleQuery = useCallback(async () => {
+    if (!query.trim()) return;
+
+    setIsQuerying(true);
+    setError(null);
+    setResponse(null);
+
+    try {
+      const response = await ragAPI.queryRAG(query);
+      setResponse(response.data);
+    } catch (err) {
+      setError('Failed to query RAG system');
+      console.error('RAG query error:', err);
+    } finally {
+      setIsQuerying(false);
+    }
+  }, [query]);
+
+  const handleDeleteDocument = useCallback(async (documentId: string) => {
+    try {
+      await ragAPI.deleteDocument(documentId);
+      await loadDocuments(); // Reload documents
+    } catch (err) {
+      setError('Failed to delete document');
+      console.error('RAG delete error:', err);
+    }
+  }, [loadDocuments]);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pl-PL', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
-  const handleDelete = (id: string) => {
-    setDocs(prev => prev.filter(doc => doc.id !== id));
-    setShowModal(false);
-  };
-
-  const handlePreview = (doc: RAGDocument) => {
-    setModalDoc(doc);
-    setShowModal(true);
-    setAnswer('');
-    setQuestion('');
-  };
-
-  const handleAsk = () => {
-    // Mock odpowiedzi AI
-    setAnswer('To jest przykładowa odpowiedź AI na Twoje pytanie do dokumentu.');
-  };
+  if (compact) {
+    return (
+      <Card padding="md" shadow="sm">
+        <div className="text-center">
+          <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Chat with your documents
+          </p>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setActiveTab('chat')}
+          >
+            <MessageSquare className="w-4 h-4 mr-1" />
+            Ask Documents
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   return (
-    <div className="mb-6 p-4 rounded-lg bg-cosmic-neutral-3 dark:bg-cosmic-neutral-8">
-      <h3 className="text-xl font-semibold mb-2 text-cosmic-neutral-9 dark:text-cosmic-neutral-2">Zarządzanie dokumentami RAG</h3>
-      <p className="text-cosmic-neutral-8 dark:text-cosmic-neutral-3 mb-2">Dodawaj, przeglądaj, wyszukuj i kategoryzuj dokumenty do wyszukiwania kontekstowego (RAG). Obsługiwane są wszystkie formaty plików.</p>
-      {/* Upload i kategoria */}
-      <form className="flex flex-col md:flex-row gap-2 mb-4" onSubmit={handleUpload}>
-        <input type="file" multiple className="file:bg-cosmic-bright-green file:text-cosmic-neutral-0 file:rounded-lg file:px-4 file:py-2 file:mr-4 file:border-0 file:shadow-md file:cursor-pointer bg-cosmic-neutral-4 dark:bg-cosmic-neutral-7 text-cosmic-text dark:text-cosmic-bg rounded-lg p-2 w-full md:w-auto" />
-        <select className="rounded-lg p-2 bg-cosmic-neutral-4 dark:bg-cosmic-neutral-7 text-cosmic-text dark:text-cosmic-bg" value={category} onChange={e => setCategory(e.target.value)}>
-          <option value="">Wybierz kategorię</option>
-          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
-        <Button type="submit">Dodaj dokument</Button>
-      </form>
-      {/* Wyszukiwanie */}
-      <div className="mb-4 flex flex-col md:flex-row gap-2">
-        <Input placeholder="Szukaj po nazwie..." value={search} onChange={e => setSearch(e.target.value)} />
-        <select className="rounded-lg p-2 bg-cosmic-neutral-4 dark:bg-cosmic-neutral-7 text-cosmic-text dark:text-cosmic-bg" value={category} onChange={e => setCategory(e.target.value)}>
-          <option value="">Wszystkie kategorie</option>
-          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
+    <Card padding="lg" shadow="md">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          RAG Document Manager
+        </h3>
+        {onClose && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="p-1"
+          >
+            ×
+          </Button>
+        )}
       </div>
-      {/* Lista dokumentów */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-left">
-          <thead>
-            <tr className="bg-cosmic-neutral-4 dark:bg-cosmic-neutral-7 text-cosmic-accent dark:text-cosmic-ext-blue">
-              <th className="p-2">Nazwa</th>
-              <th className="p-2">Kategoria</th>
-              <th className="p-2">Data dodania</th>
-              <th className="p-2">Typ</th>
-              <th className="p-2">Akcje</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDocs.map(doc => (
-              <tr key={doc.id} className="border-b border-cosmic-neutral-5 dark:border-cosmic-neutral-6 hover:bg-cosmic-neutral-4/30 dark:hover:bg-cosmic-neutral-7/30 transition-colors">
-                <td className="p-2">{doc.name}</td>
-                <td className="p-2">{doc.category}</td>
-                <td className="p-2">{doc.date}</td>
-                <td className="p-2">{doc.type}</td>
-                <td className="p-2 flex gap-2">
-                  <Button size="sm" onClick={() => handlePreview(doc)}>Podgląd</Button>
-                  <Button size="sm" variant="secondary" className="bg-cosmic-bright-red hover:bg-cosmic-red text-cosmic-neutral-0" onClick={() => handleDelete(doc.id)}>Usuń</Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* Tabs */}
+      <div className="flex space-x-1 mb-4 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+        <button
+          onClick={() => setActiveTab('documents')}
+          className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === 'documents'
+              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          Documents ({documents.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === 'chat'
+              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          Chat
+        </button>
       </div>
-      <p className="text-cosmic-neutral-6 dark:text-cosmic-neutral-5 text-xs mt-2">Możesz przypisywać dokumenty do kategorii, przeszukiwać je i zadawać pytania przez chat.</p>
-      {/* Modal podglądu */}
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} size="lg">
-        <ModalHeader>
-          <span>Podgląd dokumentu: {modalDoc?.name}</span>
-          <Button size="sm" onClick={() => setShowModal(false)}>Zamknij</Button>
-        </ModalHeader>
-        <ModalContent>
-          <div className="mb-4">
-            <div className="text-xs text-cosmic-neutral-6 dark:text-cosmic-neutral-5 mb-2">Kategoria: {modalDoc?.category} | Data: {modalDoc?.date} | Typ: {modalDoc?.type}</div>
-            <Card>
-              <pre className="whitespace-pre-wrap text-sm max-h-48 overflow-auto bg-cosmic-neutral-3 dark:bg-cosmic-neutral-8 p-2 rounded-lg">{modalDoc?.content}</pre>
-            </Card>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
+      {/* Documents Tab */}
+      {activeTab === 'documents' && (
+        <div className="space-y-4">
+          {/* Upload Section */}
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+            <div className="text-center">
+              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Upload documents to your knowledge base
+              </p>
+              <input
+                type="file"
+                id="rag-file-upload"
+                className="hidden"
+                accept=".pdf,.txt,.docx,.md,.rtf"
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                disabled={isUploading}
+              />
+              <label
+                htmlFor="rag-file-upload"
+                className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isUploading ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span className="ml-1">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-1" />
+                    Upload Document
+                  </>
+                )}
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                PDF, TXT, DOCX, MD, RTF (max 10MB)
+              </p>
+            </div>
           </div>
-          <div className="mb-2">
-            <Input
-              placeholder="Zadaj pytanie do tego dokumentu..."
-              value={question}
-              onChange={e => setQuestion(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAsk(); }}
+
+          {/* Documents List */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner size="md" />
+              <span className="ml-2 text-gray-600 dark:text-gray-400">Loading documents...</span>
+            </div>
+          ) : documents.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No documents uploaded yet</p>
+              <p className="text-sm">Upload your first document to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {documents.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                >
+                  <div className="flex items-center space-x-3">
+                    <FileText className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {doc.filename}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatDate(doc.created_at)}
+                        {doc.chunks_count && ` • ${doc.chunks_count} chunks`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {doc.tags && doc.tags.length > 0 && (
+                      <Badge variant="info" size="sm">
+                        {doc.tags[0]}
+                      </Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Chat Tab */}
+      {activeTab === 'chat' && (
+        <div className="space-y-4">
+          {/* Query Input */}
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Ask a question about your documents..."
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onKeyPress={(e) => e.key === 'Enter' && handleQuery()}
             />
-            <Button className="mt-2" onClick={handleAsk}>Zadaj pytanie</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleQuery}
+              disabled={!query.trim() || isQuerying}
+            >
+              {isQuerying ? <Spinner size="sm" /> : <Search className="w-4 h-4" />}
+            </Button>
           </div>
-          {answer && <div className="mt-2 p-2 bg-cosmic-bright-green/20 dark:bg-cosmic-bright-green/20 rounded-lg text-cosmic-neutral-9 dark:text-cosmic-neutral-0 animate-fade-in">Odpowiedź AI: {answer}</div>}
-        </ModalContent>
-        <ModalFooter>
-          <Button variant="secondary" className="bg-cosmic-bright-red hover:bg-cosmic-red text-cosmic-neutral-0" onClick={() => modalDoc && handleDelete(modalDoc.id)}>Usuń dokument</Button>
-        </ModalFooter>
-      </Modal>
-    </div>
+
+          {/* Response */}
+          {response && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                Answer
+              </h4>
+              <p className="text-gray-700 dark:text-gray-300 mb-3">
+                {response.answer}
+              </p>
+              
+              {response.sources && response.sources.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    Sources:
+                  </h5>
+                  <div className="space-y-1">
+                    {response.sources.map((source, index) => (
+                      <p key={index} className="text-xs text-gray-500 dark:text-gray-400">
+                        • {source}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {response.confidence && (
+                <div className="mt-2">
+                  <Badge variant="info" size="sm">
+                    Confidence: {Math.round(response.confidence * 100)}%
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick Questions */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+              Quick Questions
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuery('What documents do I have?')}
+              >
+                What documents do I have?
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuery('Summarize my documents')}
+              >
+                Summarize my documents
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuery('Find recipes in my documents')}
+              >
+                Find recipes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 };
 

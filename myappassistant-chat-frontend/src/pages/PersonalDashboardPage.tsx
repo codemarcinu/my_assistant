@@ -3,6 +3,9 @@ import Card from '../components/ui/atoms/Card';
 import Button from '../components/ui/atoms/Button';
 import { Badge } from '../components/ui/atoms/Badge';
 import { Spinner } from '../components/ui/atoms/Spinner';
+import ReceiptUploadModule from '../components/modules/ReceiptUploadModule';
+import RAGManagerModule from '../components/modules/RAGManagerModule';
+import type { ReceiptData } from '../types';
 
 interface QuickAction {
   id: string;
@@ -29,6 +32,9 @@ interface Activity {
 
 const PersonalDashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showRAGModal, setShowRAGModal] = useState(false);
+  const [recentReceipts, setRecentReceipts] = useState<ReceiptData[]>([]);
 
   // Mock data - w przyszłości z API
   const quickActions: QuickAction[] = [
@@ -37,7 +43,7 @@ const PersonalDashboardPage: React.FC = () => {
       title: 'Add Receipt',
       description: 'Scan and process receipt',
       icon: '📄',
-      action: () => console.log('Add receipt'),
+      action: () => setShowReceiptModal(true),
       variant: 'primary'
     },
     {
@@ -53,7 +59,7 @@ const PersonalDashboardPage: React.FC = () => {
       title: 'Ask AI Assistant',
       description: 'Get smart recommendations',
       icon: '🤖',
-      action: () => console.log('Ask AI'),
+      action: () => setShowRAGModal(true),
       variant: 'primary'
     },
     {
@@ -138,6 +144,11 @@ const PersonalDashboardPage: React.FC = () => {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     return `${diffDays}d ago`;
+  };
+
+  const handleReceiptProcessed = (receiptData: ReceiptData) => {
+    setRecentReceipts(prev => [receiptData, ...prev.slice(0, 4)]); // Keep last 5 receipts
+    setShowReceiptModal(false);
   };
 
   return (
@@ -271,7 +282,65 @@ const PersonalDashboardPage: React.FC = () => {
             </Button>
           </div>
         </Card>
+
+        {/* Recent Receipts */}
+        {recentReceipts.length > 0 && (
+          <Card padding="lg" shadow="md">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Recent Receipts
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentReceipts.map((receipt, index) => (
+                <div
+                  key={index}
+                  className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-gray-900 dark:text-white">
+                      {receipt.store}
+                    </h3>
+                    <Badge variant="info" size="sm">
+                      {receipt.items.length} items
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    {new Date(receipt.date).toLocaleDateString('pl-PL')}
+                  </p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {new Intl.NumberFormat('pl-PL', {
+                      style: 'currency',
+                      currency: 'PLN'
+                    }).format(receipt.total)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
+
+      {/* Receipt Upload Modal */}
+      {showReceiptModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <ReceiptUploadModule
+              onReceiptProcessed={handleReceiptProcessed}
+              onClose={() => setShowReceiptModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* RAG Manager Modal */}
+      {showRAGModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <RAGManagerModule
+              onClose={() => setShowRAGModal(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

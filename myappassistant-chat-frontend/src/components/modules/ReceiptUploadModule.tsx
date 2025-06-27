@@ -1,12 +1,16 @@
-import React, { useState, useRef } from 'react';
-import { useTheme } from '../ThemeProvider';
-import { Badge } from '../ui/Badge';
-import { Spinner } from '../ui/Spinner';
+import React, { useState, useCallback } from 'react';
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
+import { receiptAPI } from '../../services/api';
+import type { ReceiptData, ReceiptItem } from '../../types';
+import Card from '../ui/atoms/Card';
+import Button from '../ui/atoms/Button';
+import { Badge } from '../ui/atoms/Badge';
 
 // src/modules/ReceiptUploadModule.tsx
 interface ReceiptUploadModuleProps {
-  onClose: () => void;
-  onUploadSuccess: () => void;
+  onReceiptProcessed?: (receiptData: ReceiptData) => void;
+  onClose?: () => void;
+  compact?: boolean;
 }
 
 /**
@@ -15,208 +19,297 @@ interface ReceiptUploadModuleProps {
  * This component provides a drag-and-drop interface for uploading
  * receipts and processing them with OCR, following the .cursorrules guidelines.
  */
-const ReceiptUploadModule: React.FC<ReceiptUploadModuleProps> = ({ onClose, onUploadSuccess }) => {
-  const { resolvedTheme } = useTheme();
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileSize, setFileSize] = useState<number | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const ReceiptUploadModule: React.FC<ReceiptUploadModuleProps> = ({
+  onReceiptProcessed,
+  onClose,
+  compact = false
+}) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      setFileSize(file.size);
-    } else {
-      setFileName(null);
-      setFileSize(null);
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Proszę wybrać plik obrazu (JPG, PNG, etc.)');
+      return;
     }
-  };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
-    
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      setFileName(file.name);
-      setFileSize(file.size);
-      if (fileInputRef.current) {
-        fileInputRef.current.files = e.dataTransfer.files;
-      }
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!fileName) return;
-
-    setIsProcessing(true);
-    setUploadProgress(0);
-
-    // Simulate upload progress
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 200);
+    setIsUploading(true);
+    setError(null);
+    setReceiptData(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setUploadProgress(100);
-      setTimeout(() => {
-        onUploadSuccess();
-        onClose();
-      }, 500);
-    } catch (error) {
-      console.error('Upload error:', error);
+      const response = await receiptAPI.uploadReceipt(file);
+      setReceiptData(response.data);
+      onReceiptProcessed?.(response.data);
+    } catch (err) {
+      setError('Błąd podczas przetwarzania paragonu. Spróbuj ponownie.');
+      console.error('OCR upload error:', err);
     } finally {
-      setIsProcessing(false);
-      setUploadProgress(0);
+      setIsUploading(false);
     }
+  }, [onReceiptProcessed]);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  }, [handleFileUpload]);
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileUpload(e.target.files[0]);
+    }
+  }, [handleFileUpload]);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: 'PLN'
+    }).format(price);
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('pl-PL', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(new Date(date));
   };
+
+  const handleAddToPantry = () => {
+    // TODO: Implement add to pantry functionality
+    console.log('Adding to pantry:', receiptData);
+  };
+
+  const handleAddToShoppingList = () => {
+    // TODO: Implement add to shopping list functionality
+    console.log('Adding to shopping list:', receiptData);
+  };
+
+  const resetForm = () => {
+    setReceiptData(null);
+    setError(null);
+    setDragActive(false);
+  };
+
+  if (compact && !isUploading && !receiptData && !error) {
+    return (
+      <Card padding="md" shadow="sm">
+        <div className="text-center">
+          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Przeciągnij paragon lub kliknij
+          </p>
+          <input
+            type="file"
+            id="compact-file-upload"
+            className="hidden"
+            accept="image/*"
+            onChange={handleFileInput}
+          />
+          <label
+            htmlFor="compact-file-upload"
+            className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            <FileText className="w-4 h-4 mr-1" />
+            Dodaj paragon
+          </label>
+        </div>
+      </Card>
+    );
+  }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-300 relative">
-      <button 
-        onClick={onClose} 
-        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-2xl transition-colors"
-        aria-label="Zamknij"
-        disabled={isProcessing}
-      >
-        &times;
-      </button>
-      
-      <h3 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">
-        Wgraj Paragon (OCR)
-      </h3>
-      
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
-        Prześlij zdjęcie paragonu, a FoodSave AI wyodrębni z niego dane o zakupach.
-      </p>
-
-      {/* Upload Area */}
-      <div 
-        className={`
-          mt-4 p-6 border-2 border-dashed rounded-lg text-center transition-all duration-200
-          ${resolvedTheme === 'dark' 
-            ? 'border-gray-600 hover:border-blue-500 bg-gray-700' 
-            : 'border-gray-300 hover:border-blue-500 bg-gray-50'
-          }
-        `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <div className="text-4xl mb-4">📷</div>
-        <p className="text-gray-600 dark:text-gray-400 mb-2">
-          Przeciągnij i upuść plik lub
-        </p>
-        
-        <input 
-          ref={fileInputRef}
-          type="file" 
-          className="hidden" 
-          id="receipt-upload-module" 
-          onChange={handleFileChange} 
-          accept="image/*,.pdf"
-          disabled={isProcessing}
-        />
-        
-        <label 
-          htmlFor="receipt-upload-module" 
-          className={`
-            cursor-pointer inline-block px-4 py-2 rounded-lg font-semibold shadow-md transition-all duration-200
-            ${fileName 
-              ? 'bg-green-600 hover:bg-green-700 text-white' 
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }
-            ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
-          `}
-        >
-          {fileName ? `Wybrano: ${fileName}` : 'Wybierz plik'}
-        </label>
-        
-        {fileName && fileSize && (
-          <div className="mt-2">
-            <Badge variant="info" size="sm">
-              {formatFileSize(fileSize)}
-            </Badge>
-          </div>
+    <Card padding="lg" shadow="md">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Dodaj paragon
+        </h3>
+        {onClose && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="p-1"
+          >
+            <X className="w-4 h-4" />
+          </Button>
         )}
       </div>
 
-      {/* Processing Progress */}
-      {isProcessing && (
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              Przetwarzanie paragonu...
-            </span>
-            <span className="text-sm text-blue-600 dark:text-blue-400">
-              {uploadProgress}%
-            </span>
-          </div>
-          <div className="w-full bg-blue-200 dark:bg-blue-700 rounded-full h-2">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
-            ></div>
+      {/* Upload Area */}
+      {!receiptData && (
+        <div
+          className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            dragActive
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+          }`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <input
+            type="file"
+            id="file-upload"
+            className="hidden"
+            accept="image/*"
+            onChange={handleFileInput}
+            disabled={isUploading}
+          />
+          
+          <div className="space-y-3">
+            {isUploading ? (
+              <div className="flex flex-col items-center space-y-2">
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Przetwarzanie paragonu...
+                </p>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-8 h-8 text-gray-400 mx-auto" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    Przeciągnij i upuść paragon
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    lub kliknij, aby wybrać plik
+                  </p>
+                  <label
+                    htmlFor="file-upload"
+                    className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    Wybierz plik
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  JPG, PNG, GIF (max 10MB)
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* Action Button */}
-      <button
-        onClick={handleAnalyze}
-        disabled={!fileName || isProcessing}
-        className={`
-          mt-5 w-full p-3 rounded-lg font-semibold shadow-md transition-all duration-200
-          ${!fileName || isProcessing
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
-          }
-        `}
-      >
-        {isProcessing ? (
-          <div className="flex items-center justify-center">
-            <Spinner size="sm" className="mr-2" />
-            Analizuję...
+      {/* Error Display */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center">
+            <AlertCircle className="w-4 h-4 text-red-500 mr-2" />
+            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
           </div>
-        ) : (
-          'Analizuj Paragon'
-        )}
-      </button>
+        </div>
+      )}
 
-      {/* Supported Formats */}
-      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-        Obsługiwane formaty: JPG, PNG, PDF
-      </div>
-    </div>
+      {/* Results Display */}
+      {receiptData && (
+        <div className="space-y-4">
+          {/* Receipt Summary */}
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-900 dark:text-white">
+                Szczegóły paragonu
+              </h4>
+              <Badge variant="success" size="sm">
+                Rozpoznano
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Sklep</p>
+                <p className="font-medium text-gray-900 dark:text-white">
+                  {receiptData.store}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Data</p>
+                <p className="font-medium text-gray-900 dark:text-white">
+                  {formatDate(receiptData.date)}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Suma</p>
+                <p className="font-medium text-gray-900 dark:text-white">
+                  {formatPrice(receiptData.total)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Items Preview */}
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+              Produkty ({receiptData.items.length})
+            </h4>
+            
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {receiptData.items.slice(0, 5).map((item: ReceiptItem, index: number) => (
+                <div key={index} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-700 dark:text-gray-300 truncate">
+                    {item.name}
+                  </span>
+                  <span className="text-gray-900 dark:text-white font-medium">
+                    {formatPrice(item.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+              {receiptData.items.length > 5 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  +{receiptData.items.length - 5} więcej produktów
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleAddToPantry}
+              className="flex-1"
+            >
+              Dodaj do spiżarni
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleAddToShoppingList}
+              className="flex-1"
+            >
+              Dodaj do listy zakupów
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetForm}
+            >
+              Nowy paragon
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 };
 

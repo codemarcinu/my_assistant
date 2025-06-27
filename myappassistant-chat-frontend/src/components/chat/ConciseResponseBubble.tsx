@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '../ThemeProvider';
-import { Badge } from '../ui/Badge';
+import { Badge } from '../ui/atoms/Badge';
 
 interface ConciseResponseBubbleProps {
   content: string;
