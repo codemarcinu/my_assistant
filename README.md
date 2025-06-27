@@ -442,3 +442,21 @@ MIT License - zobacz [LICENSE](LICENSE) dla szczegółów.
 
 *Ostatnia aktualizacja: 26.06.2025*  
 *Status: Production Ready* 🚀 
+
+---
+
+## ⚡️ Alternatywna obsługa wektorów na GPU (PyTorch)
+
+Od wersji 2025-06 dostępna jest alternatywna implementacja vector store na GPU z użyciem PyTorch (`src/backend/core/vector_store_gpu.py`).
+
+- Domyślnie backend korzysta z FAISS (CPU).
+- Jeśli chcesz użyć GPU do operacji wektorowych (np. na RTX 3060), możesz użyć klasy `GPUVectorStore`.
+- Implementacja korzysta z PyTorch i obsługuje szybkie wyszukiwanie oraz dodawanie wektorów na GPU (cosine similarity).
+- Przykładowy test: `python test_gpu_vector_store.py` (wymaga torch z CUDA i numpy).
+- Integracja z backendem: wystarczy podmienić import i inicjalizację na `GPUVectorStore`.
+
+**Plik:** `src/backend/core/vector_store_gpu.py`
+
+**Test:** `test_gpu_vector_store.py`
+
+--- 

@@ -144,4 +144,13 @@ Testy uruchamiaj poleceniem:
 
 ```
 docker compose exec backend poetry run pytest src/backend/tests/test_chat_endpoint.py -v
-``` 
+```
+
+## ⚡️ Alternatywna obsługa vector store na GPU (PyTorch)
+
+- Domyślnie backend używa FAISS (CPU).
+- Alternatywna implementacja na GPU: `src/backend/core/vector_store_gpu.py` (PyTorch, cosine similarity, wsparcie CUDA).
+- Testy: `test_gpu_vector_store.py` (uruchom: `python test_gpu_vector_store.py`).
+- Integracja: zamień import na `from src.backend.core.vector_store_gpu import GPUVectorStore` i użyj `GPUVectorStore` zamiast `VectorStore`.
+
+--- 
