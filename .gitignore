@@ -1,5 +1,4 @@
-# Dependencies
-node_modules/
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,178 +20,78 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual environments
-.env
-.venv
-env/
+# Virtual Environment
 venv/
 ENV/
-env.bak/
-venv.bak/
+env/
+.env
 
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
-*~
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env.test
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
-# Gatsby files
-.cache/
-public
-
-# Storybook build outputs
-.out
-.storybook-out
-
-# Temporary folders
-tmp/
-temp/
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Python specific
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
 
 # Database
 *.db
-*.sqlite
 *.sqlite3
 
-# OS generated files
+# Logs
+*.log
+
+# Local development settings
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS specific
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Project specific
-receipts/
-backups/
+# Next.js
+.next/
+.next/cache/
+.next/server/
+.next/static/
+.next/trace
+.next/types/
+.next/build-manifest.json
+.next/package.json
+.next/prerender-manifest.json
+.next/react-loadable-manifest.json
+.next/routes-manifest.json
+.next/server-components-external-packages.json
+.next/server-middleware-manifest.json
+.next/server-pages-manifest.json
+.next/static-build/
+.next/static-chunks/
+.next/static-development/
+.next/static-pages/
+.next/static-runtime/
+.next/static-webpack/
 
-# Test results and monitoring (organized structure)
-test-results/
-logs/gpu-monitoring/
-logs/test_*.log
+# Loki data files
+monitoring/loki-data/chunks/
+monitoring/loki-data/wal/
+monitoring/loki-data/index/
+# Grafana runtime data
+monitoring/grafana-data/
 
-# Documentation artifacts (keep only source files)
-docs/reports/*.json
-docs/reports/*.log
+# Ignore monitoring data
+monitoring/loki-data/
+monitoring/grafana-data/
+monitoring/prometheus/
 
-# Temporary test files
-test_*.py
-*_test_results_*.json
-gpu_usage_*.log
-intent_*_test_results_*.json
-
-# Benchmark results
-.benchmarks/
-
-# Local development files
-foodsave_dev.db
-
-# Playwright test results and reports
-playwright-report/
-test-results/
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
-
-# Docker files (if not needed in repo)
-Dockerfile.dev
-Dockerfile.prod
-docker-compose.dev.yaml
-docker-compose.prod.yaml
-.dockerignore
-
-# Nginx configs (if local)
-nginx/
-
-# Scripts that might be local
-scripts/docker-setup.sh
-scripts/init-db.sql
-scripts/nginx/
-
-# Environment files
-.env.local
-.env.development
-.env.production
+# Nieśledzone pliki testowe i eksperymentalne
+src/backend/agents/enhanced_rag_agent.py
+tests/README.md
+tests/test_orchestrator.py
+tests/test_rag_system.py
+tests/test_rag_system_fixed.py
+tests/test_receipt_processing.py
+tests/test_search_agent_fixed.py
+tests/test_shopping_conversation.py
+tests/test_shopping_conversation_fixed.py
+tests/test_weather_agent.py
+tests/test_weather_agent_fixed.py

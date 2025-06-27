@@ -1,65 +1,7 @@
 FROM ollama/ollama:latest
 
-# Instalacja curl dla health check
+# Instalacja curl
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Ustawienie zmiennych środowiskowych
-ENV OLLAMA_HOST=0.0.0.0
-ENV OLLAMA_KEEP_ALIVE=24h
-
-# Ekspozycja portu
-EXPOSE 11434
-
-# Skrypt do automatycznego pobierania modelu
-COPY <<EOF /usr/local/bin/init-models.sh
-#!/bin/bash
-set -e
-
-echo "🚀 Initializing Ollama model..."
-
-# Uruchomienie Ollama w tle
-echo "🔄 Starting Ollama server in background..."
-ollama serve &
-OLLAMA_PID=$!
-
-# Czekaj na uruchomienie Ollama
-echo "⏳ Waiting for Ollama server to start..."
-sleep 10
-
-# Sprawdź czy Ollama działa
-for i in {1..30}; do
-    if curl -s http://localhost:11434/api/version > /dev/null; then
-        echo "✅ Ollama server is running"
-        break
-    fi
-    echo "⏳ Waiting for Ollama server... (attempt $i/30)"
-    sleep 2
-done
-
-# Pobieranie tylko głównego modelu
-echo "📥 Downloading Gemma 3 12B model..."
-ollama pull gemma3:12b
-
-echo "✅ Model downloaded successfully!"
-
-# Zatrzymanie Ollama w tle - poprawione
-echo "🔄 Stopping background Ollama server..."
-if [ ! -z "$OLLAMA_PID" ] && kill -0 $OLLAMA_PID 2>/dev/null; then
-    kill $OLLAMA_PID
-    wait $OLLAMA_PID 2>/dev/null || true
-else
-    echo "⚠️  Ollama process not found, trying to kill by name..."
-    pkill -f "ollama serve" || true
-fi
-
-# Uruchomienie Ollama w trybie foreground
-echo "🚀 Starting Ollama server in foreground..."
-exec ollama serve
-EOF
-
-# Nadanie uprawnień do wykonywania skryptu
-RUN chmod +x /usr/local/bin/init-models.sh
-
-# Nadpisanie ENTRYPOINT i CMD
-ENTRYPOINT []
-CMD ["/bin/bash", "/usr/local/bin/init-models.sh"] 
+# Kontynuuj z oryginalną konfiguracją
+CMD ["serve"]

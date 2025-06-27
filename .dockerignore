@@ -1,0 +1,77 @@
+# Exclude monitoring data directories
+monitoring/grafana-data/
+monitoring/loki-data/
+monitoring/prometheus/
+
+# Exclude logs
+logs/
+
+# Exclude virtual environments
+venv/
+src/backend/venv/
+
+# Exclude version control
+.git/
+.github/
+.gitignore
+
+# Exclude cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# Exclude Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Python
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+pip-wheel-metadata/
+develop-eggs/
+.eggs/
+sdist/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+*.local
+htmlcov/
+*.cover
+*.log
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+
+# Backups
+backups/
+
+# Data
+data/uploads/*
+!data/uploads/.gitkeep
+data/docs/*
+!data/docs/.gitkeep
+
+# Archives
+archive/
