@@ -904,3 +904,502 @@ For real-time communication, WebSocket endpoints are available:
 
 **Last Updated**: 2025-06-25
 **API Version**: 2.0.0
+
+## Receipt Analysis Endpoints
+
+### Upload Receipt Image
+
+Upload a receipt image for OCR processing.
+
+```http
+POST /api/v2/receipts/upload
+Content-Type: multipart/form-data
+```
+
+**Request Parameters:**
+- `file` (required): Receipt image file (JPEG, PNG, PDF)
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "message": "Receipt processed successfully",
+  "data": {
+    "text": "Extracted OCR text from receipt",
+    "message": "Pomyślnie wyodrębniono tekst z pliku",
+    "metadata": {
+      "file_type": "image",
+      "prompts_applied": true,
+      "processing_time": 2.5
+    }
+  }
+}
+```
+
+**Error Responses:**
+- `400`: Invalid file format
+- `422`: OCR processing failed
+- `500`: Internal server error
+
+### Analyze Receipt Text
+
+Analyze extracted OCR text to extract structured data.
+
+```http
+POST /api/v2/receipts/analyze
+Content-Type: application/x-www-form-urlencoded
+```
+
+**Request Parameters:**
+- `ocr_text` (required): Extracted OCR text from receipt
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "message": "Receipt analyzed successfully",
+  "data": {
+    "store_name": "BIEDRONKA",
+    "normalized_store_name": "Biedronka",
+    "store_chain": "Biedronka",
+    "store_type": "discount_store",
+    "store_confidence": 1.0,
+    "store_normalization_method": "exact_match",
+    "date": "2025-06-15 00:00",
+    "items": [
+      {
+        "name": "Mleko 3.2% 1L",
+        "normalized_name": "Mleko 3.2% 1L",
+        "quantity": 1.0,
+        "unit_price": 4.99,
+        "total_price": 4.99,
+        "category": "Nabiał > Mleko i śmietana",
+        "category_en": "Dairy Products > Milk & Cream",
+        "gpt_category": "Food, Beverages & Tobacco > Food Items > Dairy Products > Milk & Cream",
+        "category_confidence": 0.9,
+        "category_method": "bielik_ai"
+      }
+    ],
+    "total_amount": 4.99,
+    "discounts": [],
+    "coupons": [],
+    "vat_summary": [
+      {
+        "rate": 5,
+        "amount": 0.24
+      }
+    ]
+  }
+}
+```
+
+### Data Structures
+
+#### Store Information
+
+```json
+{
+  "store_name": "string",           // Original store name from receipt
+  "normalized_store_name": "string", // Normalized store name
+  "store_chain": "string",          // Store chain name
+  "store_type": "string",           // Type: discount_store, hypermarket, etc.
+  "store_confidence": "float",      // Confidence score (0.0-1.0)
+  "store_normalization_method": "string" // Method used: exact_match, partial_match, etc.
+}
+```
+
+#### Product Item
+
+```json
+{
+  "name": "string",                 // Original product name
+  "normalized_name": "string",      // Normalized product name
+  "quantity": "float",              // Quantity purchased
+  "unit_price": "float",            // Price per unit
+  "total_price": "float",           // Total price for this item
+  "category": "string",             // Polish category path
+  "category_en": "string",          // English category path
+  "gpt_category": "string",         // Full Google Product Taxonomy path
+  "category_confidence": "float",   // Categorization confidence (0.0-1.0)
+  "category_method": "string"       // Method: bielik_ai, keyword_match, etc.
+}
+```
+
+#### VAT Summary
+
+```json
+{
+  "rate": "integer",                // VAT rate percentage
+  "amount": "float"                 // VAT amount
+}
+```
+
+## Chat Endpoints
+
+### Send Message
+
+Send a message to the AI assistant.
+
+```http
+POST /api/v2/chat/send
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "message": "string",
+  "context": "string",
+  "user_id": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "message": "Message sent successfully",
+  "data": {
+    "response": "AI response text",
+    "intent": "detected_intent",
+    "confidence": 0.95
+  }
+}
+```
+
+### Get Chat History
+
+Retrieve chat history for a user.
+
+```http
+GET /api/v2/chat/history?user_id={user_id}&limit={limit}
+```
+
+**Query Parameters:**
+- `user_id` (required): User identifier
+- `limit` (optional): Number of messages to retrieve (default: 50)
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "data": {
+    "messages": [
+      {
+        "id": "string",
+        "user_id": "string",
+        "message": "string",
+        "response": "string",
+        "timestamp": "2025-01-27T10:30:00Z",
+        "intent": "string"
+      }
+    ]
+  }
+}
+```
+
+## Agent Management Endpoints
+
+### List Available Agents
+
+Get list of all available AI agents.
+
+```http
+GET /api/v2/agents/list
+```
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "data": {
+    "agents": [
+      {
+        "name": "OCRAgent",
+        "description": "Extracts text from receipt images",
+        "status": "active",
+        "capabilities": ["ocr", "text_extraction"]
+      },
+      {
+        "name": "ReceiptAnalysisAgent",
+        "description": "Analyzes receipt text and extracts structured data",
+        "status": "active",
+        "capabilities": ["analysis", "categorization", "normalization"]
+      }
+    ]
+  }
+}
+```
+
+### Get Agent Status
+
+Get detailed status of a specific agent.
+
+```http
+GET /api/v2/agents/{agent_name}/status
+```
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "data": {
+    "name": "ReceiptAnalysisAgent",
+    "status": "active",
+    "uptime": "2h 30m",
+    "requests_processed": 150,
+    "average_response_time": 1.2,
+    "error_rate": 0.02
+  }
+}
+```
+
+## Backup Endpoints
+
+### Create Backup
+
+Create a system backup.
+
+```http
+POST /api/v2/backup/create
+```
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "message": "Backup created successfully",
+  "data": {
+    "backup_id": "backup_20250127_103000",
+    "timestamp": "2025-01-27T10:30:00Z",
+    "size": "150MB",
+    "components": ["database", "files", "vector_store"]
+  }
+}
+```
+
+### List Backups
+
+Get list of available backups.
+
+```http
+GET /api/v2/backup/list
+```
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "data": {
+    "backups": [
+      {
+        "id": "backup_20250127_103000",
+        "timestamp": "2025-01-27T10:30:00Z",
+        "size": "150MB",
+        "status": "completed"
+      }
+    ]
+  }
+}
+```
+
+### Restore Backup
+
+Restore system from a backup.
+
+```http
+POST /api/v2/backup/restore/{backup_id}
+```
+
+**Response:**
+```json
+{
+  "status_code": 200,
+  "message": "Backup restored successfully",
+  "data": {
+    "restore_id": "restore_20250127_104500",
+    "timestamp": "2025-01-27T10:45:00Z",
+    "components_restored": ["database", "files", "vector_store"]
+  }
+}
+```
+
+## Error Responses
+
+All endpoints return consistent error responses:
+
+### Standard Error Format
+
+```json
+{
+  "status_code": 400,
+  "error": "ValidationError",
+  "message": "Invalid request parameters",
+  "details": {
+    "field": "error description"
+  }
+}
+```
+
+### Common HTTP Status Codes
+
+- `200`: Success
+- `201`: Created
+- `400`: Bad Request
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Not Found
+- `422`: Unprocessable Entity
+- `500`: Internal Server Error
+- `503`: Service Unavailable
+
+### Error Types
+
+- `ValidationError`: Invalid request parameters
+- `AuthenticationError`: Invalid or missing authentication
+- `AuthorizationError`: Insufficient permissions
+- `NotFoundError`: Resource not found
+- `ProcessingError`: Error during processing
+- `SystemError`: Internal system error
+
+## Rate Limiting
+
+API endpoints are rate-limited to prevent abuse:
+
+- **General endpoints**: 100 requests per minute
+- **File upload endpoints**: 10 requests per minute
+- **AI processing endpoints**: 20 requests per minute
+
+Rate limit headers are included in responses:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1643270400
+```
+
+## WebSocket Endpoints
+
+### Real-time Chat
+
+Connect to real-time chat updates.
+
+```http
+WS /api/v2/chat/ws?user_id={user_id}
+```
+
+**Message Types:**
+
+1. **Client to Server:**
+```json
+{
+  "type": "message",
+  "data": {
+    "message": "Hello",
+    "context": "general"
+  }
+}
+```
+
+2. **Server to Client:**
+```json
+{
+  "type": "response",
+  "data": {
+    "response": "Hello! How can I help you?",
+    "intent": "greeting"
+  }
+}
+```
+
+## SDK Examples
+
+### Python SDK
+
+```python
+import requests
+
+# Upload receipt
+with open('receipt.jpg', 'rb') as f:
+    files = {'file': f}
+    response = requests.post('http://localhost:8000/api/v2/receipts/upload', files=files)
+    ocr_text = response.json()['data']['text']
+
+# Analyze receipt
+data = {'ocr_text': ocr_text}
+response = requests.post('http://localhost:8000/api/v2/receipts/analyze', data=data)
+analysis = response.json()['data']
+```
+
+### JavaScript SDK
+
+```javascript
+// Upload receipt
+const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+
+const response = await fetch('/api/v2/receipts/upload', {
+  method: 'POST',
+  body: formData
+});
+
+const { data: { text } } = await response.json();
+
+// Analyze receipt
+const analysisResponse = await fetch('/api/v2/receipts/analyze', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: `ocr_text=${encodeURIComponent(text)}`
+});
+
+const analysis = await analysisResponse.json();
+```
+
+## Testing
+
+### Test Endpoints
+
+Use the test endpoints for development and testing:
+
+```http
+GET /api/v2/test/health
+GET /api/v2/test/agents
+POST /api/v2/test/ocr
+```
+
+### Postman Collection
+
+Import the Postman collection for easy API testing:
+
+```json
+{
+  "info": {
+    "name": "MyAppAssistant API",
+    "version": "2.0.0"
+  },
+  "item": [
+    {
+      "name": "Receipt Analysis",
+      "item": [
+        {
+          "name": "Upload Receipt",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v2/receipts/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```

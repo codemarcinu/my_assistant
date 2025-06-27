@@ -1,556 +1,487 @@
-# FoodSave AI Backend - Dokumentacja Architektury
+# MyAppAssistant - Architecture Documentation
 
-## 🏗️ Przegląd Architektury
+## System Overview
 
-FoodSave AI Backend to zaawansowany system multi-agent zoptymalizowany pod kątem zarządzania pamięcią, wydajności asynchronicznej i monitoringu w czasie rzeczywistym. System został poddany kompleksowej refaktoryzacji zgodnie z najlepszymi praktykami nowoczesnego rozwoju oprogramowania.
+MyAppAssistant is a comprehensive AI-powered receipt analysis system built with FastAPI, featuring advanced OCR capabilities, intelligent product categorization using Bielik AI models, and Google Product Taxonomy integration.
 
-## 📊 Diagram Architektury
+## High-Level Architecture
 
 ```mermaid
 flowchart TD
-    subgraph "API Layer"
-        A1[FastAPI Endpoints]
-        A2[MemoryMonitoringMiddleware]
-        A3[PerformanceMonitoringMiddleware]
-        A4[ErrorHandlingMiddleware]
-        A5[RequestLoggingMiddleware]
-        A6[Telegram Bot API]
+    subgraph "Frontend Layer"
+        A1[React/TypeScript App]
+        A2[ReceiptUploadModule]
+        A3[ReceiptAnalysisModule]
+        A4[ChatInterface]
+        A5[Dashboard]
     end
 
-    subgraph "Orchestration"
-        B1[Orchestrator Pool]
-        B2[Request Queue]
-        B3[CircuitBreakerMonitor]
-        B4[Agent Router]
-        B5[Telegram Bot Handler]
+    subgraph "Backend Layer"
+        B1[FastAPI Application]
+        B2[Orchestrator]
+        B3[AgentFactory]
+        B4[LLMClient]
+        B5[VectorStore]
     end
 
-    subgraph "Agents"
-        C1[ChefAgent]
-        C2[SearchAgent]
-        C3[MealPlannerAgent]
-        C4[OCRAgent]
-        C5[RAGAgent]
-        C6[WeatherAgent]
-        C7[GeneralConversationAgent]
-        C8[ConciseResponseAgent]
+    subgraph "AI Agent System"
+        C1[OCRAgent]
+        C2[ReceiptAnalysisAgent]
+        C3[ChatAgent]
+        C4[ProductCategorizer]
+        C5[StoreNormalizer]
+        C6[ProductNameNormalizer]
     end
 
-    subgraph "Core Services"
-        D1[MemoryManager]
-        D2[VectorStore]
-        D3[RAGDocumentProcessor]
-        D4[CacheManager]
-        D5[HybridLLMClient]
-        D6[ProfileManager]
-        D7[AlertManager]
-        D8[ConciseRAGProcessor]
-        D9[ResponseLengthConfig]
+    subgraph "External Services"
+        D1[Ollama - Bielik Models]
+        D2[PostgreSQL Database]
+        D3[Redis Cache]
+        D4[FAISS Vector Store]
     end
 
-    subgraph "Infrastructure"
-        E1[Database_SQLAlchemy_Async]
-        E2[Redis_Cache]
-        E3[FAISS_Index]
-        E4[Prometheus_Metrics]
-        E5[OpenTelemetry_Tracing]
-    end
-
-    subgraph "Monitoring & Alerting"
-        F1[Prometheus_Metrics_Endpoint]
-        F2[AlertManager]
-        F3[Health_Checks]
-        F4[Telemetry]
+    subgraph "Configuration"
+        E1[Google Product Taxonomy]
+        E2[Polish Stores Dictionary]
+        E3[Product Name Normalization]
     end
 
     %% Connections
     A1 --> B1
-    A2 --> A1
-    A3 --> A1
-    A4 --> A1
-    A5 --> A1
-    A6 --> A1
+    A2 --> B1
+    A3 --> B1
+    A4 --> B1
+    A5 --> B1
 
     B1 --> B2
     B2 --> B3
-    B3 --> B4
-    B4 --> C1
-    B4 --> C2
-    B4 --> C3
-    B4 --> C4
-    B4 --> C5
-    B4 --> C6
-    B4 --> C7
-    B4 --> C8
-    B5 --> A6
+    B3 --> C1
+    B3 --> C2
+    B3 --> C3
+
+    C2 --> C4
+    C2 --> C5
+    C2 --> C6
 
     C1 --> D1
-    C2 --> D2
-    C3 --> D3
-    C4 --> D4
-    C5 --> D5
-    C6 --> D6
-    C7 --> D7
-    C8 --> D8
-    C8 --> D9
+    C2 --> D1
+    C3 --> D1
+    C4 --> D1
 
-    D1 --> E1
-    D2 --> E3
-    D3 --> E2
-    D4 --> E2
-    D5 --> E4
-    D6 --> E1
-    D7 --> F2
-    D8 --> D2
-    D8 --> D5
+    B1 --> D2
+    B1 --> D3
+    B5 --> D4
 
-    F1 --> E4
-    F2 --> F3
-    F3 --> E1
-    F4 --> E5
+    C4 --> E1
+    C5 --> E2
+    C6 --> E3
 ```
 
-## 🎯 Komponenty Systemu
+## Core Components
 
-### 1. API Layer
-**Odpowiedzialność:** Obsługa żądań HTTP, middleware, monitoring
+### 1. Frontend Layer
 
-#### FastAPI Endpoints
-- **Chat API**: `/api/v1/chat` - główny endpoint do komunikacji z agentami
-- **Upload API**: `/api/v2/upload` - przesyłanie plików (paragony, dokumenty)
-- **RAG API**: `/api/v2/rag` - operacje na bazie wiedzy
-- **Weather API**: `/api/v2/weather` - informacje o pogodzie
-- **Backup API**: `/api/v2/backup` - zarządzanie backupami
-- **Concise Response API**: `/api/v2/concise` - zwięzłe odpowiedzi w stylu Perplexity.ai
-- **Telegram Bot API**: `/api/v2/telegram` - integracja z Telegram Bot API
-  - `/webhook` - endpoint webhook dla wiadomości Telegram
-  - `/set-webhook` - konfiguracja webhook
-  - `/webhook-info` - informacje o webhook
-  - `/send-message` - wysyłanie wiadomości
-  - `/test-connection` - test połączenia z botem
-  - `/settings` - zarządzanie ustawieniami bota
-- **Health API**: `/health` - sprawdzanie stanu systemu
-- **Metrics API**: `/metrics` - metryki Prometheus
+**Technology Stack:**
+- React 18 with TypeScript
+- Vite for build tooling
+- Tailwind CSS for styling
+- Zustand for state management
 
-#### Middleware Stack
-```python
-# Kolejność middleware (od góry do dołu)
-app.add_middleware(ErrorHandlingMiddleware)
-app.add_middleware(PerformanceMonitoringMiddleware)
-app.add_middleware(RequestLoggingMiddleware, log_body=False, log_headers=True)
-app.add_middleware(MemoryMonitoringMiddleware)
+**Key Components:**
+- `ReceiptUploadModule` - File upload and OCR processing
+- `ReceiptAnalysisModule` - Structured data display
+- `ChatInterface` - AI assistant interaction
+- `Dashboard` - Analytics and insights
+
+### 2. Backend Layer
+
+**Technology Stack:**
+- FastAPI with Python 3.12+
+- SQLAlchemy ORM
+- Pydantic for data validation
+- Async/await patterns throughout
+
+**Core Services:**
+- `Orchestrator` - Request routing and pipeline management
+- `AgentFactory` - Dynamic agent creation and management
+- `LLMClient` - Bielik model integration
+- `VectorStore` - Document storage and retrieval
+
+### 3. AI Agent System
+
+#### Agent Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Agent Container                          │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │  OCRAgent   │  │ReceiptAnalysis│  │  ChatAgent  │        │
+│  │             │  │    Agent     │  │             │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │  Mixins     │  │  Adapters   │  │   Tools     │        │
+│  │             │  │             │  │             │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Orchestration Layer
-**Odpowiedzialność:** Zarządzanie agentami, routing, load balancing
+#### Agent Types
 
-#### Orchestrator Pool
-- **Pool Management**: Dynamiczne zarządzanie instancjami orchestratorów
-- **Load Balancing**: Rozdzielanie żądań między dostępne orchestratory
-- **Health Monitoring**: Sprawdzanie stanu orchestratorów
+1. **OCRAgent**
+   - **Purpose**: Extract text from receipt images
+   - **Technology**: Tesseract OCR with Polish language support
+   - **Capabilities**: Image preprocessing, text extraction, confidence scoring
 
-#### Request Queue
-- **Async Queue**: Kolejka żądań z backpressure mechanizmami
-- **Priority Handling**: Priorytetyzacja żądań krytycznych
-- **Rate Limiting**: Kontrola przepustowości
+2. **ReceiptAnalysisAgent**
+   - **Purpose**: Analyze OCR text and extract structured data
+   - **Technology**: Bielik 11b v2.3 for intelligent analysis
+   - **Capabilities**: Store detection, product extraction, date parsing
 
-#### Circuit Breaker Monitor
-- **Failure Detection**: Wykrywanie awarii agentów i serwisów
-- **Automatic Recovery**: Automatyczne przywracanie po awarii
-- **Fallback Mechanisms**: Mechanizmy awaryjne
+3. **ChatAgent**
+   - **Purpose**: General conversation and assistance
+   - **Technology**: Bielik 4.5b v3.0 for natural language processing
+   - **Capabilities**: Intent recognition, context awareness, multi-turn conversations
 
-#### Telegram Bot Handler
-- **Webhook Processing**: Przetwarzanie wiadomości z Telegram
-- **AI Integration**: Integracja z istniejącym orchestrator
-- **Rate Limiting**: Ochrona przed spamem (30 wiadomości/minutę)
-- **Message Splitting**: Automatyczne dzielenie długich wiadomości
-- **Database Storage**: Zapis konwersacji do bazy danych
-- **Error Handling**: Kompleksowa obsługa błędów
+### 4. Data Processing Pipeline
 
-### 3. Agents Layer
-**Odpowiedzialność:** Specjalistyczne zadania AI
+#### Receipt Analysis Flow
 
-#### ChefAgent
-- **Przepisy**: Generowanie i modyfikacja przepisów
-- **Składniki**: Analiza dostępnych składników
-- **Dieta**: Uwzględnianie preferencji dietetycznych
+```
+Receipt Image
+     │
+     ▼
+┌─────────────┐
+│  OCRAgent   │ ──► Text Extraction
+└─────────────┘
+     │
+     ▼
+┌─────────────┐
+│ReceiptAnalysis│ ──► Structured Data
+│    Agent     │
+└─────────────┘
+     │
+     ▼
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│ProductCategorizer│ │StoreNormalizer│ │ProductName   │
+│ (Bielik+GPT) │ │ (Dictionary) │ │ Normalizer  │
+└─────────────┘  └─────────────┘  └─────────────┘
+     │
+     ▼
+Structured JSON Response
+```
 
-#### SearchAgent
-- **Wyszukiwanie**: Wyszukiwanie przepisów i informacji
-- **Filtrowanie**: Filtrowanie wyników według kryteriów
-- **Ranking**: Ranking wyników według relevancy
+#### Data Processing Components
 
-#### MealPlannerAgent
-- **Planowanie**: Tworzenie planów posiłków
-- **Harmonogram**: Harmonogramowanie posiłków
-- **Optymalizacja**: Optymalizacja zakupów i przygotowania
+1. **ProductCategorizer**
+   - **Purpose**: Categorize products using AI and taxonomy
+   - **Methods**: Bielik AI, Google Product Taxonomy, keyword matching
+   - **Output**: Standardized product categories with confidence scores
 
-#### OCRAgent
-- **OCR Processing**: Rozpoznawanie tekstu z obrazów
-- **Receipt Analysis**: Analiza paragonów
-- **Batch Processing**: Przetwarzanie wsadowe dokumentów
+2. **StoreNormalizer**
+   - **Purpose**: Normalize store names using Polish store dictionary
+   - **Methods**: Exact match, partial match, fuzzy match
+   - **Output**: Standardized store names with metadata
 
-#### RAGAgent
-- **Retrieval**: Pobieranie informacji z bazy wiedzy
-- **Generation**: Generowanie odpowiedzi na podstawie kontekstu
-- **Document Processing**: Przetwarzanie dokumentów
+3. **ProductNameNormalizer**
+   - **Purpose**: Normalize product names using product dictionary
+   - **Methods**: Keyword matching, quantity removal, diacritic handling
+   - **Output**: Cleaned product names with categories
 
-#### WeatherAgent
-- **Weather Data**: Pobieranie danych pogodowych
-- **Location Services**: Obsługa lokalizacji
-- **Forecasting**: Prognozowanie pogody
+### 5. Bielik AI Integration
 
-#### GeneralConversationAgent
-- **General Chat**: Ogólne rozmowy i pomoc
-- **Intent Detection**: Wykrywanie intencji użytkownika
-- **Fallback**: Obsługa niezrozumiałych żądań
+#### Model Configuration
 
-#### ConciseResponseAgent
-- **Concise Generation**: Generowanie zwięzłych odpowiedzi w stylu Perplexity.ai
-- **Response Expansion**: Rozszerzanie zwięzłych odpowiedzi na żądanie
-- **Map-Reduce RAG**: Dwustopniowe przetwarzanie dokumentów
-- **Conciseness Analysis**: Analiza zwięzłości tekstu
-- **Length Control**: Kontrola długości odpowiedzi (concise, standard, detailed)
-
-### 4. Core Services Layer
-**Odpowiedzialność:** Podstawowe serwisy systemu
-
-#### MemoryManager
 ```python
-class MemoryManager:
-    """Zarządzanie pamięcią z weak references i context managers"""
+BIELIK_MODELS = {
+    "bielik-4.5b-v3.0": {
+        "url": "http://localhost:11434/api/generate",
+        "model": "bielik-4.5b-v3.0",
+        "max_tokens": 2048,
+        "temperature": 0.1
+    },
+    "bielik-11b-v2.3": {
+        "url": "http://localhost:11434/api/generate", 
+        "model": "bielik-11b-v2.3",
+        "max_tokens": 4096,
+        "temperature": 0.1
+    }
+}
+```
 
+#### Prompt Engineering
+
+**Product Categorization:**
+```
+Przypisz produkt do odpowiedniej kategorii.
+
+Dostępne kategorie:
+1. Nabiał > Mleko i śmietana (Dairy Products > Milk & Cream)
+2. Nabiał > Sery (Dairy Products > Cheese)
+...
+
+Produkt: "{product_name}"
+
+Odpowiedz tylko numerem kategorii.
+```
+
+**Receipt Analysis:**
+```
+Analizuj poniższy tekst paragonu i wypisz wynik w JSON:
+
+{ocr_text}
+
+Wyjście ma mieć dokładnie taką strukturę:
+{
+  "store": "",
+  "address": "",
+  "date": "",
+  "items": [...],
+  "total": 0.0
+}
+```
+
+### 6. Data Storage
+
+#### Database Schema
+
+```sql
+-- Receipts table
+CREATE TABLE receipts (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255),
+    store_name VARCHAR(255),
+    normalized_store_name VARCHAR(255),
+    date TIMESTAMP,
+    total_amount DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Receipt items table
+CREATE TABLE receipt_items (
+    id SERIAL PRIMARY KEY,
+    receipt_id INTEGER REFERENCES receipts(id),
+    name VARCHAR(500),
+    normalized_name VARCHAR(500),
+    quantity DECIMAL(10,3),
+    unit_price DECIMAL(10,2),
+    total_price DECIMAL(10,2),
+    category VARCHAR(255),
+    category_en VARCHAR(255),
+    gpt_category TEXT,
+    category_confidence DECIMAL(3,2),
+    category_method VARCHAR(50)
+);
+
+-- Chat messages table
+CREATE TABLE chat_messages (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255),
+    message TEXT,
+    response TEXT,
+    intent VARCHAR(100),
+    confidence DECIMAL(3,2),
+    timestamp TIMESTAMP DEFAULT NOW()
+);
+```
+
+#### Vector Store
+
+- **Technology**: FAISS with sentence transformers
+- **Purpose**: Document storage and semantic search
+- **Content**: Receipt templates, product descriptions, user queries
+
+### 7. Configuration Management
+
+#### Configuration Files
+
+1. **Google Product Taxonomy** (`data/config/filtered_gpt_categories.json`)
+   - 35 FMCG categories with Polish translations
+   - Keywords for fast categorization
+   - Hierarchical structure
+
+2. **Polish Stores Dictionary** (`data/config/polish_stores.json`)
+   - 40+ Polish stores with variations
+   - Store types and metadata
+   - Normalization rules
+
+3. **Product Name Normalization** (`data/config/product_name_normalization.json`)
+   - 100+ product normalization rules
+   - Category mappings
+   - Quantity handling
+
+### 8. Error Handling and Resilience
+
+#### Circuit Breaker Pattern
+
+```python
+class CircuitBreakerMixin:
     def __init__(self):
-        self._contexts = weakref.WeakValueDictionary()
-        self._snapshots = []
-
-    async def context_manager(self, session_id: str):
-        """Async context manager dla sesji"""
-        context = MemoryContext(session_id)
-        self._contexts[session_id] = context
-        try:
-            yield context
-        finally:
-            await context.cleanup()
+        self.failure_count = 0
+        self.failure_threshold = 5
+        self.timeout = 60
+        self.state = "CLOSED"
 ```
 
-#### VectorStore
+#### Fallback Mechanisms
+
+1. **Product Categorization**
+   - Bielik AI → Keyword matching → "Inne" category
+   - Confidence thresholds for each method
+
+2. **Store Normalization**
+   - Exact match → Partial match → Fuzzy match → "Nieznany sklep"
+
+3. **OCR Processing**
+   - English fallback if Polish fails
+   - Multiple preprocessing attempts
+
+### 9. Performance Optimization
+
+#### Caching Strategy
+
 ```python
-class VectorStore:
-    """FAISS-based vector store z memory optimization"""
-
-    def __init__(self):
-        self.index = faiss.IndexIVFFlat(faiss.IndexFlatL2(384), 384, 100)
-        self._documents = weakref.WeakSet()
-
-    async def add_documents(self, documents: List[Document]):
-        """Dodawanie dokumentów z memory management"""
-        async with self.context_manager():
-            for doc in documents:
-                self._documents.add(doc)
-                # Vector operations...
+# Redis caching for frequently accessed data
+CACHE_CONFIG = {
+    "product_categories": {"ttl": 3600},  # 1 hour
+    "store_normalization": {"ttl": 86400}, # 24 hours
+    "llm_responses": {"ttl": 1800}        # 30 minutes
+}
 ```
 
-#### RAGDocumentProcessor
+#### Batch Processing
+
+- Product categorization in batches
+- Store normalization in batches
+- Vector operations optimization
+
+#### Connection Pooling
+
+- Database connection pooling
+- HTTP client connection pooling
+- Redis connection pooling
+
+### 10. Monitoring and Observability
+
+#### Metrics Collection
+
 ```python
-class RAGDocumentProcessor:
-    """Przetwarzanie dokumentów z context managers"""
-
-    async def process_document(self, content: str) -> List[DocumentChunk]:
-        """Przetwarzanie dokumentu z cleanup"""
-        async with self.context_manager():
-            chunks = self._split_document(content)
-            return [DocumentChunk(chunk) for chunk in chunks]
+METRICS = {
+    "ocr_accuracy": "Gauge",
+    "categorization_confidence": "Histogram", 
+    "response_time": "Histogram",
+    "error_rate": "Counter"
+}
 ```
 
-#### ConciseRAGProcessor
-```python
-class ConciseRAGProcessor:
-    """Dwustopniowe przetwarzanie RAG z map-reduce dla zwięzłych odpowiedzi"""
+#### Logging Strategy
 
-    async def process_with_map_reduce(
-        self, 
-        query: str, 
-        chunks: List[Dict], 
-        max_summary_length: int = 200
-    ) -> str:
-        # 1. Map: Podsumuj każdy chunk
-        summaries = await self._summarize_chunks(chunks, max_summary_length)
-        
-        # 2. Reduce: Połącz podsumowania w zwięzłą odpowiedź
-        final_response = await self._generate_concise_response(query, summaries)
-        
-        return final_response
-```
-
-#### ResponseLengthConfig
-```python
-class ResponseLengthConfig:
-    """Konfiguracja długości odpowiedzi dla różnych stylów"""
-
-    def __init__(self, style: ResponseStyle):
-        self.style = style
-        self.max_tokens = self._get_max_tokens()
-        self.temperature = self._get_temperature()
-        self.num_predict = self._get_num_predict()
-
-    def get_ollama_options(self) -> Dict[str, Any]:
-        """Generuje opcje Ollama dla danego stylu"""
-        return {
-            "num_predict": self.num_predict,
-            "temperature": self.temperature,
-            "top_k": 40,
-            "top_p": 0.9
-        }
-```
-
-### 5. Infrastructure Layer
-**Odpowiedzialność:** Zasoby infrastrukturalne
-
-#### Database (SQLAlchemy Async)
-```python
-# Konfiguracja connection pool
-engine = create_async_engine(
-    DATABASE_URL,
-    pool_size=20,
-    max_overflow=10,
-    pool_pre_ping=True,
-    pool_recycle=3600
-)
-
-# Async session management
-async_session = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
-)
-```
-
-#### Redis Cache
-```python
-# Cache configuration
-redis_client = redis.Redis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=settings.REDIS_DB,
-    decode_responses=True
-)
-```
-
-#### FAISS Index
-```python
-# Optimized FAISS configuration
-index = faiss.IndexIVFFlat(
-    quantizer=faiss.IndexFlatL2(384),
-    d=384,
-    nlist=100
-)
-index.nprobe = 10  # Search accuracy vs speed trade-off
-```
-
-### 6. Monitoring & Alerting Layer
-**Odpowiedzialność:** Monitoring, metryki, alerty
-
-#### Prometheus Metrics
-```python
-# Custom metrics
-http_requests_total = Counter(
-    'http_requests_total',
-    'Total HTTP requests',
-    ['method', 'endpoint', 'status']
-)
-
-http_request_duration_seconds = Histogram(
-    'http_request_duration_seconds',
-    'HTTP request duration',
-    ['method', 'endpoint']
-)
-
-memory_usage_bytes = Gauge(
-    'memory_usage_bytes',
-    'Memory usage in bytes'
-)
-```
-
-#### Alert Manager
-```python
-class AlertManager:
-    """System alertów z regułami i cooldown"""
-
-    def add_rule(self, rule: AlertRule):
-        """Dodawanie reguły alertu"""
-        self.rules[rule.name] = rule
-
-    async def check_alerts(self):
-        """Sprawdzanie alertów"""
-        for rule in self.rules.values():
-            if await self._should_trigger(rule):
-                await self._trigger_alert(rule)
-```
+- Structured logging with correlation IDs
+- Different log levels for different components
+- Centralized log aggregation
 
 #### Health Checks
-```python
-@app.get("/health")
-async def health_check():
-    """Comprehensive health check"""
-    return {
-        "status": "healthy",
-        "timestamp": time.time(),
-        "version": settings.APP_VERSION,
-        "environment": settings.ENVIRONMENT,
-        "checks": {
-            "database": await check_database_health(),
-            "cache": await check_cache_health(),
-            "orchestrator": await check_orchestrator_health(),
-            "llm": await check_llm_health(),
-            "vector_store": await check_vector_store_health()
-        }
-    }
+
+- Database connectivity
+- External service availability
+- Model loading status
+- System resource usage
+
+### 11. Security Architecture
+
+#### Authentication
+
+- JWT-based authentication
+- Token refresh mechanism
+- Role-based access control
+
+#### Input Validation
+
+- Pydantic models for request validation
+- File type and size restrictions
+- SQL injection prevention
+
+#### Data Protection
+
+- Sensitive data encryption
+- Audit logging
+- GDPR compliance measures
+
+### 12. Deployment Architecture
+
+#### Docker Configuration
+
+```yaml
+# docker-compose.yaml
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/myapp
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+      - ollama
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
 ```
 
-## 🔧 Optymalizacje Zaimplementowane
+#### Environment Configuration
 
-### 1. Memory Management
-- **Weak References**: Unikanie cyklicznych referencji
-- **Context Managers**: Automatyczny cleanup zasobów
-- **__slots__**: Redukcja overhead pamięci dla klas
-- **Object Pooling**: Reużycie często używanych obiektów
+- Development, staging, and production environments
+- Environment-specific configuration files
+- Secret management with environment variables
 
-### 2. Async Optimization
-- **Proper async/await**: Tylko dla I/O operations
-- **asyncio.gather()**: Parallel operations
-- **Backpressure**: Kontrola przepustowości
-- **Circuit Breakers**: Resilience patterns
+### 13. Testing Strategy
 
-### 3. Database Optimization
-- **Connection Pooling**: Efektywne zarządzanie połączeniami
-- **Lazy Loading**: Opóźnione ładowanie relacji
-- **Query Batching**: Batch operations
-- **Pagination**: Obsługa dużych wyników
+#### Test Pyramid
 
-### 4. Vector Store Optimization
-- **IndexIVFFlat**: Szybsze wyszukiwanie
-- **Product Quantization**: Redukcja pamięci
-- **Memory Mapping**: Efektywne zarządzanie plikami
-- **Batch Processing**: Przetwarzanie wsadowe
-
-### 5. OCR Optimization
-- **Context Managers**: Automatyczny cleanup obrazów
-- **Batch Processing**: Przetwarzanie wielu plików
-- **Memory Monitoring**: Śledzenie użycia pamięci
-- **Error Handling**: Graceful degradation
-
-## 📈 Metryki i Monitoring
-
-### Kluczowe Metryki
-1. **HTTP Metrics**: Request count, duration, error rate
-2. **Memory Metrics**: Usage, peak, garbage collection
-3. **Database Metrics**: Connection count, query duration
-4. **Agent Metrics**: Response time, success rate
-5. **System Metrics**: CPU, disk I/O, network
-
-### Alert Rules
-1. **High Memory Usage**: >80% memory usage
-2. **High CPU Usage**: >90% CPU usage
-3. **High Error Rate**: >5% error rate
-4. **Slow Response Time**: >2s average response time
-5. **Database Connection Errors**: Connection failures
-
-## 🚀 Deployment i Production
-
-### Environment Variables
-```bash
-# Database
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost/db
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_DB=0
-
-# Monitoring
-PROMETHEUS_PORT=8001
-JAEGER_ENDPOINT=http://localhost:14268/api/traces
-
-# Application
-ENVIRONMENT=production
-LOG_LEVEL=info
+```
+    ┌─────────────┐
+    │   E2E Tests │ (10%)
+    └─────────────┘
+    ┌─────────────┐
+    │Integration  │ (20%)
+    │   Tests     │
+    └─────────────┘
+    ┌─────────────┐
+    │  Unit Tests │ (70%)
+    └─────────────┘
 ```
 
-### Docker Configuration
-```dockerfile
-FROM python:3.12-slim
+#### Test Coverage
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+- >80% code coverage requirement
+- Unit tests for all business logic
+- Integration tests for API endpoints
+- E2E tests for critical user flows
 
-COPY . .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
+### 14. Future Architecture Considerations
 
-### Load Testing
-```bash
-# Locust configuration
-locust -f locustfile.py --host=http://localhost:8000 \
-  --users 100 --spawn-rate 10 --run-time 300s
-```
+#### Scalability
 
-## 🧪 Testing Strategy
+- Horizontal scaling with load balancers
+- Microservices decomposition
+- Event-driven architecture
 
-### Test Coverage
-- **Unit Tests**: 95%+ coverage dla core components
-- **Integration Tests**: End-to-end testing
-- **Performance Tests**: Benchmarking i load testing
-- **Memory Tests**: Memory leak detection
+#### AI/ML Enhancements
 
-### Test Categories
-1. **Memory Management Tests**: Weak references, context managers
-2. **Async Pattern Tests**: Proper async/await usage
-3. **Database Tests**: Connection management, query optimization
-4. **Agent Tests**: Individual agent functionality
-5. **Integration Tests**: Full system workflows
+- Custom model training on Polish data
+- Real-time learning from user feedback
+- Advanced analytics and insights
 
-## 📚 Kluczowe Lekcje i Best Practices
+#### Integration Opportunities
 
-### 1. Memory Management
-- Zawsze używaj context managers dla zasobów
-- Implementuj weak references dla unikania memory leaks
-- Monitoruj memory usage w production
-
-### 2. Async Programming
-- Używaj async/await tylko dla I/O operations
-- Implementuj proper error handling w async context
-- Unikaj blocking operations w async functions
-
-### 3. Database Optimization
-- Używaj connection pooling z odpowiednimi parametrami
-- Implementuj lazy loading dla relationships
-- Zawsze zamykaj database sessions
-
-### 4. Monitoring
-- Implementuj comprehensive logging
-- Używaj structured logging z JSON format
-- Monitoruj key metrics w real-time
-
-### 5. Testing
-- Testuj memory usage w testach
-- Mockuj external dependencies
-- Implementuj load testing dla critical paths
-
-## 🎯 Podsumowanie
-
-FoodSave AI Backend to nowoczesny, zoptymalizowany system multi-agent z:
-
-- **9 Milestone'ów** ukończonych pomyślnie
-- **90% redukcją memory leaks**
-- **60% improvement w response times**
-- **70% faster vector search**
-- **100% test coverage dla core components**
-- **Production-ready monitoring i alerting**
-
-System jest gotowy do wdrożenia produkcyjnego i może obsłużyć wysokie obciążenia z zachowaniem stabilności i wydajności.
-
----
-
-**Dokumentacja utworzona:** 2025-06-25
-**Ostatnia aktualizacja:** 2025-06-25
-**Status:** ✅ Kompletna dokumentacja architektury
+- Accounting software integration
+- Budget tracking systems
+- Nutritional analysis
+- Expense management tools
