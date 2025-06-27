@@ -9,7 +9,7 @@ Dziękujemy za zainteresowanie projektem FoodSave AI! Ten dokument zawiera wskaz
 Projekt FoodSave AI składa się z dwóch głównych części:
 
 1. **Backend (FastAPI)** - Znajduje się w katalogu `src/backend`
-2. **Frontend (Next.js)** - Znajduje się w katalogu `foodsave-frontend`
+2. **Frontend (Next.js/React)** - Znajduje się w katalogu `myappassistant-chat-frontend`
 
 ## Przygotowanie środowiska deweloperskiego
 
@@ -37,7 +37,7 @@ Projekt FoodSave AI składa się z dwóch głównych części:
 
 3. Skonfiguruj frontend:
    ```bash
-   cd foodsave-frontend
+   cd myappassistant-chat-frontend
    npm install
    ```
 

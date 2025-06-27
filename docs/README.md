@@ -30,7 +30,7 @@ AIASISSTMARUBO to zaawansowany system AI do zarządzania żywnością, który ł
 
 ### 🏗️ **Dokumentacja techniczna**
 - **[API Documentation](../src/backend/README.md)** - Dokumentacja API backendu
-- **[Frontend Documentation](../foodsave-frontend/README.md)** - Dokumentacja frontendu
+- **[Frontend Documentation](../myappassistant-chat-frontend/README.md)** - Dokumentacja frontendu
 - **[Docker Documentation](../docker-compose.yaml)** - Konfiguracja kontenerów
 
 ---

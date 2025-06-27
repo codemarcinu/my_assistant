@@ -84,8 +84,8 @@ docker-compose up -d --build # Rebuild and restart services
 - `docker-compose.dev.yml` - Development configuration
 - `Dockerfile` - Backend production image
 - `Dockerfile.dev` - Backend development image
-- `foodsave-frontend/Dockerfile` - Frontend production image
-- `foodsave-frontend/Dockerfile.dev.frontend` - Frontend development image
+- `myappassistant-chat-frontend/Dockerfile.prod` - Frontend production image
+- `myappassistant-chat-frontend/Dockerfile.dev` - Frontend development image
 
 ## Production Deployment
 
