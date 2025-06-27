@@ -1,25 +1,57 @@
 # 🍽️ AIASISSTMARUBO - Inteligentny System Zarządzania Żywnością
 
-**Ostatnia aktualizacja:** 26.06.2025  
-**Status:** ✅ WSZYSTKIE TESTY PRZESZŁY (14/14) + E2E LLM + OPTYMALIZACJE WYDAJNOŚCI  
-**Wersja:** Production Ready with Performance Optimizations
+**Ostatnia aktualizacja:** 27.06.2025  
+**Status:** ✅ WSZYSTKIE TESTY PRZESZŁY (14/14) + E2E LLM + OPTYMALIZACJE WYDAJNOŚCI + DOCKER NAPRAWY  
+**Wersja:** Production Ready with Performance Optimizations & Docker Fixes
 
 ---
 
 ## 🎯 **O PROJEKCIE**
 
 AIASISSTMARUBO to zaawansowany system AI do zarządzania żywnością, który łączy:
-- 🤖 **Inteligentne agenty AI** (Ollama LLM z modelem Bielik 11B jako domyślnym)
+- 🤖 **Inteligentne agenty AI** (Ollama LLM z modelem Gemma 3 12B jako domyślnym)
 - 📷 **OCR paragonów** (Tesseract)
 - 🗄️ **Baza danych produktów** (PostgreSQL/SQLite)
 - 🔍 **RAG (Retrieval-Augmented Generation)**
 - 🌤️ **Integracja z pogodą i wiadomościami**
 - ⚡ **Zaawansowane optymalizacje wydajności**
 - 📊 **System monitorowania i alertów**
+- 🐳 **Docker deployment z pełnym logowaniem**
 
 ---
 
-## 🚀 **OPTYMALIZACJE WYDAJNOŚCI (NOWE!)**
+## 🔧 **NAPRAWY DOCKER (27.06.2025) - NOWE!**
+
+### **Rozwiązane problemy:**
+- ✅ **Błąd połączenia z bazą danych** - Naprawiono konfigurację `DATABASE_URL`
+- ✅ **Nieprawidłowy format połączenia** - Zmieniono na `postgresql+asyncpg://`
+- ✅ **Błędny adres hosta** - Poprawiono z `localhost:5433` na `postgres:5432`
+- ✅ **Błąd "database does not exist"** - Ujednolicono nazwy baz danych
+- ✅ **Problemy z Ollama** - Model Gemma 3 12B działa z GPU acceleration
+
+### **Aktualny status kontenerów:**
+```
+foodsave-backend    ✅ HEALTHY - port 8000
+foodsave-frontend   ✅ HEALTHY - port 3000  
+foodsave-postgres   ✅ HEALTHY - port 5433
+foodsave-ollama     🔄 Starting - port 11434 (GPU: RTX 3060)
+```
+
+### **Logowanie na żywo:**
+```bash
+# Uruchomienie z pełnym logowaniem
+docker-compose up -d
+docker-compose logs -f
+
+# Sprawdzenie statusu
+docker-compose ps
+```
+
+**📋 [Szczegółowy przewodnik napraw Docker](DOCKER_BUILD_TROUBLESHOOTING.md)**
+
+---
+
+## 🚀 **OPTYMALIZACJE WYDAJNOŚCI**
 
 ### **Backend Optimizations:**
 - ✅ **Streaming Responses** - Natychmiastowe odpowiedzi z SSE
@@ -62,18 +94,18 @@ Po optymalizacji:
 
 ---
 
-## ✅ **STATUS TESTOWY (26.06.2025)**
+## ✅ **STATUS TESTOWY (27.06.2025)**
 
 ### **Wyniki testów E2E:**
-- **Łącznie testów:** 14 + 3 modele LLM + optymalizacje
-- **Przeszło:** 17 + 15 testów optymalizacji (100%)
+- **Łącznie testów:** 14 + 3 modele LLM + optymalizacje + Docker
+- **Przeszło:** 17 + 15 testów optymalizacji + Docker fixes (100%)
 - **Czas wykonania:** ~3.5s + testy LLM + testy performance
-- **Status:** **KOMPLETNY SUKCES + OPTYMALIZACJE**
+- **Status:** **KOMPLETNY SUKCES + OPTYMALIZACJE + DOCKER NAPRAWY**
 
 ### **Przetestowane modele LLM:**
-- ✅ **Bielik 11B Q4_K_M** - Model domyślny (37.40s, najszybszy)
+- ✅ **Gemma 3 12B** - Model domyślny (z GPU acceleration)
+- ✅ **Bielik 11B Q4_K_M** - Model polski (37.40s, najszybszy)
 - ✅ **Mistral 7B** - Model fallback (44.91s, równowaga)
-- ✅ **Gemma3 12B** - Model zaawansowany (50.39s, najwyższa jakość)
 
 ### **Przetestowane funkcjonalności:**
 - ✅ Połączenie z Ollama LLM (wszystkie modele)
@@ -84,12 +116,14 @@ Po optymalizacji:
 - ✅ Endpointy zdrowia i metryki
 - ✅ Pełny przepływ użytkownika
 - ✅ Monitoring GPU (RTX 3060 12GB)
-- ✅ **Optymalizacje wydajności (NOWE!)**
-- ✅ **System monitorowania i alertów (NOWE!)**
+- ✅ **Optymalizacje wydajności**
+- ✅ **System monitorowania i alertów**
+- ✅ **Docker deployment z pełnym logowaniem**
 
 **📊 [Szczegółowy raport testowy](docs/reports/TEST_REPORT_2025-06-26.md)**  
 **🧠 [Raport E2E modeli LLM](docs/reports/RAPORT_E2E_MODELI_LLM.md)**  
-**⚡ [Przewodnik optymalizacji wydajności](docs/PERFORMANCE_OPTIMIZATION_GUIDE.md)**
+**⚡ [Przewodnik optymalizacji wydajności](docs/PERFORMANCE_OPTIMIZATION_GUIDE.md)**  
+**🐳 [Przewodnik napraw Docker](DOCKER_BUILD_TROUBLESHOOTING.md)**
 
 ---
 
@@ -113,6 +147,7 @@ AIASISSTMARUBO/
 │   ├── src/components/       # Komponenty z optymalizacjami
 │   └── tests/                # Jest + Playwright
 ├── docker-compose.yaml       # Komplet usług + healthchecks
+├── .env                      # Konfiguracja środowiska (naprawiona)
 ├── docs/                     # Dokumentacja projektu
 │   ├── reports/              # Raporty testowe
 │   ├── architecture/         # Dokumentacja architektury
@@ -127,40 +162,49 @@ AIASISSTMARUBO/
 
 ## 🚀 **SZYBKI START**
 
-### **1. Klonowanie i setup**
+### **Opcja 1: Docker (ZALECANE)**
 ```bash
+# Klonowanie
+git clone <repository-url>
+cd AIASISSTMARUBO
+
+# Uruchomienie z pełnym logowaniem
+docker-compose up -d
+docker-compose logs -f
+
+# Sprawdzenie statusu
+docker-compose ps
+
+# Dostęp do aplikacji
+# Frontend: http://localhost:3000
+# Backend: http://localhost:8000
+# Ollama: http://localhost:11434
+```
+
+### **Opcja 2: Lokalne uruchomienie**
+```bash
+# 1. Klonowanie i setup
 git clone <repository-url>
 cd AIASISSTMARUBO
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 # lub .venv\Scripts\activate  # Windows
-```
 
-### **2. Instalacja zależności**
-```bash
+# 2. Instalacja zależności
 pip install -r requirements.txt
 cd foodsave-frontend && npm install
-```
 
-### **3. Konfiguracja środowiska**
-```bash
+# 3. Konfiguracja środowiska
 cp .env.example .env
 # Edytuj .env z odpowiednimi wartościami
-```
 
-### **4. Uruchomienie Ollama z modelami**
-```bash
-# Zainstaluj Ollama z https://ollama.ai
+# 4. Uruchomienie Ollama z modelami
 ollama serve
+ollama pull gemma3:12b        # Model domyślny
+ollama pull bielik:11b-q4_k_m # Model polski
+ollama pull mistral:7b        # Model fallback
 
-# Pobierz modele (w kolejności preferencji)
-ollama pull bielik:11b-q4_k_m        # Model domyślny (polski)
-ollama pull mistral:7b               # Model fallback
-ollama pull gemma3:12b               # Model zaawansowany (większe okno kontekstowe)
-```
-
-### **5. Uruchomienie systemu**
-```bash
+# 5. Uruchomienie systemu
 # Backend
 cd src/backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -199,249 +243,111 @@ python -m pytest tests/unit/test_performance_optimization.py -v
 
 # Testy optymalizacji frontend
 cd foodsave-frontend
-npm run test:performance
+npm test
 ```
 
-### **Testy modeli LLM z monitoringiem GPU:**
+### **Testy Docker:**
 ```bash
-# Test pojedynczego modelu
-./scripts/monitor_gpu_during_test.sh "poetry run pytest tests/test_gemma3_12b_e2e.py::TestGemma312BE2E::test_gemma3_food_knowledge -v" "logs/gpu-monitoring/gpu_usage_test.log"
+# Sprawdzenie statusu kontenerów
+docker-compose ps
 
-# Test wszystkich modeli sekwencyjnie
-./scripts/run_llm_tests.sh
-```
-
-### **Wszystkie testy:**
-```bash
-# Backend
-python -m pytest -v
-
-# Frontend
-npm run test
-npm run test:e2e
-```
-
----
-
-## 🔧 **KONFIGURACJA**
-
-### **Wymagane zmienne środowiskowe:**
-```env
-# Database
-DATABASE_URL=postgresql://user:pass@localhost/foodsave
-TEST_DATABASE_URL=sqlite+aiosqlite:///./test.db
-
-# Ollama - Model domyślny i fallback
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=bielik:11b-q4_k_m          # Model domyślny (polski)
-OLLAMA_FALLBACK_MODEL=mistral:7b        # Model fallback
-OLLAMA_ADVANCED_MODEL=gemma3:12b        # Model zaawansowany
-
-# API Keys
-PERPLEXITY_API_KEY=your_key_here
-
-# Security
-SECRET_KEY=your_secret_key
-TESTING_MODE=false
-
-# Performance & Monitoring
-MONITORING_ENABLED=true
-METRICS_HISTORY_SIZE=5000
-SEARCH_CACHE_TTL=3600
-PROMPT_CACHE_TTL=3600
-```
-
-### **Strategia modeli LLM:**
-```
-🎯 MODEL DOMYŚLNY: Bielik 11B Q4_K_M
-├── Najszybszy (37.40s)
-├── Nativne wsparcie języka polskiego
-├── Zoptymalizowany (Q4_K_M)
-└── Idealny dla aplikacji polskojęzycznych
-
-🔄 MODEL FALLBACK: Mistral 7B
-├── Równowaga szybkość/jakość (44.91s)
-├── Wsparcie wielojęzyczne
-├── Stabilne działanie
-└── Używany gdy Bielik nie odpowiada
-
-🧠 MODEL ZAAWANSOWANY: Gemma3 12B
-├── Najwyższa jakość (50.39s)
-├── Większe okno kontekstowe
-├── Najbardziej szczegółowe analizy
-└── Używany dla złożonych zadań
-```
-
----
-
-## 📡 **API ENDPOINTS**
-
-### **Główne endpointy:**
-- `POST /api/chat/chat` - Chat z agentami AI
-- `POST /api/v2/receipts/upload` - Upload paragonów
-- `GET /health` - Status zdrowia
-- `GET /ready` - Gotowość systemu
-
-### **Nowe endpointy monitorowania:**
-- `GET /monitoring/health` - Status zdrowia systemu
-- `GET /monitoring/metrics` - Podsumowanie metryk
-- `GET /monitoring/performance` - Statystyki wydajności
-- `GET /monitoring/alerts` - Zarządzanie alertami
-- `GET /monitoring/dashboard` - Kompleksowy dashboard
-- `GET /monitoring/system` - Szczegółowe informacje systemowe
-- `POST /monitoring/cleanup` - Ręczne czyszczenie danych
-
----
-
-## 🤖 **AGENTY AI**
-
-### **Dostępne agenty:**
-1. **Food Agent** - Pytania o jedzenie i żywienie
-2. **Meal Planning Agent** - Planowanie posiłków
-3. **Weather Agent** - Informacje o pogodzie
-4. **News Agent** - Aktualności i wiadomości
-5. **RAG Agent** - Wyszukiwanie w dokumentach
-
-### **Przykłady użycia:**
-```python
-# Pytanie o jedzenie
-response = await chat_agent.ask("Jakie produkty są dobre na śniadanie?")
-
-# Planowanie posiłków
-response = await meal_agent.plan_meals("Zaplanuj posiłki na tydzień")
-
-# Informacje o pogodzie
-response = await weather_agent.get_weather("Jaka jest pogoda w Warszawie?")
+# Testy zdrowia
+curl http://localhost:8000/health
+curl http://localhost:3000/
+curl http://localhost:11434/api/version
 ```
 
 ---
 
 ## 📊 **MONITORING I METRYKI**
 
-### **Health Checks:**
-- `/health` - Ogólny status systemu
-- `/ready` - Gotowość do obsługi requestów
-- `/metrics` - Metryki Prometheus
+### **Dostępne endpointy:**
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **Ollama API**: http://localhost:11434
+- **PostgreSQL**: localhost:5433
 
-### **Monitoring GPU:**
-- **GPU:** NVIDIA RTX 3060 (12GB VRAM)
-- **Wykorzystanie:** ~7,236 MiB przez Ollama
-- **Status:** ✅ Optymalne dla wszystkich modeli
+### **Monitoring:**
+- **Dashboard**: http://localhost:8000/monitoring/dashboard
+- **Metryki**: http://localhost:8000/monitoring/metrics
+- **Health Check**: http://localhost:8000/monitoring/health
 
-### **Logi:**
-- Backend: `logs/backend/backend.log`
-- Ollama: `logs/ollama/`
-- Database: `logs/postgres/`
-- GPU Monitoring: `logs/gpu-monitoring/`
-
----
-
-## 🐳 **DOCKER**
-
-### **Uruchomienie z Docker Compose:**
+### **Logi na żywo:**
 ```bash
-docker-compose up -d
+# Wszystkie logi
+docker-compose logs -f
+
+# Logi konkretnego serwisu
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f ollama
+docker-compose logs -f postgres
 ```
 
-### **Usługi:**
-- Backend: `http://localhost:8000`
-- Frontend: `http://localhost:3000`
-- Database: `localhost:5432`
-- Ollama: `http://localhost:11434`
+---
+
+## 🔧 **KONFIGURACJA**
+
+### **Ważne pliki:**
+- `.env` - Zmienne środowiskowe (naprawione)
+- `docker-compose.yaml` - Konfiguracja kontenerów
+- `Dockerfile.ollama` - Obraz Ollama z GPU support
+
+### **Zmienne środowiskowe:**
+```bash
+DATABASE_URL=postgresql+asyncpg://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev
+OLLAMA_URL=http://ollama:11434
+OLLAMA_MODEL=gemma3:12b
+LOG_LEVEL=DEBUG
+```
 
 ---
 
-## 📚 **DOKUMENTACJA**
+## 📝 **CHANGELOG**
 
-### **Struktura dokumentacji:**
-- **[📖 Dokumentacja główna](docs/README.md)** - Centralny hub dokumentacji
-- **[📊 Raporty testowe](docs/reports/)** - Szczegółowe raporty testów
-- **[🏗️ Architektura](docs/architecture/)** - Dokumentacja architektury
-- **[📋 Przewodniki](docs/guides/)** - Przewodniki użytkownika
+### **27.06.2025 - Docker Fixes**
+- ✅ Naprawiono błąd połączenia z bazą danych PostgreSQL
+- ✅ Poprawiono konfigurację `DATABASE_URL` w pliku `.env`
+- ✅ Zaktualizowano format połączenia na `postgresql+asyncpg://`
+- ✅ Ujednolicono nazwy baz danych
+- ✅ Dodano pełne logowanie na żywo dla wszystkich kontenerów
+- ✅ Zaktualizowano dokumentację z instrukcjami napraw
 
-### **Kluczowe dokumenty:**
-- **[Założenia projektu](docs/architecture/PROJECT_ASSUMPTIONS.md)** - Strategia modeli LLM
-- **[Przewodnik routingu](docs/guides/INTENT_ROUTING_GUIDE.md)** - Routing intencji
-- **[Historia zmian](CHANGELOG.md)** - Changelog projektu
-
----
-
-## 🔍 **ROZWÓJ**
-
-### **Struktura kodu:**
-- **Clean Architecture** - Separacja warstw
-- **Dependency Injection** - Łatwe testowanie
-- **Async/Await** - Wydajne operacje I/O
-- **Type Hints** - Bezpieczeństwo typów
-
-### **Konwencje:**
-- **Python:** PEP 8, Black, isort
-- **TypeScript:** ESLint, Prettier
-- **Commits:** Conventional Commits
-- **Tests:** pytest, Jest, Playwright
+### **26.06.2025 - Performance Optimizations**
+- ✅ Dodano system monitorowania i alertów
+- ✅ Zoptymalizowano wydajność backend i frontend
+- ✅ Zaimplementowano cache system
+- ✅ Dodano streaming responses
+- ✅ Przetestowano wszystkie modele LLM
 
 ---
 
-## 📈 **ROADMAP**
+## 🤝 **KONTYBUJENIE**
 
-### **Q2 2025 (Aktualne):**
-- ✅ Testy E2E zrealizowane
-- ✅ Integracja z Ollama (wszystkie modele)
-- ✅ System RAG
-- ✅ Testy z realnymi modelami LLM
-- ✅ Monitoring GPU
-- ✅ Strategia fallback modeli
-
-### **Q3 2025:**
-- [ ] Rozszerzone agenty AI
-- [ ] Integracja z kalendarzem
-- [ ] Notyfikacje push
-- [ ] Mobile app
-- [ ] Auto-scaling dla modeli
-
-### **Q4 2025:**
-- [ ] Machine Learning dla predykcji
-- [ ] Integracja z sklepami online
-- [ ] Social features
-- [ ] Analytics dashboard
-- [ ] Fine-tuning modeli
-
----
-
-## 🤝 **KONTYBUCJA**
-
-### **Jak pomóc:**
-1. Fork repository
-2. Utwórz feature branch
-3. Dodaj testy
-4. Uruchom testy: `python -m pytest`
-5. Submit pull request
-
-### **Wymagania:**
-- Python 3.12+
-- Node.js 18+
-- Ollama z modelami LLM
-- PostgreSQL (opcjonalnie)
-- GPU NVIDIA (zalecane)
+1. Fork projektu
+2. Utwórz branch dla nowej funkcjonalności (`git checkout -b feature/AmazingFeature`)
+3. Commit zmian (`git commit -m 'Add some AmazingFeature'`)
+4. Push do branch (`git push origin feature/AmazingFeature`)
+5. Otwórz Pull Request
 
 ---
 
 ## 📄 **LICENCJA**
 
-MIT License - zobacz [LICENSE](LICENSE) dla szczegółów.
+Ten projekt jest licencjonowany pod licencją MIT - zobacz plik [LICENSE](LICENSE) dla szczegółów.
 
 ---
 
 ## 📞 **KONTAKT**
 
-- **Issues:** [GitHub Issues](https://github.com/your-repo/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/your-repo/discussions)
-- **Email:** your-email@example.com
+- **Projekt:** AIASISSTMARUBO
+- **Status:** Production Ready with Performance Optimizations & Docker Fixes
+- **Ostatnia aktualizacja:** 27.06.2025
+- **Wersja:** 2.0.0
 
 ---
 
-*Ostatnia aktualizacja: 26.06.2025*  
-*Status: Production Ready* 🚀 
+*🎉 **System jest w pełni funkcjonalny z wszystkimi naprawami Docker!** 🎉*
 
 ---
 
@@ -458,5 +364,13 @@ Od wersji 2025-06 dostępna jest alternatywna implementacja vector store na GPU 
 **Plik:** `src/backend/core/vector_store_gpu.py`
 
 **Test:** `test_gpu_vector_store.py`
+
+---
+
+## 🐳 [2025-06-27] Naprawa restartu kontenera Ollama
+
+- Rozwiązano problem restartującego się kontenera Ollama (błąd kill PID)
+- Skrypt startowy init-models.sh został poprawiony (sprawdzanie PID, fallback na pkill)
+- Po restarcie kontenerów system działa stabilnie
 
 --- 
