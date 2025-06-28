@@ -7,7 +7,7 @@
     "mistral:7b",
     "llama3.2:3b"
   ],
-  "fallback_model": "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M",
+  "fallback_model": "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",
   "polish_model": "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",
   "optimization_settings": {
     "receipt_analysis": {
@@ -19,12 +19,12 @@
       "timeout": 30
     },
     "general_chat": {
-      "temperature": 0.7,
+      "temperature": 0.3,
       "top_p": 0.9,
       "top_k": 40,
       "repeat_penalty": 1.1,
-      "num_predict": 2048,
-      "timeout": 60
+      "num_predict": 1024,
+      "timeout": 45
     }
   },
   "performance_settings": {
