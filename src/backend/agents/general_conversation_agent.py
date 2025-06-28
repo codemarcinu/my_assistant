@@ -9,6 +9,7 @@ Agent obsługujący swobodne konwersacje na dowolny temat z wykorzystaniem:
 
 import asyncio
 import logging
+import re
 from typing import Any, AsyncGenerator, Dict, List, Tuple
 
 import numpy as np
@@ -127,6 +128,182 @@ class GeneralConversationAgent(BaseAgent):
             # If no response could be generated, return a test response for CI
             if not response or not response.strip():
                 response = f"Test response for: {query}"
+
+            # --- POST-PROCESSING ANTI-HALLUCINATION FILTER ---
+            # Zaawansowany filtr z fuzzy matching i detekcją wzorców halucynacji
+            def contains_name_fuzzy(query_text: str, response_text: str) -> bool:
+                """Sprawdza czy odpowiedź zawiera imię/nazwisko z query (fuzzy match)"""
+                # Wyciągnij potencjalne imiona/nazwiska z query
+                name_pattern = r'\b[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+\b'
+                names_in_query = re.findall(name_pattern, query_text)
+                
+                # Lista typowych polskich imion do sprawdzenia
+                polish_names = [
+                    'jan', 'janusz', 'piotr', 'andrzej', 'tomasz', 'marek', 'michał', 'krzysztof', 'wojciech',
+                    'anna', 'maria', 'katarzyna', 'małgorzata', 'agnieszka', 'barbara', 'ewa', 'elżbieta', 'joanna',
+                    'kamil', 'mateusz', 'dawid', 'jakub', 'szymon', 'filip', 'mikołaj', 'bartosz', 'adrian',
+                    'natalia', 'aleksandra', 'karolina', 'paulina', 'monika', 'sylwia', 'iwona', 'dorota', 'renata'
+                ]
+                
+                for name in names_in_query:
+                    # Sprawdź czy imię lub nazwisko występuje w odpowiedzi
+                    first_name, last_name = name.split()
+                    if first_name.lower() in response_text.lower() or last_name.lower() in response_text.lower():
+                        return True
+                
+                # Sprawdź czy odpowiedź zawiera jakiekolwiek polskie imię (nawet jeśli zmienione)
+                response_lower = response_text.lower()
+                for polish_name in polish_names:
+                    if polish_name in response_lower:
+                        # Sprawdź czy to nie jest część większego słowa
+                        if re.search(r'\b' + polish_name + r'\b', response_lower):
+                            return True
+                
+                return False
+            
+            def is_product_query(query_text: str) -> bool:
+                """Sprawdza czy query dotyczy produktu"""
+                product_keywords = [
+                    'telefon', 'smartfon', 'laptop', 'komputer', 'tablet', 'kamera', 'słuchawki',
+                    'specyfikacja', 'specyfikacje', 'parametry', 'cechy', 'funkcje', 'wyposażenie',
+                    'samsung', 'iphone', 'xiaomi', 'huawei', 'lenovo', 'dell', 'hp', 'asus'
+                ]
+                query_lower = query_text.lower()
+                return any(keyword in query_lower for keyword in product_keywords)
+            
+            def is_person_query(query_text: str) -> bool:
+                """Sprawdza czy query dotyczy osoby"""
+                person_keywords = [
+                    'kto', 'kim', 'życie', 'biografia', 'urodził', 'zmarł', 'był', 'jest',
+                    'naukowiec', 'profesor', 'doktor', 'inżynier', 'lekarz', 'artysta',
+                    'polski', 'polska', 'polak', 'polka', 'urodzony', 'urodzona'
+                ]
+                query_lower = query_text.lower()
+                return any(keyword in query_lower for keyword in person_keywords)
+            
+            def contains_hallucination_patterns(response_text: str) -> bool:
+                """Sprawdza czy odpowiedź zawiera typowe wzorce halucynacji"""
+                hallucination_patterns = [
+                    # Wzorce dla osób
+                    r'był\s+wybitnym',
+                    r'urodził\s+się',
+                    r'zmarł\s+w',
+                    r'jego\s+najważniejsze\s+osiągnięcia',
+                    r'był\s+polskim\s+[a-ząćęłńóśźż]+',
+                    r'studia\s+na\s+uniwersytecie',
+                    r'profesor\s+uniwersytetu',
+                    r'członek\s+akademii',
+                    r'prace\s+naukowe',
+                    r'wynalazca',
+                    r'chemik',
+                    r'fizyk',
+                    r'matematyk',
+                    # Wzorce dla produktów
+                    r'specyfikacja',
+                    r'ekran\s+o\s+przekątnej',
+                    r'procesor',
+                    r'bateria\s+ma\s+pojemność',
+                    r'posiada\s+procesor',
+                    r'wyposażony\s+jest\s+w',
+                    r'ram\s+\d+\s+gb',
+                    r'pamięć\s+wewnętrzna',
+                    r'rozdzielczość',
+                    r'pojemność\s+baterii'
+                ]
+                
+                for pattern in hallucination_patterns:
+                    if re.search(pattern, response_text, re.IGNORECASE):
+                        return True
+                return False
+            
+            def is_known_person(query_text: str) -> bool:
+                """Sprawdza czy query dotyczy znanej, zweryfikowanej osoby"""
+                known_persons = [
+                    # Politycy i osoby publiczne
+                    'andrzej duda', 'prezydent polski', 'prezydent polski', 'donald tusk', 'mateusz morawiecki',
+                    'władysław kosiniak-kamysz', 'szymon hołownia', 'krzysztof bosak', 'robert biedroń',
+                    # Znane postacie historyczne
+                    'józef piłsudski', 'lech wałęsa', 'jan paweł ii', 'mikołaj kopernik', 'maria skłodowska',
+                    'fryderyk chopin', 'adam mickiewicz', 'juliusz słowacki', 'henryk sienkiewicz',
+                    # Aktualne osoby publiczne
+                    'robert lewandowski', 'iga świątek', 'andrzej wajda', 'roman polański',
+                    # Dodatkowe warianty
+                    'prezydent', 'prezydenta', 'prezydentem', 'prezydentowi'
+                ]
+                query_lower = query_text.lower()
+                
+                # Sprawdź czy query zawiera słowo "prezydent" + "polski/polski"
+                if 'prezydent' in query_lower and ('polski' in query_lower or 'polska' in query_lower):
+                    return True
+                
+                return any(person in query_lower for person in known_persons)
+            
+            def is_future_event(query_text: str) -> bool:
+                """Sprawdza czy query dotyczy wydarzenia z przyszłości"""
+                future_patterns = [
+                    r'\b202[5-9]\b',  # Lata 2025-2029
+                    r'\b20[3-9][0-9]\b',  # Lata 2030-2099
+                    r'\bprzyszłości\b', r'\bprzyszłym\b', r'\bprzyszła\b',
+                    r'\bzaplanowane\b', r'\bodbędzie\b', r'\bodbędą\b'
+                ]
+                query_lower = query_text.lower()
+                return any(re.search(pattern, query_lower) for pattern in future_patterns)
+            
+            # Sprawdź czy odpowiedź zawiera halucynacje
+            context_text = (rag_context or "") + (internet_context or "")
+            
+            # 1. Sprawdź fuzzy matching dla nazwisk
+            if contains_name_fuzzy(query, response):
+                # Nie blokuj jeśli to znana osoba
+                if is_known_person(query):
+                    logger.info(f"Post-processing: Pomijam znaną osobę: {query}")
+                elif not any(name in context_text for name in re.findall(r'\b[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+\b', query)):
+                    logger.info(f"Post-processing: Wykryto halucynację nazwiska w query: {query}")
+                    return AgentResponse(
+                        success=True,
+                        text="Nie mam informacji o tej osobie.",
+                        data={
+                            "query": query,
+                            "used_rag": bool(rag_context),
+                            "used_internet": bool(internet_context),
+                            "rag_confidence": 0.0,
+                            "use_perplexity": use_perplexity,
+                            "use_bielik": use_bielik,
+                            "session_id": session_id,
+                            "anti_hallucination": True,
+                            "trigger": "fuzzy_name_match"
+                        },
+                    )
+            
+            # 2. Sprawdź wzorce halucynacji w odpowiedzi
+            if contains_hallucination_patterns(response) and not context_text:
+                logger.info(f"Post-processing: Wykryto wzorce halucynacji w odpowiedzi")
+                
+                # Wybierz odpowiedni komunikat w zależności od typu query
+                if is_product_query(query):
+                    safe_message = "Nie mam informacji o tym produkcie."
+                elif is_person_query(query) and not is_known_person(query):
+                    safe_message = "Nie mam informacji o tej osobie."
+                elif is_future_event(query):
+                    safe_message = "Nie mam informacji o tym wydarzeniu z przyszłości."
+                else:
+                    safe_message = "Nie mam zweryfikowanych informacji na ten temat."
+                
+                return AgentResponse(
+                    success=True,
+                    text=safe_message,
+                    data={
+                        "query": query,
+                        "used_rag": bool(rag_context),
+                        "used_internet": bool(internet_context),
+                        "rag_confidence": 0.0,
+                        "use_perplexity": use_perplexity,
+                        "use_bielik": use_bielik,
+                        "session_id": session_id,
+                        "anti_hallucination": True,
+                        "trigger": "hallucination_patterns"
+                    },
+                )
 
             logger.debug("GeneralConversationAgent.process completed successfully")
             return AgentResponse(
@@ -298,17 +475,36 @@ class GeneralConversationAgent(BaseAgent):
     ) -> str:
         """Generuje odpowiedź z wykorzystaniem wszystkich źródeł informacji i weryfikacji wiedzy"""
 
-        # Buduj system prompt z uwzględnieniem weryfikacji wiedzy
+        # Buduj system prompt z uwzględnieniem weryfikacji wiedzy i zapobiegania hallucinacjom
         system_prompt = """Jesteś pomocnym asystentem AI prowadzącym swobodne konwersacje.
         Twoim zadaniem jest udzielanie dokładnych, pomocnych i aktualnych odpowiedzi na pytania użytkownika.
 
-        Wykorzystuj dostępne źródła informacji:
-        1. Wiedzę ogólną
-        2. Informacje z dokumentów (jeśli dostępne)
-        3. Dane z bazy (jeśli dostępne)
-        4. Informacje z internetu (jeśli dostępne)
+        KRYTYCZNE ZASADY PRZECIWKO HALLUCINACJOM:
+        - NIGDY nie wymyślaj faktów, dat, liczb, nazw, miejsc ani szczegółów
+        - NIGDY nie twórz fikcyjnych przykładów, historii ani informacji
+        - NIGDY nie podawaj niepewnych informacji jako faktów
+        - Jeśli nie znasz odpowiedzi, powiedz: "Nie mam pewnych informacji na ten temat"
+        - Jeśli informacje są niepewne, oznacz je jako "nie jestem pewien" lub "może"
+        - Używaj TYLKO informacji z podanych źródeł lub swojej sprawdzonej wiedzy ogólnej
+        - Gdy brakuje informacji, przyznaj to zamiast wymyślać
+        - Nie twórz fikcyjnych źródeł, cytatów ani referencji
 
-        WAŻNE - Weryfikacja wiedzy:
+        JEŚLI UŻYTKOWNIK PYTA O OSOBĘ LUB PRODUKT, KTÓREGO NIE ROZPOZNAJESZ (np. "Jan Kowalski", "Samsung Galaxy XYZ 2025"), ZAWSZE ODPOWIEDZ:
+        - "Nie mam informacji o osobie Jan Kowalski."
+        - "Nie istnieje produkt Samsung Galaxy XYZ 2025."
+        NAWET JEŚLI NAZWA BRZMI PRAWDOPODOBNIE, NIE WYMYŚLAJ BIOGRAFII ANI SPECYFIKACJI.
+
+        Przykłady:
+        - Pytanie: "Opowiedz o Janie Kowalskim, polskim naukowcu z XIX wieku". Odpowiedź: "Nie mam informacji o osobie Jan Kowalski."
+        - Pytanie: "Jakie są specyfikacje telefonu Samsung Galaxy XYZ 2025?". Odpowiedź: "Nie istnieje produkt Samsung Galaxy XYZ 2025."
+
+        Wykorzystuj dostępne źródła informacji w kolejności priorytetu:
+        1. Informacje z dokumentów (jeśli dostępne)
+        2. Dane z bazy (jeśli dostępne)  
+        3. Informacje z internetu (jeśli dostępne)
+        4. Sprawdzoną wiedzę ogólną (tylko fakty)
+
+        Weryfikacja wiedzy:
         - Jeśli informacje zawierają wskaźniki wiarygodności, uwzględnij je w odpowiedzi
         - Oznacz informacje jako zweryfikowane (✅) lub niezweryfikowane (⚠️)
         - Jeśli wskaźnik wiarygodności jest niski (< 0.4), zalecaj ostrożność
@@ -333,7 +529,7 @@ class GeneralConversationAgent(BaseAgent):
             messages.append(
                 {
                     "role": "system",
-                    "content": f"DOSTĘPNE INFORMACJE:\n{context_text}\n\nUżyj tych informacji do udzielenia dokładnej odpowiedzi. Uwzględnij informacje o weryfikacji wiedzy jeśli są dostępne.",
+                    "content": f"DOSTĘPNE INFORMACJE:\n{context_text}\n\nKRYTYCZNE: Użyj TYLKO tych informacji do udzielenia dokładnej odpowiedzi. NIGDY nie wymyślaj dodatkowych faktów, szczegółów ani informacji. Jeśli informacji brakuje, przyznaj to zamiast wymyślać. Uwzględnij informacje o weryfikacji wiedzy jeśli są dostępne.",
                 }
             )
 
@@ -365,7 +561,27 @@ class GeneralConversationAgent(BaseAgent):
 
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")
-            return "Przepraszam, wystąpił błąd podczas generowania odpowiedzi."
+            
+            # Jeśli to błąd LLM, spróbuj z fallback modelem
+            if "LLM error" in str(e) or "timeout" in str(e).lower():
+                logger.info("Attempting fallback to stable model")
+                try:
+                    # Użyj stabilnego modelu Bielik 4.5B jako fallback
+                    fallback_response = await hybrid_llm_client.chat(
+                        messages=messages,
+                        model="SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",
+                        force_complexity=ModelComplexity.SIMPLE,
+                        stream=False,
+                    )
+                    
+                    if fallback_response and "message" in fallback_response and "content" in fallback_response["message"]:
+                        logger.info("Fallback model response successful")
+                        return fallback_response["message"]["content"]
+                except Exception as fallback_error:
+                    logger.error(f"Fallback model also failed: {str(fallback_error)}")
+            
+            # Ostateczny fallback - zwróć bezpieczną odpowiedź
+            return "Przepraszam, nie udało się wygenerować odpowiedzi. Spróbuj ponownie za chwilę."
 
     def _determine_query_complexity(
         self, query: str, rag_context: str, internet_context: str
@@ -448,17 +664,20 @@ class GeneralConversationAgent(BaseAgent):
             Nazwa modelu do użycia
         """
         if use_bielik:
-            # Dla modelu Bielik
+            # Preferuj stabilny model Bielik 4.5B dla większości zapytań
             if complexity == ModelComplexity.SIMPLE:
-                return "SpeakLeash/bielik-7b-v2.3-instruct:Q5_K_M"  # Mniejszy model dla prostych zapytań
+                return "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Stabilny model dla prostych zapytań
+            elif complexity == ModelComplexity.STANDARD:
+                return "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Stabilny model dla standardowych zapytań
             else:
+                # Tylko dla bardzo złożonych zapytań używaj większego modelu
                 return "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M"  # Większy model dla złożonych
         else:
             # Dla modeli Gemma
             if complexity == ModelComplexity.SIMPLE:
-                return "gemma3:2b"  # Mniejszy model dla prostych zapytań
+                return "gemma3:12b"  # Mniejszy model dla prostych zapytań
             else:
-                return "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Większy model dla złożonych
+                return "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Stabilny model dla złożonych
 
     async def process_stream(
         self, input_data: Dict[str, Any]
@@ -667,7 +886,9 @@ class GeneralConversationAgent(BaseAgent):
         system_message = (
             "Jesteś asystentem AI FoodSave, pomocnym i przyjaznym. "
             "Odpowiadaj zwięźle, ale kompletnie. "
-            "Jeśli nie znasz odpowiedzi, przyznaj to zamiast wymyślać informacje."
+            "WAŻNE: Jeśli nie znasz odpowiedzi, przyznaj to zamiast wymyślać informacje. "
+            "NIGDY nie twórz fikcyjnych faktów, dat, liczb ani szczegółów. "
+            "Używaj tylko informacji z podanych źródeł lub swojej sprawdzonej wiedzy ogólnej."
         )
 
         if context:
