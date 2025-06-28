@@ -21,6 +21,7 @@ export interface ChatMessage {
     attachments?: Attachment[];
     isConcise?: boolean;
     responseType?: 'info' | 'success' | 'warning' | 'error';
+    status?: 'sending' | 'sent' | 'error';
   };
 }
 

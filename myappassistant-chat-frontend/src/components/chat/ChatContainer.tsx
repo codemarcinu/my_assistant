@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AnimatePresence } from 'framer-motion';
 import { useTheme } from '../ThemeProvider';
 import ChatBubble from './ChatBubble';
 import ConciseResponseBubble from './ConciseResponseBubble';
@@ -116,12 +117,14 @@ export default function ChatContainer() {
             </div>
           )}
           
-          <VirtualChatList
-            messages={messages}
-            renderMessage={renderMessage}
-            containerHeight={400}
-            className="space-y-4"
-          />
+          <AnimatePresence mode="popLayout">
+            <VirtualChatList
+              messages={messages}
+              renderMessage={renderMessage}
+              containerHeight={400}
+              className="space-y-4"
+            />
+          </AnimatePresence>
           
           {(isTyping || sendMessageMutation.isPending) && (
             <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 mt-4">

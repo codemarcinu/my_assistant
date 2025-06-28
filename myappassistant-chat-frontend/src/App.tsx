@@ -6,6 +6,8 @@ import { ToastProvider } from './components/ui/Toast';
 import { ThemeProvider } from './components/ThemeProvider';
 import MainLayout from './components/layout/MainLayout';
 import LoadingSpinner from './components/ui/LoadingSpinner';
+import CommandPalette from './components/ui/CommandPalette';
+import { useCommandPalette } from './hooks/useCommandPalette';
 
 // Lazy load pages for better performance
 const PersonalDashboardPage = lazy(() => import('./pages/PersonalDashboardPage'));
@@ -26,9 +28,11 @@ const WeatherPage = lazy(() => import('./pages/WeatherPage'));
  * - Lazy loading for better performance
  * - Internationalization support
  * - Responsive layout with navigation
+ * - Command palette for quick navigation (Ctrl+K)
  */
 const App: React.FC = () => {
   const { t } = useTranslation();
+  const commandPalette = useCommandPalette();
 
   return (
     <ErrorBoundary>
@@ -49,6 +53,13 @@ const App: React.FC = () => {
             </Routes>
           </Suspense>
         </MainLayout>
+        
+        {/* Command Palette */}
+        <CommandPalette
+          isOpen={commandPalette.isOpen}
+          onClose={commandPalette.close}
+          onNavigate={commandPalette.onNavigate}
+        />
       </ThemeProvider>
     </ErrorBoundary>
   );

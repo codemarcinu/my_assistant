@@ -41,7 +41,8 @@ export const useSendMessage = () => {
         timestamp: new Date(),
         metadata: { 
           responseType: 'info',
-          isConcise: false 
+          isConcise: false,
+          status: 'sending'
         },
       };
       
@@ -54,12 +55,41 @@ export const useSendMessage = () => {
       });
       
       // Return a context object with the snapshotted value
-      return { previousHistory };
+      return { previousHistory, optimisticMessage };
+    },
+    onSuccess: (data, message, context) => {
+      // Update the optimistic message status to 'sent'
+      if (context?.optimisticMessage) {
+        queryClient.setQueryData(chatKeys.history(), (old: any) => {
+          const messages = old?.data || [];
+          return {
+            ...old,
+            data: messages.map((msg: ChatMessage) => 
+              msg.id === context.optimisticMessage.id 
+                ? { ...msg, metadata: { ...msg.metadata, status: 'sent' } }
+                : msg
+            ),
+          };
+        });
+      }
     },
     onError: (err, message, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousHistory) {
         queryClient.setQueryData(chatKeys.history(), context.previousHistory);
+      } else if (context?.optimisticMessage) {
+        // Update the optimistic message status to 'error'
+        queryClient.setQueryData(chatKeys.history(), (old: any) => {
+          const messages = old?.data || [];
+          return {
+            ...old,
+            data: messages.map((msg: ChatMessage) => 
+              msg.id === context.optimisticMessage.id 
+                ? { ...msg, metadata: { ...msg.metadata, status: 'error' } }
+                : msg
+            ),
+          };
+        });
       }
     },
     onSettled: () => {

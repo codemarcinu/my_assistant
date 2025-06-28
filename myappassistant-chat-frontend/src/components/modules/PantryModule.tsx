@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../ThemeProvider';
 import { Badge } from '../ui/atoms/Badge';
 import type { FoodItem, FoodStatus } from '../../types';
@@ -102,76 +103,116 @@ const PantryModule: React.FC<PantryModuleProps> = ({ onClose, onManagePantry }) 
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-300 relative">
+      <motion.div 
+        className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-300 relative"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="flex items-center justify-center py-8">
-          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <motion.div 
+            className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          />
           <span className="ml-2 text-gray-600 dark:text-gray-400">Ładowanie spiżarni...</span>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-300 relative">
-      <button 
+    <motion.div 
+      className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-300 relative"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+    >
+      <motion.button 
         onClick={onClose} 
         className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-2xl transition-colors"
         aria-label="Zamknij"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
       >
         &times;
-      </button>
+      </motion.button>
       
-      <h3 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">
+      <motion.h3 
+        className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
         Twoja Spiżarnia - Szybki Podgląd
-      </h3>
+      </motion.h3>
       
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
+      <motion.p 
+        className="text-gray-600 dark:text-gray-400 mb-4"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
         Oto produkty, które zaraz się kończą lub zbliża się ich termin ważności:
-      </p>
+      </motion.p>
       
       <div className="space-y-3 mb-5">
-        {items.map((item) => {
-          const daysUntilExpiry = getDaysUntilExpiry(item.expirationDate);
-          return (
-            <div 
-              key={item.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-            >
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {item.name}
-                  </span>
-                  <Badge variant={getStatusColor(item.status)} size="sm">
-                    {getStatusText(item.status)}
-                  </Badge>
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {item.quantity} {item.unit} • Termin: {formatDate(item.expirationDate)}
-                  {daysUntilExpiry > 0 && (
-                    <span className="ml-2 text-orange-600 dark:text-orange-400">
-                      (za {daysUntilExpiry} dni)
+        <AnimatePresence>
+          {items.map((item, index) => {
+            const daysUntilExpiry = getDaysUntilExpiry(item.expirationDate);
+            return (
+              <motion.div 
+                key={item.id}
+                className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ delay: index * 0.1, duration: 0.3 }}
+                whileHover={{ scale: 1.02, x: 5 }}
+                layout
+              >
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {item.name}
                     </span>
-                  )}
-                  {daysUntilExpiry <= 0 && (
-                    <span className="ml-2 text-red-600 dark:text-red-400">
-                      (przeterminowany)
-                    </span>
-                  )}
+                    <Badge variant={getStatusColor(item.status)} size="sm">
+                      {getStatusText(item.status)}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {item.quantity} {item.unit} • Termin: {formatDate(item.expirationDate)}
+                    {daysUntilExpiry > 0 && (
+                      <span className="ml-2 text-orange-600 dark:text-orange-400">
+                        (za {daysUntilExpiry} dni)
+                      </span>
+                    )}
+                    {daysUntilExpiry <= 0 && (
+                      <span className="ml-2 text-red-600 dark:text-red-400">
+                        (przeterminowany)
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
       
-      <button
+      <motion.button
         onClick={onManagePantry}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
         Pełne Zarządzanie Spiżarnią
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 };
 
