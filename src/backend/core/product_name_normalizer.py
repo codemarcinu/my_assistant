@@ -134,7 +134,7 @@ class ProductNameNormalizer:
             r'\s+paczka\s*$',
             r'\s+butelka\s*$',
             r'\s+puszka\s*$',
-            r'\s+*\s*$',  # Usuń gwiazdki na końcu
+            r'\s*\*\s*$',  # Usuń gwiazdki na końcu (naprawiony pattern)
             r'\s+-\s*$',  # Usuń myślniki na końcu
         ]
         

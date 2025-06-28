@@ -29,7 +29,11 @@
         "lidl",
         "Lidl Polska",
         "Lidl Polska Sp. z o.o.",
-        "Lidl Stiftung & Co. KG"
+        "Lidl Stiftung & Co. KG",
+        "Lidlsp.z.o.o.sp.k.",
+        "Lidlsp.Z.o.o.sp.k.",
+        "Lidl Sp. z o.o. Sp.k.",
+        "Lidl Sp. z o.o. sp.k."
       ],
       "chain": "Lidl",
       "type": "discount_store",

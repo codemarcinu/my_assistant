@@ -259,7 +259,7 @@ Jeśli nie jesteś pewny, wybierz kategorię "Inne" (5)."""
 
     async def categorize_products_batch(self, products: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Kategoryzuje listę produktów
+        Kategoryzuje listę produktów w trybie wsadowym dla optymalizacji
         
         Args:
             products: Lista produktów z paragonu
@@ -267,17 +267,25 @@ Jeśli nie jesteś pewny, wybierz kategorię "Inne" (5)."""
         Returns:
             Lista produktów z dodanymi kategoriami
         """
+        if not products:
+            return []
+            
         categorized_products = []
         
+        # Najpierw spróbuj kategoryzacji słownikowej dla wszystkich produktów
         for product in products:
             product_name = product.get('name', '')
             if product_name:
-                category_info = await self.categorize_product_with_bielik(product_name)
-                product['category'] = category_info['name_pl']
-                product['category_en'] = category_info['name_en']
-                product['gpt_category'] = category_info['gpt_path']
-                product['category_confidence'] = category_info['confidence']
-                product['category_method'] = category_info['method']
+                keyword_match = self._categorize_by_keywords(product_name)
+                if keyword_match and keyword_match['confidence'] > 0.8:
+                    product['category'] = keyword_match['name_pl']
+                    product['category_en'] = keyword_match['name_en']
+                    product['gpt_category'] = keyword_match['gpt_path']
+                    product['category_confidence'] = keyword_match['confidence']
+                    product['category_method'] = keyword_match['method']
+                else:
+                    # Oznacz do kategoryzacji AI
+                    product['_needs_ai_categorization'] = True
             else:
                 # Domyślna kategoria dla produktów bez nazwy
                 product['category'] = 'Inne'
@@ -288,7 +296,122 @@ Jeśli nie jesteś pewny, wybierz kategorię "Inne" (5)."""
             
             categorized_products.append(product)
         
+        # Kategoryzuj pozostałe produkty w jednym wywołaniu AI
+        products_needing_ai = [p for p in categorized_products if p.get('_needs_ai_categorization')]
+        if products_needing_ai:
+            await self._categorize_products_with_ai_batch(products_needing_ai)
+        
+        # Usuń tymczasowe flagi
+        for product in categorized_products:
+            product.pop('_needs_ai_categorization', None)
+        
         return categorized_products
+
+    async def _categorize_products_with_ai_batch(self, products: List[Dict[str, Any]]) -> None:
+        """
+        Kategoryzuje listę produktów w jednym wywołaniu AI dla optymalizacji
+        
+        Args:
+            products: Lista produktów do kategoryzacji
+        """
+        try:
+            # Przygotuj listę produktów do kategoryzacji
+            product_names = [p.get('name', '') for p in products if p.get('name')]
+            if not product_names:
+                return
+                
+            # Przygotuj prompt dla batch kategoryzacji
+            prompt = self._create_batch_categorization_prompt(product_names)
+            
+            # Wywołaj model Bielik dla wszystkich produktów na raz
+            response = await hybrid_llm_client.chat(
+                model="SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Jesteś ekspertem od kategoryzacji produktów spożywczych. Przypisz każdy produkt do odpowiedniej kategorii."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                stream=False,
+            )
+
+            if response and "message" in response:
+                content = response["message"]["content"]
+                category_ids = self._extract_batch_categories_from_response(content)
+                
+                # Przypisz kategorie do produktów
+                for i, product in enumerate(products):
+                    if i < len(category_ids) and category_ids[i]:
+                        category = self._get_category_by_id(category_ids[i])
+                        if category:
+                            product['category'] = category['name_pl']
+                            product['category_en'] = category['name_en']
+                            product['gpt_category'] = category.get('gpt_path', '')
+                            product['category_confidence'] = 0.9
+                            product['category_method'] = 'bielik_ai_batch'
+                        else:
+                            # Fallback do kategorii "Inne"
+                            product['category'] = 'Inne'
+                            product['category_en'] = 'Other'
+                            product['gpt_category'] = 'Other'
+                            product['category_confidence'] = 0.1
+                            product['category_method'] = 'fallback'
+                    else:
+                        # Fallback do kategorii "Inne"
+                        product['category'] = 'Inne'
+                        product['category_en'] = 'Other'
+                        product['gpt_category'] = 'Other'
+                        product['category_confidence'] = 0.1
+                        product['category_method'] = 'fallback'
+
+        except Exception as e:
+            logger.error(f"Błąd podczas batch kategoryzacji AI: {e}")
+            # Fallback - przypisz kategorię "Inne" do wszystkich produktów
+            for product in products:
+                product['category'] = 'Inne'
+                product['category_en'] = 'Other'
+                product['gpt_category'] = 'Other'
+                product['category_confidence'] = 0.0
+                product['category_method'] = 'error'
+
+    def _create_batch_categorization_prompt(self, product_names: List[str]) -> str:
+        """Tworzy prompt dla batch kategoryzacji produktów"""
+        
+        # Przygotuj listę dostępnych kategorii
+        categories_text = "\n".join([
+            f"{cat['id']}. {cat['name_pl']} ({cat['name_en']})"
+            for cat in self.categories
+        ])
+
+        # Przygotuj listę produktów
+        products_text = "\n".join([
+            f"{i+1}. {name}"
+            for i, name in enumerate(product_names)
+        ])
+
+        return f"""Przypisz każdy produkt do odpowiedniej kategorii.
+
+Dostępne kategorie:
+{categories_text}
+
+Produkty do kategoryzacji:
+{products_text}
+
+Odpowiedz tylko listą numerów kategorii oddzielonych przecinkami, w kolejności produktów.
+Przykład: "1,5,2,3,1" (dla 5 produktów)
+
+Jeśli nie jesteś pewny kategorii, użyj "5" (Inne)."""
+
+    def _extract_batch_categories_from_response(self, response: str) -> List[str]:
+        """Wyciąga listę ID kategorii z odpowiedzi batch kategoryzacji"""
+        try:
+            # Szukaj liczb oddzielonych przecinkami
+            numbers = re.findall(r'\d+', response)
+            return numbers
+        except Exception as e:
+            logger.error(f"Błąd podczas parsowania batch odpowiedzi: {e}")
+            return []
 
     def get_category_statistics(self, products: List[Dict[str, Any]]) -> Dict[str, int]:
         """Zwraca statystyki kategoryzacji produktów"""

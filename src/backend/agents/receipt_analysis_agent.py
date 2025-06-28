@@ -125,63 +125,32 @@ class ReceiptAnalysisAgent(BaseAgent):
         )
 
     def _create_receipt_analysis_prompt(self, ocr_text: str) -> str:
-        """Tworzy specjalizowany prompt dla LLM do analizy polskich paragonów zgodnie ze specyfikacją"""
+        """Tworzy zoptymalizowany prompt dla LLM do analizy polskich paragonów"""
         
-        system_prompt = """You are ReceiptAnalysisAgent.  
-Your task:  
-1. Przyjąć jako input oczyszczony tekst z OCRAgent.  
-2. Rozpoznać i wyodrębnić następujące pola:  
-   - store: nazwa sklepu,  
-   - address: pełny adres sklepu,  
-   - date: data i godzina zakupu w formacie YYYY-MM-DD HH:MM,  
-   - items: lista pozycji (każdy obiekt ma: name, quantity (liczba), unit_price, total_price, tax_category ('A', 'B', 'C' itp.)),  
-   - discounts: lista rabatów (description, amount),  
-   - coupons: lista kuponów (code, amount),  
-   - vat_summary: podsumowanie sprzedaży po stawkach (tax_category, net, tax_amount, gross),  
-   - total: suma do zapłaty.  
-3. Ujednolicić format waluty na liczbę zmiennoprzecinkową (np. 26.34).  
-4. Zwrócić wynik jako czyste JSON z tymi kluczami.  
-Nie generuj żadnego dodatkowego komentarza ani tekstu."""
+        system_prompt = """Jesteś ekspertem od analizy paragonów. Wyciągnij dane w JSON:
+- store: nazwa sklepu
+- address: adres sklepu  
+- date: data w formacie YYYY-MM-DD HH:MM
+- items: lista produktów (name, quantity, unit_price, total_price, tax_category)
+- discounts: rabaty (description, amount)
+- coupons: kupony (code, amount) 
+- vat_summary: podsumowanie VAT (tax_category, net, tax_amount, gross)
+- total: suma do zapłaty
+Zwróć tylko JSON, bez komentarzy."""
 
-        user_prompt = f"""Analizuj poniższy tekst paragonu i wypisz wynik w JSON:
+        user_prompt = f"""Analizuj paragon i zwróć JSON:
 
 {ocr_text}
 
-Wyjście ma mieć dokładnie taką strukturę:
-
+Format:
 {{
   "store": "",
   "address": "",
   "date": "",
-  "items": [
-    {{
-      "name": "",
-      "quantity": 0.0,
-      "unit_price": 0.0,
-      "total_price": 0.0,
-      "tax_category": ""
-    }}
-  ],
-  "discounts": [
-    {{
-      "description": "",
-      "amount": 0.0
-    }}
-  ],
-  "coupons": [
-    {{
-      "code": "",
-      "amount": 0.0
-    }}
-  ],
-  "vat_summary": [
-    {{
-      "tax_category": "",
-      "net": 0.0,
-      "tax_amount": 0.0,
-      "gross": 0.0
-    }}
-  ],
+  "items": [{{"name": "", "quantity": 0.0, "unit_price": 0.0, "total_price": 0.0, "tax_category": ""}}],
+  "discounts": [{{"description": "", "amount": 0.0}}],
+  "coupons": [{{"code": "", "amount": 0.0}}],
+  "vat_summary": [{{"tax_category": "", "net": 0.0, "tax_amount": 0.0, "gross": 0.0}}],
   "total": 0.0
 }}"""
 

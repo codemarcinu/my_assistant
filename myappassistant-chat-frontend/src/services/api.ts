@@ -19,7 +19,8 @@ import type {
 
 // API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const API_TIMEOUT = 60000; // 60 seconds for OCR processing
+const API_TIMEOUT = 120000; // 120 seconds for OCR processing
+const RECEIPT_TIMEOUT = 120000; // 120 seconds for receipt processing
 
 // Create axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({
@@ -27,6 +28,15 @@ const apiClient: AxiosInstance = axios.create({
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
+  },
+});
+
+// Create specialized client for receipt processing with longer timeout
+const receiptClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: RECEIPT_TIMEOUT,
+  headers: {
+    'Content-Type': 'multipart/form-data',
   },
 });
 
@@ -178,12 +188,31 @@ export const receiptAPI = {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await apiClient.post('/api/v2/receipts/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    try {
+      const response = await receiptClient.post('/api/v2/receipts/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Receipt upload error:', error);
+      
+      // Szczegółowe logowanie błędów
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Przekroczono limit czasu przetwarzania paragonu. Spróbuj ponownie.');
+      }
+      
+      if (error.response?.status === 408) {
+        throw new Error('Przetwarzanie paragonu trwało zbyt długo. Spróbuj ponownie.');
+      }
+      
+      if (error.response?.status === 413) {
+        throw new Error('Plik jest zbyt duży. Maksymalny rozmiar to 10MB.');
+      }
+      
+      throw error;
+    }
   },
 
   // Process receipt with OCR
@@ -191,36 +220,71 @@ export const receiptAPI = {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await apiClient.post('/api/v2/receipts/process', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    
-    // Map backend response to frontend expected format
-    const backendData = response.data.data;
-    const mappedData: ReceiptData = {
-      id: `receipt_${Date.now()}`,
-      items: backendData.analysis?.items?.map((item: any) => ({
-        name: item.name,
-        price: item.total_price,
-        quantity: item.quantity,
-        category: item.category as any
-      })) || [],
-      total: backendData.analysis?.total_amount || 0,
-      store: backendData.analysis?.store_name || 'Nieznany sklep',
-      date: new Date(backendData.analysis?.date || Date.now()),
-      imageUrl: '',
-      status: 'completed' as any,
-      ocr_text: backendData.ocr_text
-    };
-    
-    return {
-      data: mappedData,
-      status: 'success',
-      message: response.data.message,
-      timestamp: new Date().toISOString()
-    };
+    try {
+      const response = await receiptClient.post('/api/v2/receipts/process', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      // Map backend response to frontend expected format
+      const backendData = response.data.data;
+      const mappedData: ReceiptData = {
+        id: `receipt_${Date.now()}`,
+        items: backendData.analysis?.items?.map((item: any) => ({
+          name: item.name,
+          price: item.total_price,
+          quantity: item.quantity,
+          category: item.category as any
+        })) || [],
+        total: backendData.analysis?.total_amount || 0,
+        store: backendData.analysis?.store_name || 'Nieznany sklep',
+        date: new Date(backendData.analysis?.date || Date.now()),
+        imageUrl: '',
+        status: 'completed' as any,
+        ocr_text: backendData.ocr_text
+      };
+      
+      return {
+        data: mappedData,
+        status: 'success',
+        message: response.data.message,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error: any) {
+      console.error('Receipt processing error:', error);
+      
+      // Szczegółowe logowanie błędów
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Przekroczono limit czasu analizy paragonu. Spróbuj ponownie.');
+      }
+      
+      if (error.response?.status === 408) {
+        const errorCode = error.response?.data?.details?.error_code;
+        if (errorCode === 'OCR_TIMEOUT') {
+          throw new Error('OCR przetwarzanie trwało zbyt długo. Spróbuj ponownie.');
+        } else if (errorCode === 'ANALYSIS_TIMEOUT') {
+          throw new Error('Analiza paragonu trwała zbyt długo. Spróbuj ponownie.');
+        }
+        throw new Error('Przetwarzanie paragonu trwało zbyt długo. Spróbuj ponownie.');
+      }
+      
+      if (error.response?.status === 413) {
+        throw new Error('Plik jest zbyt duży. Maksymalny rozmiar to 10MB.');
+      }
+      
+      if (error.response?.status === 422) {
+        const errorCode = error.response?.data?.details?.error_code;
+        if (errorCode === 'OCR_PROCESSING_ERROR') {
+          throw new Error('Błąd podczas przetwarzania OCR. Sprawdź jakość obrazu.');
+        } else if (errorCode === 'RECEIPT_ANALYSIS_ERROR') {
+          throw new Error('Błąd podczas analizy paragonu. Sprawdź czy obraz jest czytelny.');
+        }
+        throw new Error('Błąd podczas przetwarzania paragonu.');
+      }
+      
+      throw error;
+    }
   },
 
   // Analyze receipt data

@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
-import { receiptAPI } from '../../services/api';
-import type { ReceiptData, ReceiptItem } from '../../types';
+import { receiptAPI, foodAPI } from '../../services/api';
+import type { ReceiptData, ReceiptItem, FoodCategory, FoodStatus } from '../../types';
+import { FoodCategory as FoodCategoryEnum, FoodStatus as FoodStatusEnum } from '../../types';
 import Card from '../ui/atoms/Card';
 import Button from '../ui/atoms/Button';
 import { Badge } from '../ui/atoms/Badge';
@@ -98,9 +99,37 @@ const ReceiptUploadModule: React.FC<ReceiptUploadModuleProps> = ({
     }).format(d);
   };
 
-  const handleAddToPantry = () => {
-    // TODO: Implement add to pantry functionality
-    console.log('Adding to pantry:', receiptData);
+  const handleAddToPantry = async () => {
+    if (!receiptData || !receiptData.items || receiptData.items.length === 0) {
+      setError('Brak produktów do dodania do spiżarni.');
+      return;
+    }
+    setError(null);
+    let successCount = 0;
+    let failCount = 0;
+    for (const item of receiptData.items) {
+      try {
+        await foodAPI.createFoodItem({
+          name: item.name,
+          category: (item.category as FoodCategory) || FoodCategoryEnum.OTHER,
+          expirationDate: receiptData.date,
+          quantity: item.quantity,
+          unit: 'szt',
+          status: FoodStatusEnum.FRESH,
+        });
+        successCount++;
+      } catch (e) {
+        failCount++;
+        console.error('Błąd dodawania produktu do spiżarni:', e);
+      }
+    }
+    if (successCount > 0) {
+      setError(null);
+      alert(`Dodano do spiżarni: ${successCount} produktów${failCount > 0 ? `, błędy: ${failCount}` : ''}`);
+      resetForm();
+    } else {
+      setError('Nie udało się dodać produktów do spiżarni.');
+    }
   };
 
   const handleAddToShoppingList = () => {

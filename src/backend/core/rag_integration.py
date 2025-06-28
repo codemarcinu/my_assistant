@@ -474,15 +474,19 @@ class RAGDatabaseIntegration:
             # Use the vector store to search for relevant context
             search_results = await self.search_documents_in_rag(question, k=5)
             
+            # Extract chunks safely
+            chunks = search_results.get("chunks", []) if isinstance(search_results, dict) else []
+            
             # For now, return a simple response
             # In a full implementation, this would use an LLM to generate an answer
             return {
                 "answer": f"Odpowiedź na pytanie: {question}. (Implementacja w toku)",
-                "sources": search_results.get("chunks", []),
+                "sources": chunks,
                 "confidence": 0.5
             }
         except Exception as e:
             logger.error(f"Error querying RAG: {e}")
+            # Return a safe fallback response instead of raising an exception
             return {
                 "answer": "Przepraszam, wystąpił błąd podczas przetwarzania zapytania.",
                 "sources": [],

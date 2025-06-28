@@ -1,11 +1,36 @@
 {
-  "selected_model": "gemma3:12b",
+  "selected_model": "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",
   "available_models": [
+    "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",
+    "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M",
     "gemma3:12b",
     "mistral:7b",
-    "llama3.2:3b", 
-    "SpeakLeash/bielik-1.5b-v3.0-instruct:FP16"
+    "llama3.2:3b"
   ],
-  "fallback_model": "llama3.2:3b",
-  "polish_model": "SpeakLeash/bielik-1.5b-v3.0-instruct:FP16"
+  "fallback_model": "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M",
+  "polish_model": "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",
+  "optimization_settings": {
+    "receipt_analysis": {
+      "temperature": 0.1,
+      "top_p": 0.9,
+      "top_k": 40,
+      "repeat_penalty": 1.1,
+      "num_predict": 512,
+      "timeout": 30
+    },
+    "general_chat": {
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "top_k": 40,
+      "repeat_penalty": 1.1,
+      "num_predict": 2048,
+      "timeout": 60
+    }
+  },
+  "performance_settings": {
+    "max_concurrent_requests": 3,
+    "cache_ttl": 3600,
+    "enable_streaming": true,
+    "enable_cache": true
+  }
 } 
