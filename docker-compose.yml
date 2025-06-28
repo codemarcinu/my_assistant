@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  # Redis dla Celery i cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: foodsave_ai
+      POSTGRES_USER: foodsave_user
+      POSTGRES_PASSWORD: foodsave_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foodsave_user -d foodsave_ai"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Ollama LLM service
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile.prod
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://foodsave_user:foodsave_password@postgres:5432/foodsave_ai
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OLLAMA_URL=http://ollama:11434
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - DEBUG=false
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+    volumes:
+      - ./src:/app
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile.prod
+    command: celery -A backend.config.celery_config.celery_app worker --loglevel=info --concurrency=4
+    working_dir: /app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://foodsave_user:foodsave_password@postgres:5432/foodsave_ai
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OLLAMA_URL=http://ollama:11434
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - DEBUG=false
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    volumes:
+      - ./src:/app
+      - ./logs:/app/logs
+
+  # Celery Beat (scheduler)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile.prod
+    command: celery -A backend.config.celery_config.celery_app beat --loglevel=info --schedule=/app/logs/celerybeat-schedule
+    working_dir: /app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://foodsave_user:foodsave_password@postgres:5432/foodsave_ai
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OLLAMA_URL=http://ollama:11434
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - DEBUG=false
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    volumes:
+      - ./src:/app
+      - ./logs:/app/logs
+
+  # Frontend (jeśli istnieje)
+  frontend:
+    build:
+      context: ./myappassistant-chat-frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./myappassistant-chat-frontend:/app
+      - /app/node_modules
+
+volumes:
+  redis_data:
+  postgres_data:
+  ollama_data:
+
+networks:
+  default:
+    name: foodsave_ai_network 
