@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Callable, Coroutine, Dict, Optional
 import asyncio
 
-import pybreaker
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.profile_manager import ProfileManager
@@ -20,6 +19,11 @@ from backend.agents.orchestrator_errors import OrchestratorError
 from backend.agents.response_generator import ResponseGenerator
 
 logger = logging.getLogger(__name__)
+
+
+class CircuitBreakerError(Exception):
+    """Custom exception for circuit breaker errors"""
+    pass
 
 
 class SimpleCircuitBreaker:
@@ -60,7 +64,7 @@ class SimpleCircuitBreaker:
                 self.current_state = self.STATE_HALF_OPEN
             else:
                 logger.warning(f"CircuitBreaker({self.name}) is OPEN, rejecting call")
-                raise pybreaker.CircuitBreakerError(
+                raise CircuitBreakerError(
                     f"CircuitBreaker {self.name} is OPEN. Try again later."
                 )
 
@@ -118,10 +122,10 @@ class Orchestrator:
         self.orchestrator_id = orchestrator_id or str(uuid.uuid4())
         
         # Initialize circuit breaker for fault tolerance
-        self.circuit_breaker = pybreaker.CircuitBreaker(
-            failure_threshold=5,
-            recovery_timeout=60,
-            expected_exception=Exception,
+        self.circuit_breaker = SimpleCircuitBreaker(
+            name="orchestrator_circuit_breaker",
+            fail_max=5,
+            reset_timeout=60,
         )
         
         # Initialize memory manager if provided
@@ -255,7 +259,7 @@ class Orchestrator:
 
                 return analysis_response
 
-            except pybreaker.CircuitBreakerError as e:
+            except CircuitBreakerError as e:
                 logger.error(f"Circuit breaker tripped: {e}")
                 return self._format_error_response(
                     OrchestratorError("Service temporarily unavailable")
@@ -320,7 +324,7 @@ class Orchestrator:
                     context,
                     user_command=user_command,
                 )
-            except pybreaker.CircuitBreakerError as e:
+            except CircuitBreakerError as e:
                 logger.error(f"Circuit breaker tripped for intent {intent.type}: {e}")
                 return self._format_error_response(
                     OrchestratorError(

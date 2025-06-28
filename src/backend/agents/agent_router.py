@@ -121,6 +121,7 @@ class AgentRouter(IAgentRouter):
             "general_conversation": AgentType.GENERAL_CONVERSATION,
             "image_processing": AgentType.OCR,
             "document_processing": AgentType.OCR,
+            "date": AgentType.GENERAL_CONVERSATION,  # Date queries handled by general conversation agent
         }
         return intent_mapping.get(intent_type, AgentType.GENERAL_CONVERSATION)
 

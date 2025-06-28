@@ -266,6 +266,59 @@ class SimpleIntentDetector:
             logger.info(f"Food conversation intent detected for text: '{text}'")
             return IntentData(type="food_conversation", entities={}, confidence=0.8)
 
+        # Date/time detection - expanded keywords (przed information_query aby uniknąć konfliktu z "kiedy")
+        date_keywords = [
+            "data",
+            "date",
+            "dzień",
+            "day",
+            "dzisiaj",
+            "today",
+            "wczoraj",
+            "yesterday",
+            "jutro",
+            "tomorrow",
+            "tydzień",
+            "week",
+            "miesiąc",
+            "month",
+            "rok",
+            "year",
+            "godzina",
+            "hour",
+            "czas",
+            "time",
+            "kiedy",
+            "when",
+            "który dzień",
+            "what day",
+            "jaki dzień",
+            "which day",
+            "jaki dzisiaj",
+            "what today",
+            "który to dzień",
+            "what day is it",
+            "jaki dzisiaj dzień",
+            "what day is today",
+            "poniedziałek",
+            "monday",
+            "wtorek",
+            "tuesday",
+            "środa",
+            "wednesday",
+            "czwartek",
+            "thursday",
+            "piątek",
+            "friday",
+            "sobota",
+            "saturday",
+            "niedziela",
+            "sunday",
+        ]
+        if any(keyword in text_lower for keyword in date_keywords):
+            logger.info(f"Date/time intent detected for text: '{text}'")
+            return IntentData(type="date", entities={}, confidence=0.9)
+
         # Information query detection - keywords indicating need for external information
         info_keywords = [
             "co to jest",

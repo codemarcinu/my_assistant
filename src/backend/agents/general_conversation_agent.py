@@ -26,6 +26,7 @@ from backend.core.vector_store import vector_store
 from backend.agents.base_agent import BaseAgent
 from backend.agents.interfaces import AgentResponse
 from backend.agents.search_agent import SearchAgent
+from backend.agents.tools import get_current_date
 
 logger = logging.getLogger(__name__)
 
@@ -277,6 +278,11 @@ class GeneralConversationAgent(BaseAgent):
         use_bielik: bool,
     ) -> str:
         """Generuje odpowiedź z wykorzystaniem wszystkich źródeł informacji i weryfikacji wiedzy"""
+
+        # Sprawdź czy to pytanie o datę/czas
+        if self._is_date_query(query):
+            logger.info(f"Detected date query: {query}")
+            return get_current_date()
 
         # Buduj system prompt z uwzględnieniem weryfikacji wiedzy
         system_prompt = """Jesteś pomocnym asystentem AI prowadzącym swobodne konwersacje.
@@ -678,3 +684,17 @@ class GeneralConversationAgent(BaseAgent):
         messages.append({"role": "user", "content": query})
 
         return messages
+
+    def _is_date_query(self, query: str) -> bool:
+        """Sprawdza czy zapytanie dotyczy daty/czasu"""
+        date_keywords = [
+            "dzisiaj", "dziś", "today", "wczoraj", "yesterday", "jutro", "tomorrow",
+            "dzień", "day", "miesiąc", "month", "rok", "year", "godzina", "hour",
+            "czas", "time", "kiedy", "when", "który dzień", "what day", "jaki dzień",
+            "which day", "jaki dzisiaj", "what today", "który to dzień", "what day is it",
+            "jaki dzisiaj dzień", "what day is today", "poniedziałek", "monday",
+            "wtorek", "tuesday", "środa", "wednesday", "czwartek", "thursday",
+            "piątek", "friday", "sobota", "saturday", "niedziela", "sunday"
+        ]
+        query_lower = query.lower()
+        return any(keyword in query_lower for keyword in date_keywords)

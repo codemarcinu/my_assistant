@@ -4,6 +4,7 @@ from __future__ import annotations
 from backend.agents.tools.tools import (execute_database_action,
                                         extract_entities, find_database_object,
                                         generate_clarification_question_text,
+                                        get_current_date,
                                         recognize_intent)
 
 # Expose these functions at the package level
@@ -13,4 +14,5 @@ __all__ = [
     "find_database_object",
     "generate_clarification_question_text",
     "execute_database_action",
+    "get_current_date",
 ]
