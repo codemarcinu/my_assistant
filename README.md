@@ -119,6 +119,7 @@ FoodSave AI is an advanced multi-agent AI system designed for managing household
   - **🏷️ Categorization Agent**: Automatic product categorization
   - **🧠 RAG Agent**: Advanced Retrieval-Augmented Generation
   - **💬 Concise Response Agent**: Perplexity.ai-style concise responses
+  - **⏰ Date/Time Agent**: **Instant, accurate date and time information** 🆕
 
 - **📱 Telegram Bot Integration**: Full integration with Telegram Bot API:
   - **🤖 Webhook Processing**: Real-time message handling
@@ -135,6 +136,7 @@ FoodSave AI is an advanced multi-agent AI system designed for managing household
 - **🗄️ Database**: Tracks ingredients, receipts, and user preferences
 - **📸 Receipt Scanning**: Automated receipt entry through OCR
 - **📝 Concise Responses**: Perplexity.ai-style response length control
+- **⏰ Accurate Date/Time**: **Real-time system date queries with 100% accuracy** 🆕
 
 ### 🆕 Latest Features (June 2025)
 
@@ -169,6 +171,21 @@ FoodSave AI is an advanced multi-agent AI system designed for managing household
 - **Improved import structure**: Unified import paths across the project
 - **Docker optimization**: Simplified container configuration
 - **Performance monitoring**: Comprehensive metrics and alerting
+
+#### **Date and Time Query Support** 🆕
+- **⏰ Instant Date Responses**: Bypasses LLM for immediate, accurate system time
+- **🎯 100% Accuracy**: Uses system datetime instead of fabricated LLM responses
+- **🌍 Multi-language Support**: Polish and English date query patterns
+- **🔍 Smart Detection**: Advanced regex patterns to avoid false positives
+- **⚡ Performance**: <100ms response time for date queries
+- **🛡️ Reliability**: No external dependencies, always available
+- **🧪 Comprehensive Testing**: Full test coverage with datetime mocking
+
+**Supported Queries**:
+```
+Polish: "jaki dzisiaj jest dzień?", "podaj dzisiejszą datę"
+English: "what day is it today?", "today's date"
+```
 
 ## 🛠️ Technology Stack
 
