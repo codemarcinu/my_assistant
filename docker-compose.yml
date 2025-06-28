@@ -58,6 +58,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - ENVIRONMENT=production
       - DEBUG=false
+      - TESTING_MODE=true
     depends_on:
       - postgres
       - redis
@@ -125,7 +126,7 @@ services:
       context: ./myappassistant-chat-frontend
       dockerfile: Dockerfile.prod
     ports:
-      - "3000:3000"
+      - "3000:80"
     environment:
       - REACT_APP_API_URL=http://localhost:8000
       - REACT_APP_WS_URL=ws://localhost:8000

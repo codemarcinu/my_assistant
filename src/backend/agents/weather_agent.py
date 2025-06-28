@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.agents.base_agent import BaseAgent
 from backend.agents.interfaces import AgentResponse
-from backend.config import settings
+from backend.settings import settings
 from backend.core.cache_manager import cache_manager
 from backend.core.decorators import handle_exceptions
 from backend.core.exceptions import ConfigurationError, ExternalAPIError

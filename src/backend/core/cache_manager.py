@@ -25,7 +25,7 @@ except ImportError:
 
 from pydantic import BaseModel
 
-from backend.config import settings
+from backend.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -334,6 +334,12 @@ class CacheManager:
         except Exception as e:
             logger.error(f"Cache health check failed: {e}")
             return False
+
+    async def store_semantic_context(self, session_id: str, semantic_hash: str) -> None:
+        """Stub: Store semantic context (for compatibility)"""
+        # Możesz tu dodać logikę jeśli chcesz cache'ować semantycznie
+        logger.debug(f"Stub store_semantic_context called for session_id={session_id}, semantic_hash={semantic_hash}")
+        return
 
 
 # Global cache manager instance

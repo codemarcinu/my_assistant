@@ -18,7 +18,7 @@ from opentelemetry.sdk.trace.export import (BatchSpanProcessor,
                                             ConsoleSpanExporter)
 from prometheus_client import start_http_server
 
-from backend.config import settings
+from backend.settings import settings
 
 # Global tracer
 tracer: Optional[trace.Tracer] = None

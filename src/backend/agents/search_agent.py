@@ -6,7 +6,7 @@ import httpx
 from backend.agents.base_agent import BaseAgent
 from backend.agents.interfaces import AgentResponse, MemoryContext
 from backend.agents.response_generator import ResponseGenerator
-from backend.config import settings
+from backend.settings import settings
 from backend.core.decorators import handle_exceptions
 from backend.core.hybrid_llm_client import hybrid_llm_client
 from backend.core.llm_client import LLMClient

@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func, Column, Boolean, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.declarative import declarative_base
 
 from backend.core.database import Base
 
@@ -20,6 +21,10 @@ class Conversation(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     messages: Mapped[List["Message"]] = relationship(
         f"{__name__}.Message",
@@ -43,6 +48,7 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
+    message_metadata: Mapped[dict] = mapped_column(JSON, default={})
 
     conversation_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("conversations.id"), nullable=False
@@ -56,3 +62,20 @@ class Message(Base):
 
 # Composite index for common message queries
 Index("ix_message_conversation_created", Message.conversation_id, Message.created_at)
+
+
+class ConversationSession(Base):
+    """Tabela do przechowywania podsumowań konwersacji"""
+    __tablename__ = "conversation_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String, index=True, nullable=True)  # Opcjonalne, dla przyszłej funkcjonalności
+    summary: Mapped[str] = mapped_column(Text, nullable=True)  # Podsumowanie konwersacji
+    key_points: Mapped[list] = mapped_column(JSON, default=[])  # Kluczowe punkty jako lista
+    topics_discussed: Mapped[list] = mapped_column(JSON, default=[])  # Tematy rozmowy
+    user_preferences: Mapped[dict] = mapped_column(JSON, default={})  # Preferencje użytkownika
+    conversation_style: Mapped[str] = mapped_column(String, default='friendly')  # Styl rozmowy
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    last_message_count: Mapped[int] = mapped_column(Integer, default=0)  # Liczba wiadomości w momencie ostatniego podsumowania

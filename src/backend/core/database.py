@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
                                     create_async_engine)
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import StaticPool
+from sqlalchemy import text
 
-from backend.config import settings
+from backend.settings import settings
 
 DATABASE_URL = settings.DATABASE_URL
 
@@ -64,3 +65,62 @@ async def get_db_with_error_handling() -> AsyncGenerator[AsyncSession, None]:
                 "error_code": "INTERNAL_SERVER_ERROR",
             },
         )
+
+
+async def init_db():
+    """Initialize database with all tables and migrations"""
+    try:
+        from backend.core.database_migrations import run_all_migrations
+        from backend.models.conversation import Base as ConversationBase
+        
+        # Create all tables
+        async with engine.begin() as conn:
+            await conn.run_sync(ConversationBase.metadata.create_all)
+        
+        # Run migrations
+        await run_all_migrations()
+        
+        logging.info("Database initialized successfully")
+        
+    except Exception as e:
+        logging.error(f"Database initialization failed: {e}")
+        raise
+
+
+async def check_db_connection():
+    """Check if database connection is working"""
+    try:
+        async for db in get_db():
+            result = await db.execute(text("SELECT 1"))
+            result.fetchone()
+            return True
+    except Exception as e:
+        logging.error(f"Database connection check failed: {e}")
+        return False
+
+
+async def get_db_info():
+    """Get database information"""
+    try:
+        async for db in get_db():
+            # Get table information
+            result = await db.execute(text("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name NOT LIKE 'sqlite_%'
+                ORDER BY name
+            """))
+            tables = [row[0] for row in result.fetchall()]
+            
+            return {
+                "database_url": DATABASE_URL,
+                "tables": tables,
+                "connection_status": "connected"
+            }
+    except Exception as e:
+        logging.error(f"Error getting database info: {e}")
+        return {
+            "database_url": DATABASE_URL,
+            "tables": [],
+            "connection_status": "error",
+            "error": str(e)
+        }

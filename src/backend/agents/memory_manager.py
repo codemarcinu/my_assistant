@@ -15,7 +15,8 @@ import hashlib
 from backend.agents.interfaces import BaseAgent, IMemoryManager
 from backend.core.cache_manager import CacheManager
 from backend.core.database import get_db
-from backend.models.conversation import Conversation, Message
+from backend.models.conversation import Conversation, Message, ConversationSession
+from backend.tasks.conversation_tasks import update_conversation_summary_task, get_conversation_summary
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -198,399 +199,374 @@ class MemoryContext:
             'work': ['praca', 'work', 'job', 'office', 'biuro', 'project', 'projekt'],
             'family': ['rodzina', 'family', 'children', 'dzieci', 'parents', 'rodzice'],
             'entertainment': ['rozrywka', 'entertainment', 'movie', 'film', 'music', 'muzyka', 'game', 'gra'],
-            'technology': ['technologia', 'technology', 'computer', 'komputer', 'phone', 'telefon', 'app', 'aplikacja']
         }
         
-        # Preference indicators
-        preference_indicators = {
-            'likes': ['lubię', 'like', 'love', 'kocham', 'prefer', 'preferuję', 'enjoy', 'cieszę się'],
-            'dislikes': ['nie lubię', 'dislike', 'hate', 'nienawidzę', 'avoid', 'unikać'],
-            'wants': ['chcę', 'want', 'need', 'potrzebuję', 'would like', 'chciałbym'],
-            'has': ['mam', 'have', 'got', 'posiadam', 'own', 'własność']
-        }
-        
-        for msg in messages:
-            content = msg.get('content', '').lower()
-            role = msg.get('role', '')
+        for message in messages:
+            content = message.get('content', '').lower()
+            role = message.get('role', '')
             
-            # Extract topics using keyword matching
+            # Detect topics
             for topic, keywords in topic_keywords.items():
                 if any(keyword in content for keyword in keywords):
                     topics.add(topic)
             
             # Extract key points from user messages
-            if role == 'user':
-                # Look for preference indicators
-                for pref_type, indicators in preference_indicators.items():
-                    for indicator in indicators:
-                        if indicator in content:
-                            # Extract the preference (simple extraction)
-                            start_idx = content.find(indicator)
-                            if start_idx != -1:
-                                # Get the sentence containing the preference
-                                sentence_start = max(0, content.rfind('.', 0, start_idx) + 1)
-                                sentence_end = content.find('.', start_idx)
-                                if sentence_end == -1:
-                                    sentence_end = len(content)
-                                
-                                sentence = content[sentence_start:sentence_end].strip()
-                                if len(sentence) > 10:  # Only add meaningful sentences
-                                    key_points.append(f"User {pref_type}: {sentence}")
-                                break
-                
-                # Look for questions (they often indicate interests)
-                if '?' in content or any(word in content for word in ['how', 'what', 'when', 'where', 'why', 'jak', 'co', 'kiedy', 'gdzie', 'dlaczego']):
-                    # Extract the question
-                    sentences = content.split('.')
-                    for sentence in sentences:
-                        if '?' in sentence or any(word in sentence for word in ['how', 'what', 'when', 'where', 'why', 'jak', 'co', 'kiedy', 'gdzie', 'dlaczego']):
-                            sentence = sentence.strip()
-                            if len(sentence) > 10:
-                                key_points.append(f"User asked: {sentence}")
-                                break
+            if role == 'user' and len(content) > 10:
+                # Simple key point extraction (first sentence or main idea)
+                sentences = content.split('.')
+                if sentences:
+                    key_point = sentences[0].strip()
+                    if len(key_point) > 5:
+                        key_points.append(key_point)
             
-            # Extract key information from assistant responses
-            elif role == 'assistant':
-                # Look for helpful information provided
-                if any(word in content for word in ['here', 'here\'s', 'this', 'that', 'you can', 'możesz', 'oto', 'tutaj']):
-                    sentences = content.split('.')
-                    for sentence in sentences:
-                        if any(word in sentence for word in ['here', 'here\'s', 'this', 'that', 'you can', 'możesz', 'oto', 'tutaj']):
-                            sentence = sentence.strip()
-                            if len(sentence) > 15:
-                                key_points.append(f"Assistant provided: {sentence}")
-                                break
+            # Extract user preferences
+            if role == 'user':
+                if 'lubię' in content or 'like' in content:
+                    # Simple preference extraction
+                    if 'prosty' in content or 'simple' in content:
+                        user_prefs['cooking_style'] = 'simple'
+                    if 'zdrowy' in content or 'healthy' in content:
+                        user_prefs['diet_preference'] = 'healthy'
         
-        # Limit key points to top 5 most relevant
-        key_points = key_points[:5]
-        
-        # Determine conversation style based on content
-        conversation_style = 'friendly'
-        if any(word in ' '.join([msg.get('content', '') for msg in messages]) for word in ['formal', 'business', 'professional', 'formalny', 'biznesowy']):
-            conversation_style = 'formal'
-        elif any(word in ' '.join([msg.get('content', '') for msg in messages]) for word in ['casual', 'informal', 'relaxed', 'swobodny', 'nieformalny']):
-            conversation_style = 'casual'
+        # Limit key points to avoid overwhelming context
+        key_points = key_points[-5:] if len(key_points) > 5 else key_points
         
         return ConversationSummary(
             key_points=key_points,
             topics_discussed=list(topics),
             user_preferences=user_prefs,
-            conversation_style=conversation_style
+            conversation_style='friendly'
         )
 
     def _generate_semantic_hash(self, messages: List[Dict[str, Any]]) -> str:
-        """Generate semantic hash for caching similar contexts"""
-        content = ' '.join([msg.get('content', '') for msg in messages])
+        """Generate semantic hash for context similarity detection"""
+        content = " ".join([msg.get('content', '') for msg in messages[-5:]])
         return hashlib.md5(content.encode()).hexdigest()
 
 
 class MemoryManager(IMemoryManager):
-    """Implementation of memory management for conversation context with proper cleanup"""
+    """Enhanced Memory Manager with conversation summary integration"""
 
     def __init__(
         self, max_contexts: int = 1000, cleanup_threshold_ratio: float = 0.8,
         enable_persistence: bool = True, enable_semantic_cache: bool = True
     ) -> None:
         # Use weak references to avoid memory leaks
-        self._contexts: Dict[str, weakref.ReferenceType[MemoryContext]] = {}
+        self._contexts: Dict[str, weakref.ref] = {}
         self._max_contexts = max_contexts
-        self._cleanup_threshold = int(max_contexts * cleanup_threshold_ratio)
-        self._cleanup_lock = asyncio.Lock()
-        
-        # Enhanced features
+        self._cleanup_threshold_ratio = cleanup_threshold_ratio
         self._enable_persistence = enable_persistence
         self._enable_semantic_cache = enable_semantic_cache
-        self._cache_manager = CacheManager()
-        self._semantic_cache: Dict[str, MemoryContext] = {}
-        
-        self._memory_stats: MemoryStats = {
+        self._cache_manager = CacheManager() if enable_semantic_cache else None
+        self._stats = {
             "total_contexts": 0,
             "persistent_contexts": 0,
             "cached_contexts": 0,
-            "last_cleanup": None,  # Timestamp of last cleanup
-            "cleanup_count": 0,  # How many times cleanup ran
+            "last_cleanup": None,
+            "cleanup_count": 0,
             "compression_ratio": 0.0,
             "cache_hit_rate": 0.0,
         }
+        self._initialized = False
 
     async def initialize(self) -> None:
-        """Initialize the memory manager"""
-        await self._cache_manager.connect()
-        logger.info("Enhanced Memory Manager initialized")
+        """Initialize memory manager"""
+        if self._initialized:
+            return
+        self._initialized = True
+        logger.info("MemoryManager initialized")
 
     async def store_context(self, context: MemoryContext) -> None:
-        """Store context for later retrieval with weak reference"""
-        if len(self._contexts) >= self._max_contexts:
-            await self._cleanup_old_contexts()
+        """Store context with weak reference"""
+        if context.session_id in self._contexts:
+            logger.warning(f"Context for session {context.session_id} already exists")
+            return
 
-        # Use weak reference to avoid memory leaks
-        self._contexts[context.session_id] = weakref.ref(
-            context, self._cleanup_callback
-        )
-        context.last_updated = datetime.now()
-        
-        # Store in persistent storage
+        # Create weak reference with cleanup callback
+        weak_ref = weakref.ref(context, self._cleanup_callback)
+        self._contexts[context.session_id] = weak_ref
+        self._stats["total_contexts"] += 1
+
+        # Persist to database if enabled
         if self._enable_persistence:
             await self._persist_context(context)
-        
-        # Store in semantic cache
-        if self._enable_semantic_cache and context.semantic_hash:
-            self._semantic_cache[context.semantic_hash] = context
-        
-        self._memory_stats["total_contexts"] = len(self._contexts)
-        self._update_stats()
-        logger.debug(f"Stored enhanced context for session: {context.session_id}")
+
+        # Store in semantic cache if enabled
+        if self._enable_semantic_cache and self._cache_manager:
+            await self._cache_manager.store_semantic_context(
+                context.session_id, context._generate_semantic_hash(context.history)
+            )
+
+        logger.debug(f"Stored context for session {context.session_id}")
 
     def _cleanup_callback(self, weak_ref) -> None:
-        """Callback when context is garbage collected"""
-        # Remove from tracking when context is GC'd
-        for session_id, ref in list(self._contexts.items()):
-            if ref is weak_ref:
-                del self._contexts[session_id]
-                logger.debug(f"Cleaned up garbage collected context: {session_id}")
-                break
+        """Callback for weak reference cleanup"""
+        self._stats["total_contexts"] -= 1
+        logger.debug("Context cleaned up from memory")
 
     async def retrieve_context(self, session_id: str) -> Optional[MemoryContext]:
-        """Retrieve context for session if it exists"""
+        """Retrieve context with fallback to persistence"""
+        # Try memory first
         weak_ref = self._contexts.get(session_id)
         if weak_ref:
             context = weak_ref()
-            if context:  # Check if weak reference is still valid
-                context.last_updated = datetime.now()
-                logger.debug(f"Retrieved context from memory for session: {session_id}")
+            if context:
+                logger.debug(f"Retrieved context from memory for session {session_id}")
                 return context
-            else:
-                # Clean up invalid weak reference
-                del self._contexts[session_id]
-                logger.debug(
-                    f"Cleaned up invalid weak reference for session: {session_id}"
-                )
 
-        # Try persistent storage
+        # Try persistence
         if self._enable_persistence:
             context = await self._load_from_persistence(session_id)
             if context:
-                # Restore to memory
+                # Re-store in memory
                 await self.store_context(context)
-                logger.debug(f"Restored context from persistence for session: {session_id}")
+                logger.debug(f"Retrieved context from persistence for session {session_id}")
                 return context
 
         # Try semantic cache
-        if self._enable_semantic_cache:
-            context = await self._find_similar_context(session_id)
-            if context:
-                logger.debug(f"Found similar context in semantic cache for session: {session_id}")
-                return context
+        if self._enable_semantic_cache and self._cache_manager:
+            similar_context = await self._find_similar_context(session_id)
+            if similar_context:
+                logger.debug(f"Found similar context for session {session_id}")
+                return similar_context
 
+        logger.debug(f"No context found for session {session_id}")
         return None
 
     async def get_context(self, session_id: str) -> MemoryContext:
         """Get or create context for session"""
         context = await self.retrieve_context(session_id)
         if context is None:
-            # Create new context if it doesn't exist
             context = MemoryContext(session_id)
             await self.store_context(context)
-            logger.debug(f"Created new enhanced context for session: {session_id}")
+            logger.info(f"Created new context for session {session_id}")
         return context
 
     async def update_context(
         self, context: MemoryContext, new_data: Optional[Dict[str, Any]] = None
     ) -> None:
-        """Update existing context with new data"""
-        if context.session_id in self._contexts:
-            # Add new data to context history if provided
-            if new_data:
-                if isinstance(new_data, dict):
-                    # Handle different data formats
-                    if 'message' in new_data:
-                        context.add_message(
-                            role=new_data.get('role', 'user'),
-                            content=new_data['message'],
-                            metadata=new_data
-                        )
-                    elif 'content' in new_data:
-                        context.add_message(
-                            role=new_data.get('role', 'user'),
-                            content=new_data['content'],
-                            metadata=new_data
-                        )
-                    else:
-                        # Generic data update
-                        if not hasattr(context, "history"):
-                            context.history = []
-                        context.history.append(
-                            {"timestamp": datetime.now().isoformat(), "data": new_data}
-                        )
+        """Update context with new data and trigger summary update"""
+        context.last_updated = datetime.now()
+        
+        if new_data:
+            # Update context with new data
+            for key, value in new_data.items():
+                if hasattr(context, key):
+                    setattr(context, key, value)
+                else:
+                    logger.warning(f"Unknown context attribute: {key}")
 
-            # Optimize context window
-            context._optimize_context_window(max_tokens=4000)
+        # Store updated context
+        await self.store_context(context)
+        
+        # Trigger conversation summary update in background
+        if len(context.history) >= 5:  # Only update summary if there are enough messages
+            try:
+                # Schedule background task to update conversation summary
+                update_conversation_summary_task.delay(context.session_id)
+                logger.debug(f"Scheduled conversation summary update for session {context.session_id}")
+            except Exception as e:
+                logger.error(f"Failed to schedule conversation summary update: {e}")
 
-            # Update weak reference
-            self._contexts[context.session_id] = weakref.ref(
-                context, self._cleanup_callback
-            )
-            context.last_updated = datetime.now()
-            
-            # Update storage
-            await self.store_context(context)
-            logger.debug(f"Updated enhanced context for session: {context.session_id}")
+    async def get_optimized_context(self, session_id: str, max_tokens: int = 4000) -> List[Dict[str, Any]]:
+        """Get optimized context with conversation summary integration"""
+        context = await self.get_context(session_id)
+        
+        # Try to get conversation summary from database
+        try:
+            summary_data = await get_conversation_summary(session_id)
+            if summary_data:
+                # Create ConversationSummary object from database data
+                context.conversation_summary = ConversationSummary(
+                    key_points=summary_data.get("key_points", []),
+                    topics_discussed=summary_data.get("topics_discussed", []),
+                    user_preferences=summary_data.get("user_preferences", {}),
+                    conversation_style=summary_data.get("conversation_style", "friendly")
+                )
+                logger.debug(f"Loaded conversation summary for session {session_id}")
+        except Exception as e:
+            logger.warning(f"Failed to load conversation summary for session {session_id}: {e}")
+        
+        return context.get_optimized_context(max_tokens)
 
     async def clear_context(self, session_id: str) -> None:
-        """Clear context for session"""
-        # Clear from memory
+        """Clear context from all storage layers"""
+        # Remove from memory
         if session_id in self._contexts:
             del self._contexts[session_id]
-        
-        # Clear from persistent storage
+            self._stats["total_contexts"] -= 1
+
+        # Clear from persistence
         if self._enable_persistence:
             await self._clear_from_persistence(session_id)
-        
+
         # Clear from semantic cache
-        if self._enable_semantic_cache:
+        if self._enable_semantic_cache and self._cache_manager:
             await self._clear_from_semantic_cache(session_id)
-        
-        self._memory_stats["total_contexts"] = len(self._contexts)
-        self._update_stats()
-        logger.debug(f"Cleared enhanced context for session: {session_id}")
+
+        logger.info(f"Cleared context for session {session_id}")
 
     async def _persist_context(self, context: MemoryContext) -> None:
         """Persist context to database"""
         try:
             async for db in get_db():
-                # Create or update conversation
-                if context.persistent_id:
-                    # Update existing conversation
-                    stmt = select(Conversation).where(Conversation.id == context.persistent_id)
-                    result = await db.execute(stmt)
-                    conversation = result.scalar_one_or_none()
-                else:
+                # Check if conversation exists
+                stmt = select(Conversation).where(Conversation.session_id == context.session_id)
+                result = await db.execute(stmt)
+                conversation = result.scalar_one_or_none()
+                
+                if not conversation:
                     # Create new conversation
                     conversation = Conversation(session_id=context.session_id)
                     db.add(conversation)
                     await db.commit()
                     await db.refresh(conversation)
-                    context.persistent_id = conversation.id
-
-                # Add messages
-                for msg_data in context.history[-5:]:  # Keep last 5 messages
-                    if isinstance(msg_data, dict) and 'content' in msg_data:
-                        message = Message(
-                            conversation_id=conversation.id,
-                            role=msg_data.get('role', 'user'),
-                            content=msg_data['content']
-                        )
-                        db.add(message)
-
+                
+                # Save messages
+                for message_data in context.history[-10:]:  # Save last 10 messages
+                    message = Message(
+                        content=message_data.get("content", ""),
+                        role=message_data.get("role", "user"),
+                        conversation_id=conversation.id,
+                        message_metadata=message_data.get("metadata", {})
+                    )
+                    db.add(message)
+                
                 await db.commit()
-                self._memory_stats["persistent_contexts"] += 1
+                context.persistent_id = conversation.id
+                logger.debug(f"Persisted context for session {context.session_id}")
                 
         except Exception as e:
             logger.error(f"Error persisting context: {e}")
+            if 'db' in locals():
+                await db.rollback()
 
     async def _load_from_persistence(self, session_id: str) -> Optional[MemoryContext]:
-        """Load context from persistent storage"""
+        """Load context from database"""
         try:
             async for db in get_db():
+                # Find conversation
                 stmt = select(Conversation).where(Conversation.session_id == session_id)
                 result = await db.execute(stmt)
                 conversation = result.scalar_one_or_none()
                 
-                if conversation:
-                    # Load messages
-                    stmt = select(Message).where(Message.conversation_id == conversation.id)
-                    result = await db.execute(stmt)
-                    messages = result.scalars().all()
-                    
-                    # Convert to context format
-                    history = []
-                    for msg in messages:
-                        history.append({
-                            "role": msg.role,
-                            "content": msg.content,
-                            "timestamp": msg.created_at.isoformat()
-                        })
-                    
-                    context = MemoryContext(session_id, history)
-                    context.persistent_id = conversation.id
-                    return context
-                    
+                if not conversation:
+                    return None
+                
+                # Load messages
+                stmt = (
+                    select(Message)
+                    .where(Message.conversation_id == conversation.id)
+                    .order_by(Message.created_at)
+                )
+                result = await db.execute(stmt)
+                messages = result.scalars().all()
+                
+                # Convert to context format
+                history = []
+                for msg in messages:
+                    history.append({
+                        "role": msg.role,
+                        "content": msg.content,
+                        "timestamp": msg.created_at.isoformat(),
+                        "metadata": msg.message_metadata or {}
+                    })
+                
+                # Create context
+                context = MemoryContext(session_id=session_id, history=history)
+                context.persistent_id = conversation.id
+                
+                # Load conversation summary if available
+                summary_stmt = select(ConversationSession).where(ConversationSession.session_id == session_id)
+                summary_result = await db.execute(summary_stmt)
+                summary_session = summary_result.scalar_one_or_none()
+                
+                if summary_session:
+                    context.conversation_summary = ConversationSummary(
+                        key_points=summary_session.key_points or [],
+                        topics_discussed=summary_session.topics_discussed or [],
+                        user_preferences=summary_session.user_preferences or {},
+                        conversation_style=summary_session.conversation_style or 'friendly'
+                    )
+                
+                logger.debug(f"Loaded context for session {session_id} with {len(history)} messages")
+                return context
+                
         except Exception as e:
-            logger.error(f"Error loading from persistence: {e}")
-        
-        return None
+            logger.error(f"Error loading context from persistence: {e}")
+            return None
 
     async def _clear_from_persistence(self, session_id: str) -> None:
-        """Clear context from persistent storage"""
+        """Clear context from database"""
         try:
             async for db in get_db():
+                # Find and delete conversation
                 stmt = select(Conversation).where(Conversation.session_id == session_id)
                 result = await db.execute(stmt)
                 conversation = result.scalar_one_or_none()
                 
                 if conversation:
-                    # Delete messages first (cascade should handle this)
+                    # Delete messages (cascade should handle this)
                     await db.delete(conversation)
+                    
+                    # Delete conversation session
+                    session_stmt = select(ConversationSession).where(ConversationSession.session_id == session_id)
+                    session_result = await db.execute(session_stmt)
+                    session = session_result.scalar_one_or_none()
+                    if session:
+                        await db.delete(session)
+                    
                     await db.commit()
+                    logger.debug(f"Cleared context for session {session_id}")
                     
         except Exception as e:
-            logger.error(f"Error clearing from persistence: {e}")
+            logger.error(f"Error clearing context from persistence: {e}")
+            if 'db' in locals():
+                await db.rollback()
 
     async def _find_similar_context(self, session_id: str) -> Optional[MemoryContext]:
-        """Find similar context in semantic cache"""
-        # Simple similarity check based on session_id pattern
-        for cached_context in self._semantic_cache.values():
-            if cached_context.session_id.startswith(session_id[:8]):  # First 8 chars
-                return cached_context
+        """Find similar context using semantic cache"""
+        if not self._cache_manager:
+            return None
+
+        try:
+            similar_session_id = await self._cache_manager.find_similar_context(session_id)
+            if similar_session_id:
+                return await self.retrieve_context(similar_session_id)
+        except Exception as e:
+            logger.error(f"Error finding similar context: {e}")
+
         return None
 
     async def _clear_from_semantic_cache(self, session_id: str) -> None:
         """Clear context from semantic cache"""
-        keys_to_remove = []
-        for key, context in self._semantic_cache.items():
-            if context.session_id == session_id:
-                keys_to_remove.append(key)
-        
-        for key in keys_to_remove:
-            del self._semantic_cache[key]
+        if not self._cache_manager:
+            return
+
+        try:
+            await self._cache_manager.remove_semantic_context(session_id)
+        except Exception as e:
+            logger.error(f"Error clearing from semantic cache: {e}")
 
     async def _cleanup_old_contexts(self) -> None:
-        """Remove old contexts when limit is reached with proper locking"""
-        async with self._cleanup_lock:
-            if len(self._contexts) <= self._cleanup_threshold:
-                return
+        """Cleanup old contexts to prevent memory leaks"""
+        try:
+            valid_contexts = self._get_valid_contexts()
+            
+            if len(valid_contexts) > self._max_contexts * self._cleanup_threshold_ratio:
+                # Remove oldest contexts
+                sorted_contexts = sorted(valid_contexts, key=lambda c: c.last_updated)
+                contexts_to_remove = sorted_contexts[:len(valid_contexts) - self._max_contexts]
+                
+                for context in contexts_to_remove:
+                    await self.clear_context(context.session_id)
+                
+                self._stats["cleanup_count"] += 1
+                self._stats["last_cleanup"] = datetime.now()
+                logger.info(f"Cleaned up {len(contexts_to_remove)} old contexts")
 
-            # Get valid contexts and their timestamps
-            valid_contexts = []
-            for session_id, weak_ref in self._contexts.items():
-                context = weak_ref()
-                if context:
-                    valid_contexts.append((session_id, context, context.last_updated))
-                else:
-                    # Clean up invalid references
-                    del self._contexts[session_id]
-
-            # Sort by last_updated and remove oldest
-            valid_contexts.sort(key=lambda x: x[2], reverse=True)
-
-            # Keep only the newest contexts
-            contexts_to_keep = valid_contexts[: self._cleanup_threshold]
-
-            # Rebuild contexts dict with weak references
-            new_contexts = {}
-            for session_id, context, _ in contexts_to_keep:
-                new_contexts[session_id] = weakref.ref(context, self._cleanup_callback)
-
-            removed_count = len(self._contexts) - len(new_contexts)
-            self._contexts = new_contexts
-            self._memory_stats["total_contexts"] = len(self._contexts)
-            self._memory_stats["last_cleanup"] = datetime.now()
-            self._memory_stats["cleanup_count"] += 1
-
-            logger.info(
-                f"Cleaned up {removed_count} old contexts. "
-                f"Total contexts: {len(self._contexts)}"
-            )
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
 
     async def register_agent_state(
         self,
@@ -600,119 +576,82 @@ class MemoryManager(IMemoryManager):
         state: Dict[str, Any],
     ) -> None:
         """Register agent state in context"""
-        if not hasattr(context, "active_agents"):
-            context.active_agents = {}
-
-        context.active_agents[agent_type] = {
-            "agent": agent,
-            "state": state,
-            "timestamp": datetime.now().isoformat(),
-        }
+        context.active_agents[agent_type] = agent
+        # Store agent state in context metadata
+        if not hasattr(context, 'agent_states'):
+            context.agent_states = {}
+        context.agent_states[agent_type] = state
+        logger.debug(f"Registered agent state for {agent_type} in session {context.session_id}")
 
     async def get_all_contexts(self) -> Dict[str, MemoryContext]:
-        """Get all stored contexts (for debugging/monitoring) with cleanup"""
-        # Clean up invalid references first
-        valid_contexts = {}
+        """Get all active contexts"""
+        contexts = {}
         for session_id, weak_ref in self._contexts.items():
             context = weak_ref()
             if context:
-                valid_contexts[session_id] = context
-            else:
-                del self._contexts[session_id]
-
-        self._memory_stats["total_contexts"] = len(self._contexts)
-        return valid_contexts
+                contexts[session_id] = context
+        return contexts
 
     def _update_stats(self) -> None:
         """Update memory statistics"""
-        self._memory_stats["total_contexts"] = len(self._contexts)
-        self._memory_stats["cached_contexts"] = len(self._semantic_cache)
+        valid_contexts = self._get_valid_contexts()
+        total_contexts = len(valid_contexts)
         
-        # Calculate compression ratio
-        total_messages = sum(len(ctx.history) for ctx in self._get_valid_contexts())
-        compressed_messages = sum(
-            len(ctx.context_window.recent_messages) if ctx.context_window else len(ctx.history)
-            for ctx in self._get_valid_contexts()
-        )
+        if total_contexts > 0:
+            self._stats["compression_ratio"] = (
+                sum(len(c.history) for c in valid_contexts) / total_contexts
+            )
         
-        if total_messages > 0:
-            self._memory_stats["compression_ratio"] = compressed_messages / total_messages
+        # Update cache hit rate if cache manager exists
+        if self._cache_manager:
+            self._stats["cache_hit_rate"] = self._cache_manager.get_hit_rate()
 
     def _get_valid_contexts(self) -> List[MemoryContext]:
-        """Get all valid contexts"""
-        valid_contexts = []
+        """Get list of valid contexts (not garbage collected)"""
+        contexts = []
         for weak_ref in self._contexts.values():
             context = weak_ref()
             if context:
-                valid_contexts.append(context)
-        return valid_contexts
+                contexts.append(context)
+        return contexts
 
     async def get_context_stats(self) -> Dict[str, Any]:
         """Get memory manager statistics"""
-        # Clean up invalid references before stats
-        await self._cleanup_old_contexts()
         self._update_stats()
-
-        valid_contexts = []
-        for weak_ref in self._contexts.values():
-            context = weak_ref()
-            if context:
-                valid_contexts.append(context)
-
-        return {
-            "total_contexts": len(valid_contexts),
-            "persistent_contexts": self._memory_stats["persistent_contexts"],
-            "cached_contexts": self._memory_stats["cached_contexts"],
-            "max_contexts": self._max_contexts,
-            "cleanup_threshold": self._cleanup_threshold,
-            "compression_ratio": self._memory_stats["compression_ratio"],
-            "cache_hit_rate": self._memory_stats["cache_hit_rate"],
-            "oldest_context": min(
-                (ctx.last_updated for ctx in valid_contexts), default=None
-            ),
-            "newest_context": max(
-                (ctx.last_updated for ctx in valid_contexts), default=None
-            ),
-            "memory_stats": self._memory_stats,
-        }
+        return self._stats.copy()
 
     async def cleanup_all(self) -> None:
-        """Cleanup all contexts and reset memory manager"""
-        async with self._cleanup_lock:
-            self._contexts.clear()
-            self._semantic_cache.clear()
-            self._memory_stats["total_contexts"] = 0
-            self._memory_stats["cached_contexts"] = 0
-            self._memory_stats["last_cleanup"] = datetime.now()
-            self._memory_stats["cleanup_count"] += 1
+        """Cleanup all contexts"""
+        try:
+            session_ids = list(self._contexts.keys())
+            for session_id in session_ids:
+                await self.clear_context(session_id)
             logger.info("Cleaned up all contexts")
+        except Exception as e:
+            logger.error(f"Error during full cleanup: {e}")
 
     @asynccontextmanager
-    async def context_manager(self, session_id: str) -> None:
-        """Async context manager for memory context lifecycle"""
+    async def context_manager(self, session_id: str):
+        """Context manager for automatic cleanup"""
         context = await self.get_context(session_id)
         try:
             yield context
         finally:
-            # Update context timestamp on exit
-            context.last_updated = datetime.now()
-            await self.update_context(context, None)
-            logger.debug(f"Context manager exited for session: {session_id}")
+            await self.update_context(context)
 
     async def __aenter__(self) -> MemoryContext:
-        """Enter async context"""
-        return self.context
+        """Async context manager entry"""
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Exit async context with cleanup"""
-        if exc_type is not None:
-            logger.error(f"Error in memory context: {exc_val}")
-        await self.memory_manager.update_context(self.context)
+        """Async context manager exit"""
+        await self.cleanup_all()
 
     def get_memory_stats(self) -> "MemoryStats":
-        return self._memory_stats
+        """Get memory statistics"""
+        return self._stats.copy()
 
     async def shutdown(self) -> None:
         """Shutdown memory manager"""
-        await self._cache_manager.disconnect()
-        logger.info("Enhanced Memory Manager shutdown completed")
+        await self.cleanup_all()
+        logger.info("MemoryManager shutdown completed")

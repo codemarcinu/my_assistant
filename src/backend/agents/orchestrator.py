@@ -17,6 +17,9 @@ from backend.agents.interfaces import AgentResponse, AgentType, IntentData
 from backend.agents.memory_manager import MemoryManager
 from backend.agents.orchestrator_errors import OrchestratorError
 from backend.agents.response_generator import ResponseGenerator
+from backend.agents.planner import Planner
+from backend.agents.executor import Executor
+from backend.agents.synthesizer import Synthesizer
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +101,7 @@ class SimpleCircuitBreaker:
 
 
 class Orchestrator:
-    """Main orchestrator implementation using dependency injection and new interfaces"""
+    """Enhanced orchestrator with planner-executor-synthesizer architecture"""
 
     def __init__(
         self,
@@ -109,6 +112,7 @@ class Orchestrator:
         memory_manager: Optional["MemoryManager"] = None,
         response_generator: Optional["ResponseGenerator"] = None,
         orchestrator_id: Optional[str] = None,
+        use_planner_executor: bool = True,  # Nowy parametr do włączania nowej architektury
     ) -> None:
         self.db = db_session
         self.profile_manager = profile_manager
@@ -120,6 +124,17 @@ class Orchestrator:
         )
         self.response_generator = response_generator
         self.orchestrator_id = orchestrator_id or str(uuid.uuid4())
+        self.use_planner_executor = use_planner_executor
+        
+        # Initialize new architecture components
+        if self.use_planner_executor:
+            self.planner = Planner()
+            self.executor = Executor()
+            self.synthesizer = Synthesizer()
+        else:
+            self.planner = None
+            self.executor = None
+            self.synthesizer = None
         
         # Initialize circuit breaker for fault tolerance
         self.circuit_breaker = SimpleCircuitBreaker(
@@ -132,11 +147,19 @@ class Orchestrator:
         if self.memory_manager:
             asyncio.create_task(self.memory_manager.initialize())
         
-        logger.info(f"Orchestrator {self.orchestrator_id} initialized")
+        logger.info(f"Orchestrator {self.orchestrator_id} initialized with {'new' if use_planner_executor else 'legacy'} architecture")
 
         # Registered agents will be added via register_agent()
         self._agents: Dict[AgentType, "BaseAgent"] = {}
         self._fallback_agent: Optional["BaseAgent"] = None
+
+    async def initialize(self) -> None:
+        """Initialize orchestrator components"""
+        if self.use_planner_executor and self.planner and self.executor and self.synthesizer:
+            await self.planner.initialize()
+            await self.executor.initialize()
+            await self.synthesizer.initialize()
+            logger.info("New architecture components initialized")
 
     def _initialize_default_agents(self) -> None:
         """Initialize default agents - now properly implemented"""
@@ -303,15 +326,129 @@ class Orchestrator:
                     request_id=request_id,
                 )
 
+            # Choose processing method based on architecture
+            if self.use_planner_executor and self.planner and self.executor and self.synthesizer:
+                return await self._process_with_planner_executor(
+                    user_command, session_id, request_id, stream_callback
+                )
+            else:
+                return await self._process_with_legacy_architecture(
+                    user_command, session_id, request_id
+                )
+
+        except OrchestratorError as e:
+            logger.error(
+                f"[Request ID: {request_id}] Orchestrator error: {e}", exc_info=True
+            )
+            return self._format_error_response(e)
+        except Exception as e:
+            logger.error(
+                f"[Request ID: {request_id}] Unhandled error: {e}", exc_info=True
+            )
+            return self._format_error_response(
+                OrchestratorError(f"An unexpected error occurred: {e}")
+            )
+
+    async def _process_with_planner_executor(
+        self,
+        user_command: str,
+        session_id: str,
+        request_id: str,
+        stream_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> AgentResponse:
+        """Process command using new planner-executor-synthesizer architecture"""
+        try:
             # 1. Get user profile and context
             context = await self.memory_manager.get_context(session_id)
             context.last_command = user_command
             context.request_id = request_id
 
-            # 2. Log activity
-            await self.profile_manager.log_activity(
-                session_id, InteractionType.QUERY, user_command
+            # 2. Log activity (only if profile_manager is available)
+            if self.profile_manager:
+                await self.profile_manager.log_activity(
+                    session_id, InteractionType.QUERY, user_command
+                )
+
+            # 3. Get conversation summary for context
+            conversation_context = {}
+            try:
+                from backend.tasks.conversation_tasks import get_conversation_summary
+                summary_data = await get_conversation_summary(session_id)
+                if summary_data:
+                    conversation_context = {
+                        "conversation_summary": summary_data.get("summary"),
+                        "user_preferences": summary_data.get("user_preferences", {}),
+                        "topics_discussed": summary_data.get("topics_discussed", [])
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to get conversation summary: {e}")
+
+            # 4. Create execution plan
+            plan = await self.planner.create_plan(user_command, conversation_context)
+            
+            # Validate plan
+            if not self.planner.validate_plan(plan):
+                logger.warning("Invalid plan created, falling back to legacy architecture")
+                return await self._process_with_legacy_architecture(
+                    user_command, session_id, request_id
+                )
+
+            # 5. Set up streaming if requested
+            if stream_callback:
+                self.executor.set_stream_callback(stream_callback)
+
+            # 6. Execute plan
+            execution_result = await self.executor.execute_plan(plan, conversation_context)
+
+            # 7. Synthesize final response
+            final_response = await self.synthesizer.generate_response(
+                execution_result, user_command, conversation_context
             )
+
+            # 8. Update context with final response
+            await self.memory_manager.update_context(
+                context, {"last_response": final_response}
+            )
+
+            # 9. Trigger conversation summary update in background
+            if final_response.success and len(context.history) >= 5:
+                try:
+                    from backend.tasks.conversation_tasks import update_conversation_summary_task
+                    update_conversation_summary_task.delay(session_id)
+                    logger.debug(f"Scheduled conversation summary update for session {session_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to schedule conversation summary update: {e}")
+
+            logger.info(
+                f"[Request ID: {request_id}] Successfully processed command with new architecture"
+            )
+            return final_response
+
+        except Exception as e:
+            logger.error(f"Error in planner-executor processing: {e}")
+            # Fallback to legacy architecture
+            return await self._process_with_legacy_architecture(
+                user_command, session_id, request_id
+            )
+
+    async def _process_with_legacy_architecture(
+        self,
+        user_command: str,
+        session_id: str,
+        request_id: str,
+    ) -> AgentResponse:
+        """Process command using legacy router-based architecture"""
+        try:
+            # 1. Get user profile and context
+            context = await self.memory_manager.get_context(session_id)
+            context.last_command = user_command
+            context.request_id = request_id
+
+            # 2. Log activity (only if profile_manager is available)
+            if self.profile_manager:
+                await self.profile_manager.log_activity(
+                    session_id, InteractionType.QUERY, user_command
+                )
 
             # 3. Detect intent
             intent = await self.intent_detector.detect_intent(user_command, context)
@@ -338,23 +475,23 @@ class Orchestrator:
                 context, {"last_response": agent_response}
             )
 
+            # 6. Trigger conversation summary update in background
+            if agent_response.success and len(context.history) >= 5:
+                try:
+                    from backend.tasks.conversation_tasks import update_conversation_summary_task
+                    update_conversation_summary_task.delay(session_id)
+                    logger.debug(f"Scheduled conversation summary update for session {session_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to schedule conversation summary update: {e}")
+
             logger.info(
-                f"[Request ID: {request_id}] Successfully processed command with agent response"
+                f"[Request ID: {request_id}] Successfully processed command with legacy architecture"
             )
             return agent_response
 
-        except OrchestratorError as e:
-            logger.error(
-                f"[Request ID: {request_id}] Orchestrator error: {e}", exc_info=True
-            )
-            return self._format_error_response(e)
         except Exception as e:
-            logger.error(
-                f"[Request ID: {request_id}] Unhandled error: {e}", exc_info=True
-            )
-            return self._format_error_response(
-                OrchestratorError(f"An unexpected error occurred: {e}")
-            )
+            logger.error(f"Error in legacy processing: {e}")
+            raise
 
     async def shutdown(self) -> None:
         """Perform graceful shutdown of orchestrator components."""

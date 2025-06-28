@@ -89,6 +89,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+from backend.settings import settings
+
 
 @dataclass
 class Stats:

@@ -17,7 +17,7 @@ from backend.core.hybrid_llm_client import hybrid_llm_client
 from backend.core.rag_integration import rag_integration
 from backend.infrastructure.database.database import get_db
 from backend.models.conversation import Conversation
-from backend.config import settings
+from backend.settings import settings
 
 logger = logging.getLogger(__name__)
 

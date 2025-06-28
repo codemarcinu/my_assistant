@@ -7,7 +7,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import httpx
 
-from backend.config import settings
+from backend.settings import settings
 
 logger = logging.getLogger(__name__)
 

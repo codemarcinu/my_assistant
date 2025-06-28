@@ -9,7 +9,7 @@ import ollama
 import requests  # type: ignore
 import structlog
 
-from ..config import OLLAMA_URL, settings
+from backend.settings import OLLAMA_URL, settings
 
 logger = structlog.get_logger()
 

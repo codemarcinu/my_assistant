@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 from abc import ABC, abstractmethod
 
-from backend.config import settings
+from backend.settings import settings
 
 logger = logging.getLogger(__name__)
 

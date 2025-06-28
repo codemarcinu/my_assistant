@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = "bielik:11b-q4_k_m"  # Model domyślny (polski)
     DEFAULT_CODE_MODEL: str = "bielik:11b-q4_k_m"  # Model do kodu
     DEFAULT_CHAT_MODEL: str = "bielik:11b-q4_k_m"  # Model do ogólnej konwersacji
+    DEFAULT_MODEL: str = "bielik:11b-q4_k_m"  # Model domyślny dla planisty
     DEFAULT_EMBEDDING_MODEL: str = "nomic-embed-text"  # Model do embeddingów
 
     # Lista dostępnych modeli (w kolejności preferencji)
@@ -95,6 +96,35 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_NAME: str = "FoodSave AI Assistant"
     TELEGRAM_MAX_MESSAGE_LENGTH: int = 4096
     TELEGRAM_RATE_LIMIT_PER_MINUTE: int = 30
+
+    # System Agentowy - Nowa Architektura
+    USE_PLANNER_EXECUTOR: bool = True  # Włącz nową architekturę planisty-egzekutora
+    ENABLE_CONVERSATION_SUMMARY: bool = True  # Włącz pamięć podsumowującą
+    CONVERSATION_SUMMARY_THRESHOLD: int = 5  # Minimalna liczba wiadomości do podsumowania
+    
+    # Konfiguracja Celery
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+    CELERY_TASK_TIME_LIMIT: int = 30 * 60  # 30 minut
+    CELERY_TASK_SOFT_TIME_LIMIT: int = 25 * 60  # 25 minut
+    
+    # Konfiguracja pamięci konwersacji
+    MEMORY_MAX_CONTEXTS: int = 1000
+    MEMORY_CLEANUP_THRESHOLD_RATIO: float = 0.8
+    MEMORY_ENABLE_PERSISTENCE: bool = True
+    MEMORY_ENABLE_SEMANTIC_CACHE: bool = True
+    
+    # Konfiguracja planisty
+    PLANNER_TEMPERATURE: float = 0.1  # Niska temperatura dla spójności planów
+    PLANNER_MAX_TOKENS: int = 4000  # Maksymalna liczba tokenów dla planisty
+    
+    # Konfiguracja syntezatora
+    SYNTHESIZER_TEMPERATURE: float = 0.3  # Średnia temperatura dla kreatywności
+    SYNTHESIZER_MAX_TOKENS: int = 2000  # Maksymalna liczba tokenów dla syntezatora
+    
+    # Konfiguracja egzekutora
+    EXECUTOR_MAX_STEPS: int = 10  # Maksymalna liczba kroków w planie
+    EXECUTOR_STEP_TIMEOUT: int = 60  # Timeout dla pojedynczego kroku (sekundy)
 
     # Ta linia mówi Pydantic, aby wczytał zmienne z pliku .env w głównym katalogu
     model_config = SettingsConfigDict(

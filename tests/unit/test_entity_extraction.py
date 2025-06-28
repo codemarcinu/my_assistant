@@ -9,7 +9,7 @@ import pytest_asyncio
 from backend.agents.prompts import get_entity_extraction_prompt
 from backend.agents.tools import generate_clarification_question_text
 from backend.agents.utils import extract_json_from_text
-from backend.config import settings
+from backend.settings import settings
 from backend.core import crud
 from backend.core.database import AsyncSessionLocal
 from backend.core.llm_client import llm_client

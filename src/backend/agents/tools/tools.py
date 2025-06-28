@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.shopping import Product, ShoppingTrip
 
-from backend.config import settings
+from backend.settings import settings
 from backend.core import crud
 from backend.core.llm_client import llm_client
 from backend.core.utils import extract_json_from_text

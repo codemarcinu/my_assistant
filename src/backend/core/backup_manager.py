@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, TypedDict
 import aiofiles
 from sqlalchemy import text
 
-from backend.config import settings
+from backend.settings import settings
 from backend.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
@@ -64,8 +64,12 @@ class BackupManager:
     """
 
     def __init__(self) -> None:
-        self.backup_dir = Path("backups")
-        self.backup_dir.mkdir(exist_ok=True)
+        # Use absolute path for backup directory
+        self.backup_dir = Path("/app/backups")
+        
+        # Only create backup directory if it doesn't exist
+        if not self.backup_dir.exists():
+            self.backup_dir.mkdir(exist_ok=True)
 
         # Create backup subdirectories
         self.db_backup_dir = self.backup_dir / "database"
@@ -79,7 +83,9 @@ class BackupManager:
             self.config_backup_dir,
             self.vector_backup_dir,
         ]:
-            dir_path.mkdir(exist_ok=True)
+            # Only create subdirectories if they don't exist
+            if not dir_path.exists():
+                dir_path.mkdir(exist_ok=True)
 
         # Backup retention settings
         self.daily_retention_days = 7
