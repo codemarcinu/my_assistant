@@ -47,6 +47,7 @@ services:
     volumes:
       - ./:/app  # Mapowanie całego katalogu projektu
       - ./logs/backend:/app/logs
+      - model_cache:/app/.cache/huggingface  # Cache dla modeli AI
     environment:
       - PYTHONPATH=/app:/app/src
       - ENVIRONMENT=${ENVIRONMENT:-development}
@@ -61,6 +62,8 @@ services:
       - DEFAULT_EMBEDDING_MODEL=${DEFAULT_EMBEDDING_MODEL:-nomic-embed-text}
       - RAG_VECTOR_STORE_PATH=${RAG_VECTOR_STORE_PATH:-/app/data/vector_store}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://frontend:3000}
+      - HF_HOME=/app/.cache/huggingface
+      - TRANSFORMERS_CACHE=/app/.cache/huggingface/transformers
     networks:
       - foodsave-network
     depends_on:
@@ -280,6 +283,8 @@ volumes:
     name: foodsave-redis-data
   frontend_node_modules:
     name: foodsave-frontend-node-modules
+  model_cache:
+    name: foodsave-model-cache
   prometheus_data:
     name: foodsave-prometheus-data
   grafana_data:

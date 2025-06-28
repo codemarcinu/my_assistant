@@ -95,6 +95,7 @@ class AgentType(Enum):
     COOKING = "Cooking"  # Alias dla CHEF
     CODE = "Code"  # Dla generowania kodu
     SHOPPING = "Shopping"  # Dla zakupów
+    RECEIPT_ANALYSIS = "ReceiptAnalysis"  # For structured receipt analysis
 
 
 class AgentStatus(Enum):

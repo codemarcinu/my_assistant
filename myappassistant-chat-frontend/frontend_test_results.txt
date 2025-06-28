@@ -645,7 +645,29 @@ useTheme must be used within a ThemeProvider
 
  FAIL  Tests failed. Watching for file changes...
        press h to show help, press q to quit
- 7.34s, collect 4.42s, tests 10.26s, environment 1ms, prepare 11088.20s)
+node:events:502
+      throw er; // Unhandled 'error' event
+      ^
 
- FAIL  Tests failed. Watching for file changes...
-       press h to show help, press q to quit
+Error: Worker exited unexpectedly
+    at ChildProcess.onUnexpectedExit (file:///home/marcin/Dokumentynode:events:502
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: Worker exited unexpectedly
+    at ChildProcess.onUnexpectedExit (file:///home/marcin/Dokumenty/agentai/makeit/AIASISSTMARUBO/myappassistant-chat-frontend/node_modules/tinypool/dist/index.js:118:30)
+    at ChildProcess.emit (node:events:536:35)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+    at Process.callbackTrampoline (node:internal/async_hooks:130:17)
+Emitted 'error' event on Tinypool instance at:
+    at EventEmitterReferencingAsyncResource.runInAsyncScope (node:async_hooks:206:9)
+    at Tinypool.emit (node:events:170:18)
+    at file:///home/marcin/Dokumenty/agentai/makeit/AIASISSTMARUBO/myappassistant-chat-frontend/node_modules/tinypool/dist/index.js:594:30
+    at ChildProcess.<anonymous> (file:///home/marcin/Dokumenty/agentai/makeit/AIASISSTMARUBO/myappassistant-chat-frontend/node_modules/tinypool/dist/index.js:162:34)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess.onUnexpectedExit (file:///home/marcin/Dokumenty/agentai/makeit/AIASISSTMARUBO/myappassistant-chat-frontend/node_modules/tinypool/dist/index.js:118:16)
+    at ChildProcess.emit (node:events:536:35)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+    at Process.callbackTrampoline (node:internal/async_hooks:130:17)
+
+Node.js v20.19.3

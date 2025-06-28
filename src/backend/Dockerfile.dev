@@ -47,6 +47,11 @@ FROM dependencies as application
 # Copy the entire application source code
 COPY . .
 
+# Pre-download AI models during build to avoid downloading at runtime
+COPY scripts/preload_models.py /app/scripts/
+RUN chmod +x /app/scripts/preload_models.py && \
+    python /app/scripts/preload_models.py
+
 # Ensure the main.py file uses the correct import path
 RUN echo 'from backend.app_factory import create_app\napp = create_app()' > main.py
 

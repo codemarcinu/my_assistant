@@ -1,0 +1,321 @@
+{
+  "version": "2021-09-21",
+  "description": "Filtered Google Product Taxonomy for Polish FMCG",
+  "categories": [
+    {
+      "id": "1",
+      "gpt_id": "976760",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Dairy Products > Milk & Cream",
+      "name_pl": "Nabiał > Mleko i śmietana",
+      "name_en": "Dairy Products > Milk & Cream",
+      "keywords": ["mleko", "śmietana", "mleko uht", "mleko świeże", "mleko bez laktozy", "mleko 3.2%", "mleko 2%", "mleko 0.5%", "śmietana 18%", "śmietana 30%", "śmietana 12%"],
+      "parent_id": null
+    },
+    {
+      "id": "2",
+      "gpt_id": "976761",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Dairy Products > Cheese",
+      "name_pl": "Nabiał > Sery",
+      "name_en": "Dairy Products > Cheese",
+      "keywords": ["ser", "ser żółty", "ser biały", "twaróg", "ser pleśniowy", "ser mozzarella", "ser parmezan", "ser cheddar", "ser gouda", "ser edamski", "oscypek", "bryndza"],
+      "parent_id": null
+    },
+    {
+      "id": "3",
+      "gpt_id": "976762",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Dairy Products > Yogurt",
+      "name_pl": "Nabiał > Jogurty",
+      "name_en": "Dairy Products > Yogurt",
+      "keywords": ["jogurt", "jogurt naturalny", "jogurt owocowy", "jogurt grecki", "jogurt pitny", "kefir", "maślanka"],
+      "parent_id": null
+    },
+    {
+      "id": "4",
+      "gpt_id": "976763",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Dairy Products > Butter & Margarine",
+      "name_pl": "Nabiał > Masło i margaryna",
+      "name_en": "Dairy Products > Butter & Margarine",
+      "keywords": ["masło", "margaryna", "masło ekstra", "masło 82%", "margaryna roślinna", "miks tłuszczowy"],
+      "parent_id": null
+    },
+    {
+      "id": "5",
+      "gpt_id": "976764",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Bread & Bakery Products > Bread",
+      "name_pl": "Pieczywo > Chleby",
+      "name_en": "Bread & Bakery Products > Bread",
+      "keywords": ["chleb", "chleb żytni", "chleb pszenny", "chleb razowy", "chleb pełnoziarnisty", "chleb tostowy", "bułka", "bułka grahamka", "bułka kajzerka", "bułka pszenna"],
+      "parent_id": null
+    },
+    {
+      "id": "6",
+      "gpt_id": "976765",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Bread & Bakery Products > Pastries & Sweet Goods",
+      "name_pl": "Pieczywo > Słodkie wypieki",
+      "name_en": "Bread & Bakery Products > Pastries & Sweet Goods",
+      "keywords": ["ciasto", "ciastko", "rogal", "pączek", "drożdżówka", "sernik", "makowiec", "chałka", "bajaderka", "wafel", "herbatnik"],
+      "parent_id": null
+    },
+    {
+      "id": "7",
+      "gpt_id": "976766",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Meat & Seafood > Fresh Meat",
+      "name_pl": "Mięso > Mięso świeże",
+      "name_en": "Meat & Seafood > Fresh Meat",
+      "keywords": ["mięso", "wieprzowina", "wołowina", "drób", "kurczak", "indyk", "kaczka", "gęś", "baranina", "cielęcina", "schab", "łopatka", "karkówka", "polędwica"],
+      "parent_id": null
+    },
+    {
+      "id": "8",
+      "gpt_id": "976767",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Meat & Seafood > Processed Meat",
+      "name_pl": "Mięso > Przetwory mięsne",
+      "name_en": "Meat & Seafood > Processed Meat",
+      "keywords": ["wędlina", "kiełbasa", "szynka", "salami", "parówka", "kaszanka", "pasztet", "mortadela", "baleron", "polędwica", "kabanos"],
+      "parent_id": null
+    },
+    {
+      "id": "9",
+      "gpt_id": "976768",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Fruits & Vegetables > Fresh Fruits",
+      "name_pl": "Owoce i warzywa > Owoce świeże",
+      "name_en": "Fruits & Vegetables > Fresh Fruits",
+      "keywords": ["jabłko", "banan", "pomarańcza", "mandarynka", "gruszka", "śliwka", "wiśnia", "czereśnia", "truskawka", "malina", "borówka", "winogrono", "kiwi", "ananas"],
+      "parent_id": null
+    },
+    {
+      "id": "10",
+      "gpt_id": "976769",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Fruits & Vegetables > Fresh Vegetables",
+      "name_pl": "Owoce i warzywa > Warzywa świeże",
+      "name_en": "Fruits & Vegetables > Fresh Vegetables",
+      "keywords": ["pomidor", "ogórek", "marchew", "cebula", "ziemniak", "papryka", "sałata", "kapusta", "kalafior", "brokuł", "fasola", "groszek", "kukurydza"],
+      "parent_id": null
+    },
+    {
+      "id": "11",
+      "gpt_id": "976770",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Canned & Jarred Foods",
+      "name_pl": "Konserwy i przetwory",
+      "name_en": "Canned & Jarred Foods",
+      "keywords": ["konserwa", "pomidor w puszce", "groszek w puszce", "kukurydza w puszce", "tuńczyk w puszce", "makrela w puszce", "dżem", "konfitura", "przecier", "pasta"],
+      "parent_id": null
+    },
+    {
+      "id": "12",
+      "gpt_id": "976771",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Frozen Foods",
+      "name_pl": "Mrożonki",
+      "name_en": "Frozen Foods",
+      "keywords": ["mrożonka", "mrożone warzywa", "mrożone owoce", "mrożona pizza", "lody", "mrożone frytki", "mrożone pierogi"],
+      "parent_id": null
+    },
+    {
+      "id": "13",
+      "gpt_id": "976772",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Pasta & Noodles",
+      "name_pl": "Makaron i kluski",
+      "name_en": "Pasta & Noodles",
+      "keywords": ["makaron", "spaghetti", "penne", "fusilli", "tagliatelle", "lasagne", "pierogi", "kluski", "kopytka", "pyzy"],
+      "parent_id": null
+    },
+    {
+      "id": "14",
+      "gpt_id": "976773",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Rice & Grains",
+      "name_pl": "Ryż i zboża",
+      "name_en": "Rice & Grains",
+      "keywords": ["ryż", "kasza", "kasza gryczana", "kasza jęczmienna", "kasza manna", "płatki owsiane", "płatki kukurydziane", "musli", "granola"],
+      "parent_id": null
+    },
+    {
+      "id": "15",
+      "gpt_id": "976774",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Snack Foods",
+      "name_pl": "Przekąski",
+      "name_en": "Snack Foods",
+      "keywords": ["chipsy", "paluszki", "orzeszki", "popcorn", "krakersy", "precelki", "słone przekąski", "orzechy", "migdały", "pistacje"],
+      "parent_id": null
+    },
+    {
+      "id": "16",
+      "gpt_id": "976775",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Candy & Chocolate",
+      "name_pl": "Słodycze i czekolada",
+      "name_en": "Candy & Chocolate",
+      "keywords": ["czekolada", "batonik", "cukierki", "lizaki", "żelki", "drażetki", "praliny", "czekolada mleczna", "czekolada gorzka", "czekolada biała"],
+      "parent_id": null
+    },
+    {
+      "id": "17",
+      "gpt_id": "976776",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Baking Supplies",
+      "name_pl": "Produkty do pieczenia",
+      "name_en": "Baking Supplies",
+      "keywords": ["mąka", "cukier", "drożdże", "proszek do pieczenia", "soda oczyszczona", "kakao", "wanilia", "cynamon", "przyprawy do ciasta"],
+      "parent_id": null
+    },
+    {
+      "id": "18",
+      "gpt_id": "976777",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Condiments & Sauces",
+      "name_pl": "Przyprawy i sosy",
+      "name_en": "Condiments & Sauces",
+      "keywords": ["ketchup", "majonez", "musztarda", "sos sojowy", "sos tabasco", "sos barbecue", "przyprawy", "sól", "pieprz", "papryka", "oregano", "bazylia"],
+      "parent_id": null
+    },
+    {
+      "id": "19",
+      "gpt_id": "976778",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Oils & Vinegars",
+      "name_pl": "Oleje i octy",
+      "name_en": "Oils & Vinegars",
+      "keywords": ["olej", "olej rzepakowy", "olej słonecznikowy", "olej oliwkowy", "ocet", "ocet winny", "ocet jabłkowy", "olej kokosowy"],
+      "parent_id": null
+    },
+    {
+      "id": "20",
+      "gpt_id": "976779",
+      "gpt_path": "Food, Beverages & Tobacco > Beverages > Soft Drinks",
+      "name_pl": "Napoje > Napoje gazowane",
+      "name_en": "Beverages > Soft Drinks",
+      "keywords": ["cola", "pepsi", "fanta", "sprite", "7up", "napój gazowany", "lemoniada", "tonik", "woda gazowana"],
+      "parent_id": null
+    },
+    {
+      "id": "21",
+      "gpt_id": "976780",
+      "gpt_path": "Food, Beverages & Tobacco > Beverages > Water",
+      "name_pl": "Napoje > Woda",
+      "name_en": "Beverages > Water",
+      "keywords": ["woda", "woda mineralna", "woda źródlana", "woda gazowana", "woda niegazowana"],
+      "parent_id": null
+    },
+    {
+      "id": "22",
+      "gpt_id": "976781",
+      "gpt_path": "Food, Beverages & Tobacco > Beverages > Juices & Fruit Drinks",
+      "name_pl": "Napoje > Soki i napoje owocowe",
+      "name_en": "Beverages > Juices & Fruit Drinks",
+      "keywords": ["sok", "sok pomarańczowy", "sok jabłkowy", "sok wieloowocowy", "nektar", "napój owocowy", "kompot"],
+      "parent_id": null
+    },
+    {
+      "id": "23",
+      "gpt_id": "976782",
+      "gpt_path": "Food, Beverages & Tobacco > Beverages > Coffee & Tea",
+      "name_pl": "Napoje > Kawa i herbata",
+      "name_en": "Beverages > Coffee & Tea",
+      "keywords": ["kawa", "herbata", "kawa mielona", "kawa rozpuszczalna", "herbata czarna", "herbata zielona", "herbata owocowa", "kawa ziarnista"],
+      "parent_id": null
+    },
+    {
+      "id": "24",
+      "gpt_id": "976783",
+      "gpt_path": "Food, Beverages & Tobacco > Beverages > Alcoholic Beverages",
+      "name_pl": "Napoje > Napoje alkoholowe",
+      "name_en": "Beverages > Alcoholic Beverages",
+      "keywords": ["piwo", "wino", "wódka", "whisky", "rum", "gin", "likier", "szampan", "prosecco"],
+      "parent_id": null
+    },
+    {
+      "id": "25",
+      "gpt_id": "976784",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Baby Food",
+      "name_pl": "Żywność dla dzieci",
+      "name_en": "Baby Food",
+      "keywords": ["żywność dla dzieci", "mleko modyfikowane", "kasza dla dzieci", "deser dla dzieci", "sok dla dzieci", "herbatka dla dzieci"],
+      "parent_id": null
+    },
+    {
+      "id": "26",
+      "gpt_id": "976785",
+      "gpt_path": "Food, Beverages & Tobacco > Food Items > Pet Food",
+      "name_pl": "Karma dla zwierząt",
+      "name_en": "Pet Food",
+      "keywords": ["karma dla psa", "karma dla kota", "karma dla ptaków", "karma dla rybek", "przysmaki dla zwierząt"],
+      "parent_id": null
+    },
+    {
+      "id": "27",
+      "gpt_id": "976786",
+      "gpt_path": "Health & Beauty > Personal Care > Oral Care",
+      "name_pl": "Higiena osobista > Higiena jamy ustnej",
+      "name_en": "Personal Care > Oral Care",
+      "keywords": ["pasta do zębów", "szczoteczka do zębów", "płyn do płukania", "nitka dentystyczna", "gumy do żucia"],
+      "parent_id": null
+    },
+    {
+      "id": "28",
+      "gpt_id": "976787",
+      "gpt_path": "Health & Beauty > Personal Care > Hair Care",
+      "name_pl": "Higiena osobista > Pielęgnacja włosów",
+      "name_en": "Personal Care > Hair Care",
+      "keywords": ["szampon", "odżywka", "żel do włosów", "lakier do włosów", "szczotka do włosów", "grzebień"],
+      "parent_id": null
+    },
+    {
+      "id": "29",
+      "gpt_id": "976788",
+      "gpt_path": "Health & Beauty > Personal Care > Skin Care",
+      "name_pl": "Higiena osobista > Pielęgnacja skóry",
+      "name_en": "Personal Care > Skin Care",
+      "keywords": ["krem", "mydło", "żel pod prysznic", "dezodorant", "perfumy", "woda toaletowa", "balsam do ciała"],
+      "parent_id": null
+    },
+    {
+      "id": "30",
+      "gpt_id": "976789",
+      "gpt_path": "Health & Beauty > Personal Care > Feminine Care",
+      "name_pl": "Higiena osobista > Higiena damska",
+      "name_en": "Personal Care > Feminine Care",
+      "keywords": ["podpaski", "tampony", "wkładki higieniczne"],
+      "parent_id": null
+    },
+    {
+      "id": "31",
+      "gpt_id": "976790",
+      "gpt_path": "Health & Beauty > Personal Care > Baby Care",
+      "name_pl": "Higiena osobista > Pielęgnacja niemowląt",
+      "name_en": "Personal Care > Baby Care",
+      "keywords": ["pieluchy", "chusteczki nawilżane", "płyn do kąpieli", "krem dla dzieci", "szampon dla dzieci"],
+      "parent_id": null
+    },
+    {
+      "id": "32",
+      "gpt_id": "976791",
+      "gpt_path": "Home & Garden > Household Supplies > Cleaning Supplies",
+      "name_pl": "Dom i ogród > Artykuły gospodarstwa domowego > Środki czystości",
+      "name_en": "Household Supplies > Cleaning Supplies",
+      "keywords": ["proszek do prania", "płyn do naczyń", "płyn do podłóg", "płyn do toalet", "środek do mycia okien", "gąbki", "ręczniki papierowe", "papier toaletowy"],
+      "parent_id": null
+    },
+    {
+      "id": "33",
+      "gpt_id": "976792",
+      "gpt_path": "Home & Garden > Household Supplies > Paper Products",
+      "name_pl": "Dom i ogród > Artykuły gospodarstwa domowego > Produkty papierowe",
+      "name_en": "Household Supplies > Paper Products",
+      "keywords": ["papier toaletowy", "ręczniki papierowe", "chusteczki higieniczne", "serwetki", "papier do pieczenia", "folia aluminiowa", "folia spożywcza"],
+      "parent_id": null
+    },
+    {
+      "id": "34",
+      "gpt_id": "976793",
+      "gpt_path": "Home & Garden > Household Supplies > Laundry Supplies",
+      "name_pl": "Dom i ogród > Artykuły gospodarstwa domowego > Artykuły do prania",
+      "name_en": "Household Supplies > Laundry Supplies",
+      "keywords": ["proszek do prania", "płyn do płukania", "wybielacz", "odplamiacz", "krochmal"],
+      "parent_id": null
+    },
+    {
+      "id": "35",
+      "gpt_id": "976794",
+      "gpt_path": "Other",
+      "name_pl": "Inne",
+      "name_en": "Other",
+      "keywords": ["inne", "nieznane", "niekategoryzowane"],
+      "parent_id": null
+    }
+  ]
+} 

@@ -1,4 +1,4 @@
-exclude: '(^foodsave-frontend/node_modules/|foodsave-frontend/.next/|archive/code_fixes/)'
+exclude: '(^myappassistant-chat-frontend/node_modules/|myappassistant-chat-frontend/.next/|archive/code_fixes/)'
 repos:
   - repo: https://github.com/psf/black
     rev: 25.1.0

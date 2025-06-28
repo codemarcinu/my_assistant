@@ -1,0 +1,486 @@
+{
+  "version": "1.0",
+  "description": "Słownik normalizacji nazw produktów spożywczych",
+  "normalizations": [
+    {
+      "original": "mleko 3,2%",
+      "normalized": "Mleko 3.2%",
+      "category": "dairy",
+      "keywords": ["mleko", "3.2%", "3,2%", "3.2", "3,2"]
+    },
+    {
+      "original": "mleko 2%",
+      "normalized": "Mleko 2%",
+      "category": "dairy",
+      "keywords": ["mleko", "2%", "2.0%"]
+    },
+    {
+      "original": "mleko 0,5%",
+      "normalized": "Mleko 0.5%",
+      "category": "dairy",
+      "keywords": ["mleko", "0.5%", "0,5%", "0.5", "0,5"]
+    },
+    {
+      "original": "mleko bez laktozy",
+      "normalized": "Mleko bez laktozy",
+      "category": "dairy",
+      "keywords": ["mleko", "bez laktozy", "laktose free"]
+    },
+    {
+      "original": "ser żółty",
+      "normalized": "Ser żółty",
+      "category": "dairy",
+      "keywords": ["ser", "żółty", "zolty", "yellow cheese"]
+    },
+    {
+      "original": "ser biały",
+      "normalized": "Ser biały",
+      "category": "dairy",
+      "keywords": ["ser", "biały", "bialy", "white cheese", "twaróg"]
+    },
+    {
+      "original": "jogurt naturalny",
+      "normalized": "Jogurt naturalny",
+      "category": "dairy",
+      "keywords": ["jogurt", "naturalny", "natural", "plain yogurt"]
+    },
+    {
+      "original": "jogurt grecki",
+      "normalized": "Jogurt grecki",
+      "category": "dairy",
+      "keywords": ["jogurt", "grecki", "greek yogurt"]
+    },
+    {
+      "original": "masło ekstra",
+      "normalized": "Masło ekstra",
+      "category": "dairy",
+      "keywords": ["masło", "maslo", "ekstra", "extra", "butter"]
+    },
+    {
+      "original": "chleb żytni",
+      "normalized": "Chleb żytni",
+      "category": "bread",
+      "keywords": ["chleb", "żytni", "zytni", "rye bread"]
+    },
+    {
+      "original": "chleb pszenny",
+      "normalized": "Chleb pszenny",
+      "category": "bread",
+      "keywords": ["chleb", "pszenny", "wheat bread"]
+    },
+    {
+      "original": "chleb razowy",
+      "normalized": "Chleb razowy",
+      "category": "bread",
+      "keywords": ["chleb", "razowy", "whole grain bread"]
+    },
+    {
+      "original": "bułka kajzerka",
+      "normalized": "Bułka kajzerka",
+      "category": "bread",
+      "keywords": ["bułka", "bulka", "kajzerka", "kaiser roll"]
+    },
+    {
+      "original": "bułka grahamka",
+      "normalized": "Bułka grahamka",
+      "category": "bread",
+      "keywords": ["bułka", "bulka", "grahamka", "graham roll"]
+    },
+    {
+      "original": "schab wieprzowy",
+      "normalized": "Schab wieprzowy",
+      "category": "meat",
+      "keywords": ["schab", "wieprzowy", "pork loin"]
+    },
+    {
+      "original": "karkówka",
+      "normalized": "Karkówka",
+      "category": "meat",
+      "keywords": ["karkówka", "karkowka", "pork neck"]
+    },
+    {
+      "original": "polędwica",
+      "normalized": "Polędwica",
+      "category": "meat",
+      "keywords": ["polędwica", "poledwica", "tenderloin"]
+    },
+    {
+      "original": "szynka",
+      "normalized": "Szynka",
+      "category": "meat",
+      "keywords": ["szynka", "ham"]
+    },
+    {
+      "original": "kiełbasa",
+      "normalized": "Kiełbasa",
+      "category": "meat",
+      "keywords": ["kiełbasa", "kielbasa", "sausage"]
+    },
+    {
+      "original": "parówka",
+      "normalized": "Parówka",
+      "category": "meat",
+      "keywords": ["parówka", "parowka", "frankfurter"]
+    },
+    {
+      "original": "jabłko",
+      "normalized": "Jabłko",
+      "category": "fruits",
+      "keywords": ["jabłko", "jablko", "apple"]
+    },
+    {
+      "original": "banan",
+      "normalized": "Banan",
+      "category": "fruits",
+      "keywords": ["banan", "banana"]
+    },
+    {
+      "original": "pomarańcza",
+      "normalized": "Pomarańcza",
+      "category": "fruits",
+      "keywords": ["pomarańcza", "pomarancza", "orange"]
+    },
+    {
+      "original": "pomidor",
+      "normalized": "Pomidor",
+      "category": "vegetables",
+      "keywords": ["pomidor", "tomato"]
+    },
+    {
+      "original": "ogórek",
+      "normalized": "Ogórek",
+      "category": "vegetables",
+      "keywords": ["ogórek", "ogorek", "cucumber"]
+    },
+    {
+      "original": "marchew",
+      "normalized": "Marchew",
+      "category": "vegetables",
+      "keywords": ["marchew", "carrot"]
+    },
+    {
+      "original": "cebula",
+      "normalized": "Cebula",
+      "category": "vegetables",
+      "keywords": ["cebula", "onion"]
+    },
+    {
+      "original": "ziemniak",
+      "normalized": "Ziemniak",
+      "category": "vegetables",
+      "keywords": ["ziemniak", "potato"]
+    },
+    {
+      "original": "makaron spaghetti",
+      "normalized": "Makaron spaghetti",
+      "category": "pasta",
+      "keywords": ["makaron", "spaghetti", "pasta"]
+    },
+    {
+      "original": "makaron penne",
+      "normalized": "Makaron penne",
+      "category": "pasta",
+      "keywords": ["makaron", "penne", "pasta"]
+    },
+    {
+      "original": "ryż biały",
+      "normalized": "Ryż biały",
+      "category": "grains",
+      "keywords": ["ryż", "ryz", "biały", "bialy", "white rice"]
+    },
+    {
+      "original": "kasza gryczana",
+      "normalized": "Kasza gryczana",
+      "category": "grains",
+      "keywords": ["kasza", "gryczana", "buckwheat"]
+    },
+    {
+      "original": "płatki owsiane",
+      "normalized": "Płatki owsiane",
+      "category": "grains",
+      "keywords": ["płatki", "platki", "owsiane", "oatmeal"]
+    },
+    {
+      "original": "płatki kukurydziane",
+      "normalized": "Płatki kukurydziane",
+      "category": "grains",
+      "keywords": ["płatki", "platki", "kukurydziane", "corn flakes"]
+    },
+    {
+      "original": "chipsy",
+      "normalized": "Chipsy",
+      "category": "snacks",
+      "keywords": ["chipsy", "chips", "crisps"]
+    },
+    {
+      "original": "orzeszki ziemne",
+      "normalized": "Orzeszki ziemne",
+      "category": "snacks",
+      "keywords": ["orzeszki", "ziemne", "peanuts"]
+    },
+    {
+      "original": "czekolada mleczna",
+      "normalized": "Czekolada mleczna",
+      "category": "sweets",
+      "keywords": ["czekolada", "mleczna", "milk chocolate"]
+    },
+    {
+      "original": "czekolada gorzka",
+      "normalized": "Czekolada gorzka",
+      "category": "sweets",
+      "keywords": ["czekolada", "gorzka", "dark chocolate"]
+    },
+    {
+      "original": "batonik",
+      "normalized": "Batonik",
+      "category": "sweets",
+      "keywords": ["batonik", "candy bar"]
+    },
+    {
+      "original": "cukier",
+      "normalized": "Cukier",
+      "category": "baking",
+      "keywords": ["cukier", "sugar"]
+    },
+    {
+      "original": "mąka pszenna",
+      "normalized": "Mąka pszenna",
+      "category": "baking",
+      "keywords": ["mąka", "maka", "pszenna", "wheat flour"]
+    },
+    {
+      "original": "drożdże",
+      "normalized": "Drożdże",
+      "category": "baking",
+      "keywords": ["drożdże", "drozdze", "yeast"]
+    },
+    {
+      "original": "ketchup",
+      "normalized": "Ketchup",
+      "category": "condiments",
+      "keywords": ["ketchup", "tomato sauce"]
+    },
+    {
+      "original": "majonez",
+      "normalized": "Majonez",
+      "category": "condiments",
+      "keywords": ["majonez", "mayonnaise"]
+    },
+    {
+      "original": "musztarda",
+      "normalized": "Musztarda",
+      "category": "condiments",
+      "keywords": ["musztarda", "mustard"]
+    },
+    {
+      "original": "sól",
+      "normalized": "Sól",
+      "category": "condiments",
+      "keywords": ["sól", "sol", "salt"]
+    },
+    {
+      "original": "pieprz",
+      "normalized": "Pieprz",
+      "category": "condiments",
+      "keywords": ["pieprz", "pepper"]
+    },
+    {
+      "original": "olej rzepakowy",
+      "normalized": "Olej rzepakowy",
+      "category": "oils",
+      "keywords": ["olej", "rzepakowy", "rapeseed oil"]
+    },
+    {
+      "original": "olej słonecznikowy",
+      "normalized": "Olej słonecznikowy",
+      "category": "oils",
+      "keywords": ["olej", "słonecznikowy", "slonecznikowy", "sunflower oil"]
+    },
+    {
+      "original": "olej oliwkowy",
+      "normalized": "Olej oliwkowy",
+      "category": "oils",
+      "keywords": ["olej", "oliwkowy", "olive oil"]
+    },
+    {
+      "original": "ocet winny",
+      "normalized": "Ocet winny",
+      "category": "oils",
+      "keywords": ["ocet", "winny", "wine vinegar"]
+    },
+    {
+      "original": "cola",
+      "normalized": "Cola",
+      "category": "beverages",
+      "keywords": ["cola", "coca-cola", "coca cola"]
+    },
+    {
+      "original": "pepsi",
+      "normalized": "Pepsi",
+      "category": "beverages",
+      "keywords": ["pepsi", "pepsi-cola"]
+    },
+    {
+      "original": "fanta",
+      "normalized": "Fanta",
+      "category": "beverages",
+      "keywords": ["fanta", "orange soda"]
+    },
+    {
+      "original": "sprite",
+      "normalized": "Sprite",
+      "category": "beverages",
+      "keywords": ["sprite", "lemon-lime soda"]
+    },
+    {
+      "original": "woda mineralna",
+      "normalized": "Woda mineralna",
+      "category": "beverages",
+      "keywords": ["woda", "mineralna", "mineral water"]
+    },
+    {
+      "original": "woda gazowana",
+      "normalized": "Woda gazowana",
+      "category": "beverages",
+      "keywords": ["woda", "gazowana", "sparkling water"]
+    },
+    {
+      "original": "sok pomarańczowy",
+      "normalized": "Sok pomarańczowy",
+      "category": "beverages",
+      "keywords": ["sok", "pomarańczowy", "pomaranczowy", "orange juice"]
+    },
+    {
+      "original": "sok jabłkowy",
+      "normalized": "Sok jabłkowy",
+      "category": "beverages",
+      "keywords": ["sok", "jabłkowy", "jablkowy", "apple juice"]
+    },
+    {
+      "original": "kawa mielona",
+      "normalized": "Kawa mielona",
+      "category": "beverages",
+      "keywords": ["kawa", "mielona", "ground coffee"]
+    },
+    {
+      "original": "kawa rozpuszczalna",
+      "normalized": "Kawa rozpuszczalna",
+      "category": "beverages",
+      "keywords": ["kawa", "rozpuszczalna", "instant coffee"]
+    },
+    {
+      "original": "herbata czarna",
+      "normalized": "Herbata czarna",
+      "category": "beverages",
+      "keywords": ["herbata", "czarna", "black tea"]
+    },
+    {
+      "original": "herbata zielona",
+      "normalized": "Herbata zielona",
+      "category": "beverages",
+      "keywords": ["herbata", "zielona", "green tea"]
+    },
+    {
+      "original": "piwo",
+      "normalized": "Piwo",
+      "category": "alcohol",
+      "keywords": ["piwo", "beer"]
+    },
+    {
+      "original": "wino czerwone",
+      "normalized": "Wino czerwone",
+      "category": "alcohol",
+      "keywords": ["wino", "czerwone", "red wine"]
+    },
+    {
+      "original": "wino białe",
+      "normalized": "Wino białe",
+      "category": "alcohol",
+      "keywords": ["wino", "białe", "biale", "white wine"]
+    },
+    {
+      "original": "wódka",
+      "normalized": "Wódka",
+      "category": "alcohol",
+      "keywords": ["wódka", "wodka", "vodka"]
+    },
+    {
+      "original": "pasta do zębów",
+      "normalized": "Pasta do zębów",
+      "category": "hygiene",
+      "keywords": ["pasta", "zębów", "zebow", "toothpaste"]
+    },
+    {
+      "original": "szczoteczka do zębów",
+      "normalized": "Szczoteczka do zębów",
+      "category": "hygiene",
+      "keywords": ["szczoteczka", "zębów", "zebow", "toothbrush"]
+    },
+    {
+      "original": "szampon",
+      "normalized": "Szampon",
+      "category": "hygiene",
+      "keywords": ["szampon", "shampoo"]
+    },
+    {
+      "original": "mydło",
+      "normalized": "Mydło",
+      "category": "hygiene",
+      "keywords": ["mydło", "mydlo", "soap"]
+    },
+    {
+      "original": "dezodorant",
+      "normalized": "Dezodorant",
+      "category": "hygiene",
+      "keywords": ["dezodorant", "deodorant"]
+    },
+    {
+      "original": "papier toaletowy",
+      "normalized": "Papier toaletowy",
+      "category": "household",
+      "keywords": ["papier", "toaletowy", "toilet paper"]
+    },
+    {
+      "original": "ręczniki papierowe",
+      "normalized": "Ręczniki papierowe",
+      "category": "household",
+      "keywords": ["ręczniki", "reczniki", "papierowe", "paper towels"]
+    },
+    {
+      "original": "proszek do prania",
+      "normalized": "Proszek do prania",
+      "category": "household",
+      "keywords": ["proszek", "prania", "laundry detergent"]
+    },
+    {
+      "original": "płyn do naczyń",
+      "normalized": "Płyn do naczyń",
+      "category": "household",
+      "keywords": ["płyn", "plyn", "naczyn", "dish soap"]
+    },
+    {
+      "original": "pieluchy",
+      "normalized": "Pieluchy",
+      "category": "baby",
+      "keywords": ["pieluchy", "diapers"]
+    },
+    {
+      "original": "mleko modyfikowane",
+      "normalized": "Mleko modyfikowane",
+      "category": "baby",
+      "keywords": ["mleko", "modyfikowane", "formula"]
+    },
+    {
+      "original": "karma dla psa",
+      "normalized": "Karma dla psa",
+      "category": "pet",
+      "keywords": ["karma", "psa", "dog food"]
+    },
+    {
+      "original": "karma dla kota",
+      "normalized": "Karma dla kota",
+      "category": "pet",
+      "keywords": ["karma", "kota", "cat food"]
+    }
+  ]
+} 

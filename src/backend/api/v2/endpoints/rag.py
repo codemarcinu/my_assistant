@@ -341,9 +341,9 @@ async def query_rag(
         response = await rag_integration.query_rag(request.question, db)
         return RAGQueryResponse(
             success=True,
-            answer=response.answer,
-            sources=response.sources,
-            confidence=response.confidence,
+            answer=response["answer"],
+            sources=response["sources"],
+            confidence=response["confidence"],
         )
     except Exception as e:
         logger.error(f"Error querying RAG system: {e}")

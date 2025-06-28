@@ -12,6 +12,8 @@ from backend.core.profile_manager import ProfileManager
 
 from backend.agents.agent_factory import AgentFactory
 from backend.agents.agent_registry import AgentRegistry
+from backend.agents.receipt_analysis_agent import ReceiptAnalysisAgent
+from backend.agents.interfaces import AgentType
 
 
 def create_orchestrator(db: AsyncSession) -> Orchestrator:
@@ -42,6 +44,11 @@ def create_orchestrator(db: AsyncSession) -> Orchestrator:
     # Utwórz router agentów
     agent_router = AgentRouter()
     logger.debug("AgentRouter created")
+
+    # Zarejestruj ReceiptAnalysisAgent
+    agent_router.register_agent(
+        AgentType.RECEIPT_ANALYSIS, ReceiptAnalysisAgent()
+    )
 
     # Utwórz menedżera pamięci
     memory_manager = MemoryManager()

@@ -22,7 +22,7 @@ const WeatherPage: React.FC = () => {
 
       // Load forecast
       const forecastResponse = await weatherAPI.getForecast(location, 7);
-      setForecast(forecastResponse.data.forecast);
+      setForecast(forecastResponse.data.forecast || []);
     } catch (err) {
       setError('Błąd podczas ładowania danych pogodowych');
       console.error('Failed to load weather data:', err);
@@ -53,12 +53,13 @@ const WeatherPage: React.FC = () => {
   };
 
   // Format date
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
     return new Intl.DateTimeFormat('pl-PL', {
       weekday: 'short',
       day: 'numeric',
       month: 'short'
-    }).format(new Date(date));
+    }).format(dateObj);
   };
 
   // Format temperature

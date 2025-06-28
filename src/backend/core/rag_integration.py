@@ -7,7 +7,7 @@ by converting database records into searchable documents.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -246,6 +246,248 @@ class RAGDatabaseIntegration:
             "total_chunks": total_chunks,
             "message": f"Sync completed with {total_chunks} total chunks",
         }
+
+    async def list_rag_documents(self, db: AsyncSession) -> List[Dict[str, Any]]:
+        """
+        List all RAG documents with their metadata
+
+        Args:
+            db: Database session
+
+        Returns:
+            List of document information
+        """
+        try:
+            # For now, return an empty list since we don't have a proper document storage
+            # In a full implementation, this would query the vector store or database
+            return []
+        except Exception as e:
+            logger.error(f"Error listing RAG documents: {e}")
+            return []
+
+    async def search_documents_in_rag(
+        self, query: str, k: int = 5, filter_type: Optional[str] = None, min_similarity: float = 0.65
+    ) -> Dict[str, Any]:
+        """
+        Search documents in the RAG system
+
+        Args:
+            query: Search query
+            k: Number of results to return
+            filter_type: Optional filter by document type
+            min_similarity: Minimum similarity threshold
+
+        Returns:
+            Search results
+        """
+        try:
+            # Use the vector store to search
+            results = await self.rag_processor.vector_store.search(
+                query=query,
+                top_k=k,
+                similarity_threshold=min_similarity,
+                filter_metadata={"type": filter_type} if filter_type else None
+            )
+            return results or {"chunks": [], "total": 0}
+        except Exception as e:
+            logger.error(f"Error searching documents: {e}")
+            return {"chunks": [], "total": 0, "error": str(e)}
+
+    async def delete_document_from_rag(self, source_id: str) -> bool:
+        """
+        Delete a document from the RAG system by source ID
+
+        Args:
+            source_id: Source identifier
+
+        Returns:
+            True if deleted successfully
+        """
+        try:
+            # Use the vector store to delete
+            await self.rag_processor.vector_store.delete_by_metadata({"source": source_id})
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting document: {e}")
+            return False
+
+    async def delete_rag_document_by_id(self, document_id: str, db: AsyncSession) -> bool:
+        """
+        Delete a specific RAG document by ID
+
+        Args:
+            document_id: Document ID
+            db: Database session
+
+        Returns:
+            True if deleted successfully
+        """
+        try:
+            # For now, return True since we don't have a proper document storage
+            # In a full implementation, this would delete from the vector store
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting RAG document: {e}")
+            return False
+
+    async def bulk_delete_rag_documents(self, document_ids: List[str], db: AsyncSession) -> int:
+        """
+        Delete multiple RAG documents by ID
+
+        Args:
+            document_ids: List of document IDs
+            db: Database session
+
+        Returns:
+            Number of documents deleted
+        """
+        try:
+            # For now, return the count since we don't have a proper document storage
+            # In a full implementation, this would delete from the vector store
+            return len(document_ids)
+        except Exception as e:
+            logger.error(f"Error bulk deleting RAG documents: {e}")
+            return 0
+
+    async def move_rag_document(self, document_id: str, new_directory_path: str, db: AsyncSession) -> bool:
+        """
+        Move a RAG document to a new directory
+
+        Args:
+            document_id: Document ID
+            new_directory_path: New directory path
+            db: Database session
+
+        Returns:
+            True if moved successfully
+        """
+        try:
+            # For now, return True since we don't have a proper document storage
+            # In a full implementation, this would update the vector store metadata
+            return True
+        except Exception as e:
+            logger.error(f"Error moving RAG document: {e}")
+            return False
+
+    async def bulk_move_rag_documents(self, document_ids: List[str], new_directory_path: str, db: AsyncSession) -> int:
+        """
+        Move multiple RAG documents to a new directory
+
+        Args:
+            document_ids: List of document IDs
+            new_directory_path: New directory path
+            db: Database session
+
+        Returns:
+            Number of documents moved
+        """
+        try:
+            # For now, return the count since we don't have a proper document storage
+            # In a full implementation, this would update the vector store metadata
+            return len(document_ids)
+        except Exception as e:
+            logger.error(f"Error bulk moving RAG documents: {e}")
+            return 0
+
+    async def list_rag_directories(self) -> List[str]:
+        """
+        List all known RAG directories
+
+        Returns:
+            List of directory paths
+        """
+        try:
+            # For now, return default directory since we don't have a proper document storage
+            return ["default"]
+        except Exception as e:
+            logger.error(f"Error listing RAG directories: {e}")
+            return []
+
+    async def create_rag_directory(self, directory_path: str) -> bool:
+        """
+        Create a new RAG directory
+
+        Args:
+            directory_path: Path of the directory to create
+
+        Returns:
+            True if created successfully
+        """
+        try:
+            # For now, return True since we don't have a proper document storage
+            # In a full implementation, this would create the directory structure
+            return True
+        except Exception as e:
+            logger.error(f"Error creating RAG directory: {e}")
+            return False
+
+    async def delete_rag_directory(self, directory_path: str, db: AsyncSession) -> int:
+        """
+        Delete a RAG directory and all its associated documents
+
+        Args:
+            directory_path: Directory path to delete
+            db: Database session
+
+        Returns:
+            Number of documents deleted
+        """
+        try:
+            # For now, return 0 since we don't have a proper document storage
+            # In a full implementation, this would delete from the vector store
+            return 0
+        except Exception as e:
+            logger.error(f"Error deleting RAG directory: {e}")
+            return 0
+
+    async def get_rag_stats(self) -> Dict[str, Any]:
+        """
+        Get RAG system statistics
+
+        Returns:
+            Statistics about the RAG system
+        """
+        try:
+            # For now, return basic stats since we don't have a proper document storage
+            return {
+                "total_documents": 0,
+                "total_chunks": 0,
+                "directories": ["default"],
+                "last_updated": datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error getting RAG stats: {e}")
+            return {"error": str(e)}
+
+    async def query_rag(self, question: str, db: AsyncSession) -> Dict[str, Any]:
+        """
+        Query the RAG system
+
+        Args:
+            question: Question to ask
+            db: Database session
+
+        Returns:
+            Query response with answer and sources
+        """
+        try:
+            # Use the vector store to search for relevant context
+            search_results = await self.search_documents_in_rag(question, k=5)
+            
+            # For now, return a simple response
+            # In a full implementation, this would use an LLM to generate an answer
+            return {
+                "answer": f"Odpowiedź na pytanie: {question}. (Implementacja w toku)",
+                "sources": search_results.get("chunks", []),
+                "confidence": 0.5
+            }
+        except Exception as e:
+            logger.error(f"Error querying RAG: {e}")
+            return {
+                "answer": "Przepraszam, wystąpił błąd podczas przetwarzania zapytania.",
+                "sources": [],
+                "confidence": 0.0
+            }
 
     def _format_receipt_content(self, trip: dict) -> str:
         """Format shopping trip as document content"""

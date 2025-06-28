@@ -55,6 +55,7 @@ apiClient.interceptors.request.use(
 );
 
 // Response interceptor for error handling
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     console.debug('API Response:', {
@@ -65,10 +66,16 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Szczegółowe logowanie błędów
     console.error('API Response Error:', {
       status: error.response?.status,
-      message: error.response?.data?.message || error.message,
+      data: error.response?.data,
+      code: error.code,
+      message: error.message,
       url: error.config?.url,
+      method: error.config?.method,
+      headers: error.config?.headers,
+      requestData: error.config?.data,
     });
     return Promise.reject(error);
   }

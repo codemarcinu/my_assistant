@@ -119,6 +119,8 @@ class AgentRouter(IAgentRouter):
             "meal_planning": AgentType.MEAL_PLANNER,
             "analytics": AgentType.ANALYTICS,
             "general_conversation": AgentType.GENERAL_CONVERSATION,
+            "image_processing": AgentType.OCR,
+            "document_processing": AgentType.OCR,
         }
         return intent_mapping.get(intent_type, AgentType.GENERAL_CONVERSATION)
 

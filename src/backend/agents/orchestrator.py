@@ -158,7 +158,7 @@ class Orchestrator:
         session_id: str,
         content_type: str,
     ) -> AgentResponse:
-        """Process an uploaded file through the orchestrator"""
+        """Process an uploaded file through the orchestrator (OCR + structured analysis pipeline)"""
         try:
             # 1. Get user profile and context
             if self.profile_manager is None:
@@ -200,7 +200,7 @@ class Orchestrator:
                 entities={"filename": filename, "content_type": content_type},
             )
 
-            # 5. Route to agent with circuit breaker
+            # 5. Route to OCR agent with circuit breaker
             try:
                 if self.agent_router is None:
                     logger.error("Agent router is None")
@@ -208,9 +208,27 @@ class Orchestrator:
                         OrchestratorError("Agent router not initialized")
                     )
 
-                agent_response = await self.circuit_breaker.call_async(
+                # --- STAGE 1: OCR ---
+                ocr_response = await self.circuit_breaker.call_async(
                     self.agent_router.route_to_agent,
                     intent,
+                    context,
+                    user_command=filename,
+                    file_bytes=file_bytes,  # Pass file bytes to agent
+                )
+
+                if not ocr_response.success or not ocr_response.text:
+                    return ocr_response
+
+                # --- STAGE 2: Structured Receipt Analysis ---
+                # Prepare intent for analysis
+                analysis_intent = IntentData(
+                    type="receipt_processing",
+                    entities={"ocr_text": ocr_response.text, "filename": filename},
+                )
+                analysis_response = await self.circuit_breaker.call_async(
+                    self.agent_router.route_to_agent,
+                    analysis_intent,
                     context,
                     user_command=filename,
                 )
@@ -218,10 +236,10 @@ class Orchestrator:
                 # Add file data to context
                 await self.memory_manager.update_context(
                     context,
-                    {"file_processed": filename, "response": agent_response.data},
+                    {"file_processed": filename, "response": analysis_response.data},
                 )
 
-                return agent_response
+                return analysis_response
 
             except pybreaker.CircuitBreakerError as e:
                 logger.error(f"Circuit breaker tripped: {e}")

@@ -129,12 +129,12 @@ log_info "Sprawdzanie struktury projektu..."
 
 # Sprawdzenie głównych katalogów
 check_dir "src/backend" || exit 1
-check_dir "foodsave-frontend" || exit 1
+check_dir "myappassistant-chat-frontend" || exit 1
 check_dir "venv" || exit 1
 
 # Sprawdzenie głównych plików
 check_file "pyproject.toml" || exit 1
-check_file "foodsave-frontend/package.json" || exit 1
+check_file "myappassistant-chat-frontend/package.json" || exit 1
 check_file ".env" || log_warning "Plik .env nie istnieje - utworzę domyślny"
 
 log_success "Struktura projektu poprawna"
@@ -181,7 +181,7 @@ log_success "Zależności Python sprawdzone"
 
 # 7. Sprawdzenie zależności Node.js
 log_info "Sprawdzanie zależności Node.js..."
-cd foodsave-frontend
+cd myappassistant-chat-frontend
 
 if [ ! -d "node_modules" ]; then
     log_info "Instalowanie zależności Node.js..."
@@ -244,7 +244,7 @@ fi
 
 # 10. Uruchomienie frontendu
 log_info "Uruchamianie frontendu (Next.js)..."
-cd foodsave-frontend
+cd myappassistant-chat-frontend
 
 # Uruchomienie frontendu w tle
 nohup npm run dev > ../frontend.log 2>&1 &

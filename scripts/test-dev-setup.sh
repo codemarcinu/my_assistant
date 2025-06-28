@@ -33,10 +33,10 @@ test_required_files() {
 
     local files=(
         "Dockerfile.dev.backend"
-        "foodsave-frontend/Dockerfile.dev.frontend"
-        "docker-compose.dev.yml"
+        "myappassistant-chat-frontend/Dockerfile.dev"
+        "docker-compose.dev.yaml"
         ".dockerignore"
-        "foodsave-frontend/.dockerignore"
+        "myappassistant-chat-frontend/.dockerignore"
         "env.dev.example"
         "scripts/dev-setup.sh"
         "README_DEVELOPMENT.md"
@@ -85,14 +85,14 @@ test_dockerfiles() {
     fi
 
     # Test frontend Dockerfile
-    if grep -q "FROM node:20-alpine" foodsave-frontend/Dockerfile.dev.frontend; then
+    if grep -q "FROM node:20-alpine" myappassistant-chat-frontend/Dockerfile.dev; then
         log_success "✓ Frontend Dockerfile używa Node.js 20"
     else
         log_error "✗ Frontend Dockerfile nie używa Node.js 20"
         frontend_ok=false
     fi
 
-    if grep -q "npm run dev" foodsave-frontend/Dockerfile.dev.frontend; then
+    if grep -q "npm run dev" myappassistant-chat-frontend/Dockerfile.dev; then
         log_success "✓ Frontend Dockerfile ma hot-reload"
     else
         log_error "✗ Frontend Dockerfile nie ma hot-reload"
@@ -113,29 +113,22 @@ test_docker_compose() {
     local compose_ok=true
 
     # Sprawdzenie czy używa nowych Dockerfile'ów
-    if grep -q "Dockerfile.dev.backend" docker-compose.dev.yml; then
-        log_success "✓ Używa Dockerfile.dev.backend"
+    if grep -q "Dockerfile.dev" docker-compose.dev.yaml; then
+        log_success "✓ Używa Dockerfile.dev"
     else
-        log_error "✗ Nie używa Dockerfile.dev.backend"
-        compose_ok=false
-    fi
-
-    if grep -q "Dockerfile.dev.frontend" docker-compose.dev.yml; then
-        log_success "✓ Używa Dockerfile.dev.frontend"
-    else
-        log_error "✗ Nie używa Dockerfile.dev.frontend"
+        log_error "✗ Nie używa Dockerfile.dev"
         compose_ok=false
     fi
 
     # Sprawdzenie wolumenów dla hot-reload
-    if grep -q "./src/backend:/app/src/backend:cached" docker-compose.dev.yml; then
+    if grep -q "./src/backend:/app/src/backend:cached" docker-compose.dev.yaml; then
         log_success "✓ Backend ma wolumen dla hot-reload"
     else
         log_error "✗ Backend nie ma wolumenu dla hot-reload"
         compose_ok=false
     fi
 
-    if grep -q "./foodsave-frontend:/app:cached" docker-compose.dev.yml; then
+    if grep -q "./myappassistant-chat-frontend:/app:cached" docker-compose.dev.yaml; then
         log_success "✓ Frontend ma wolumen dla hot-reload"
     else
         log_error "✗ Frontend nie ma wolumenu dla hot-reload"
@@ -143,14 +136,14 @@ test_docker_compose() {
     fi
 
     # Sprawdzenie logowania
-    if grep -q "max-size: \"10m\"" docker-compose.dev.yml; then
+    if grep -q "max-size: \"10m\"" docker-compose.dev.yaml; then
         log_success "✓ Logowanie ma rotację (10MB)"
     else
         log_error "✗ Logowanie nie ma rotacji"
         compose_ok=false
     fi
 
-    if grep -q "max-file: \"5\"" docker-compose.dev.yml; then
+    if grep -q "max-file: \"5\"" docker-compose.dev.yaml; then
         log_success "✓ Logowanie ma limit plików (5)"
     else
         log_error "✗ Logowanie nie ma limitu plików"
@@ -158,7 +151,7 @@ test_docker_compose() {
     fi
 
     # Sprawdzenie zmiennych środowiskowych
-    if grep -q "env_file:" docker-compose.dev.yml; then
+    if grep -q "env_file:" docker-compose.dev.yaml; then
         log_success "✓ Używa pliku .env.dev"
     else
         log_error "✗ Nie używa pliku .env.dev"

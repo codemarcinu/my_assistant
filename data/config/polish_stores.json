@@ -1,0 +1,644 @@
+{
+  "version": "1.0",
+  "description": "Słownik polskich sklepów z znormalizowanymi nazwami",
+  "stores": [
+    {
+      "id": "1",
+      "normalized_name": "Biedronka",
+      "normalized_name_en": "Biedronka",
+      "variations": [
+        "BIEDRONKA",
+        "Biedronka",
+        "biedronka",
+        "Biedronka Sp. z o.o.",
+        "Biedronka Sp. z o.o. Sp.k.",
+        "Biedronka Spółka z ograniczoną odpowiedzialnością",
+        "Biedronka Spółka komandytowa"
+      ],
+      "chain": "Biedronka",
+      "type": "discount_store",
+      "country": "PL"
+    },
+    {
+      "id": "2",
+      "normalized_name": "Lidl",
+      "normalized_name_en": "Lidl",
+      "variations": [
+        "LIDL",
+        "Lidl",
+        "lidl",
+        "Lidl Polska",
+        "Lidl Polska Sp. z o.o.",
+        "Lidl Stiftung & Co. KG"
+      ],
+      "chain": "Lidl",
+      "type": "discount_store",
+      "country": "PL"
+    },
+    {
+      "id": "3",
+      "normalized_name": "Carrefour",
+      "normalized_name_en": "Carrefour",
+      "variations": [
+        "CARREFOUR",
+        "Carrefour",
+        "carrefour",
+        "Carrefour Polska",
+        "Carrefour Polska Sp. z o.o.",
+        "Carrefour Polska Sp. z o.o. Sp.k."
+      ],
+      "chain": "Carrefour",
+      "type": "hypermarket",
+      "country": "PL"
+    },
+    {
+      "id": "4",
+      "normalized_name": "Tesco",
+      "normalized_name_en": "Tesco",
+      "variations": [
+        "TESCO",
+        "Tesco",
+        "tesco",
+        "Tesco Polska",
+        "Tesco Polska Sp. z o.o.",
+        "Tesco Stores Polska Sp. z o.o."
+      ],
+      "chain": "Tesco",
+      "type": "hypermarket",
+      "country": "PL"
+    },
+    {
+      "id": "5",
+      "normalized_name": "Auchan",
+      "normalized_name_en": "Auchan",
+      "variations": [
+        "AUCHAN",
+        "Auchan",
+        "auchan",
+        "Auchan Polska",
+        "Auchan Polska Sp. z o.o.",
+        "Auchan Retail Polska Sp. z o.o."
+      ],
+      "chain": "Auchan",
+      "type": "hypermarket",
+      "country": "PL"
+    },
+    {
+      "id": "6",
+      "normalized_name": "Kaufland",
+      "normalized_name_en": "Kaufland",
+      "variations": [
+        "KAUFLAND",
+        "Kaufland",
+        "kaufland",
+        "Kaufland Polska",
+        "Kaufland Polska Sp. z o.o.",
+        "Kaufland Polska Markety Sp. z o.o."
+      ],
+      "chain": "Kaufland",
+      "type": "hypermarket",
+      "country": "PL"
+    },
+    {
+      "id": "7",
+      "normalized_name": "Żabka",
+      "normalized_name_en": "Zabka",
+      "variations": [
+        "ŻABKA",
+        "Żabka",
+        "żabka",
+        "ZABKA",
+        "Zabka",
+        "zabka",
+        "Żabka Polska",
+        "Żabka Polska Sp. z o.o.",
+        "Żabka Polska Sp. z o.o. Sp.k."
+      ],
+      "chain": "Żabka",
+      "type": "convenience_store",
+      "country": "PL"
+    },
+    {
+      "id": "8",
+      "normalized_name": "Dino",
+      "normalized_name_en": "Dino",
+      "variations": [
+        "DINO",
+        "Dino",
+        "dino",
+        "Dino Polska",
+        "Dino Polska Sp. z o.o.",
+        "Dino Polska Sp. z o.o. Sp.k."
+      ],
+      "chain": "Dino",
+      "type": "discount_store",
+      "country": "PL"
+    },
+    {
+      "id": "9",
+      "normalized_name": "Netto",
+      "normalized_name_en": "Netto",
+      "variations": [
+        "NETTO",
+        "Netto",
+        "netto",
+        "Netto Polska",
+        "Netto Polska Sp. z o.o.",
+        "Netto Polska Sp. z o.o. Sp.k."
+      ],
+      "chain": "Netto",
+      "type": "discount_store",
+      "country": "PL"
+    },
+    {
+      "id": "10",
+      "normalized_name": "Aldi",
+      "normalized_name_en": "Aldi",
+      "variations": [
+        "ALDI",
+        "Aldi",
+        "aldi",
+        "Aldi Polska",
+        "Aldi Polska Sp. z o.o.",
+        "Aldi Nord Polska Sp. z o.o."
+      ],
+      "chain": "Aldi",
+      "type": "discount_store",
+      "country": "PL"
+    },
+    {
+      "id": "11",
+      "normalized_name": "Intermarche",
+      "normalized_name_en": "Intermarche",
+      "variations": [
+        "INTERMARCHE",
+        "Intermarche",
+        "intermarche",
+        "INTERMARCHÉ",
+        "Intermarché",
+        "intermarché",
+        "Intermarché Polska",
+        "Intermarché Polska Sp. z o.o."
+      ],
+      "chain": "Intermarche",
+      "type": "hypermarket",
+      "country": "PL"
+    },
+    {
+      "id": "12",
+      "normalized_name": "Leclerc",
+      "normalized_name_en": "Leclerc",
+      "variations": [
+        "LECLERC",
+        "Leclerc",
+        "leclerc",
+        "Leclerc Polska",
+        "Leclerc Polska Sp. z o.o.",
+        "E.Leclerc Polska"
+      ],
+      "chain": "Leclerc",
+      "type": "hypermarket",
+      "country": "PL"
+    },
+    {
+      "id": "13",
+      "normalized_name": "Stokrotka",
+      "normalized_name_en": "Stokrotka",
+      "variations": [
+        "STOKROTKA",
+        "Stokrotka",
+        "stokrotka",
+        "Stokrotka Sp. z o.o.",
+        "Stokrotka Sp. z o.o. Sp.k."
+      ],
+      "chain": "Stokrotka",
+      "type": "supermarket",
+      "country": "PL"
+    },
+    {
+      "id": "14",
+      "normalized_name": "Piotr i Paweł",
+      "normalized_name_en": "Piotr i Pawel",
+      "variations": [
+        "PIOTR I PAWEŁ",
+        "Piotr i Paweł",
+        "piotr i paweł",
+        "PIOTR I PAWEL",
+        "Piotr i Pawel",
+        "piotr i pawel",
+        "Piotr i Paweł Sp. z o.o.",
+        "Piotr i Paweł Sp. z o.o. Sp.k."
+      ],
+      "chain": "Piotr i Paweł",
+      "type": "supermarket",
+      "country": "PL"
+    },
+    {
+      "id": "15",
+      "normalized_name": "Spar",
+      "normalized_name_en": "Spar",
+      "variations": [
+        "SPAR",
+        "Spar",
+        "spar",
+        "Spar Polska",
+        "Spar Polska Sp. z o.o.",
+        "Spar International"
+      ],
+      "chain": "Spar",
+      "type": "supermarket",
+      "country": "PL"
+    },
+    {
+      "id": "16",
+      "normalized_name": "ABC",
+      "normalized_name_en": "ABC",
+      "variations": [
+        "ABC",
+        "abc",
+        "ABC Sp. z o.o.",
+        "ABC Sp. z o.o. Sp.k."
+      ],
+      "chain": "ABC",
+      "type": "convenience_store",
+      "country": "PL"
+    },
+    {
+      "id": "17",
+      "normalized_name": "Freshmarket",
+      "normalized_name_en": "Freshmarket",
+      "variations": [
+        "FRESHMARKET",
+        "Freshmarket",
+        "freshmarket",
+        "Fresh Market",
+        "Fresh Market Sp. z o.o."
+      ],
+      "chain": "Freshmarket",
+      "type": "supermarket",
+      "country": "PL"
+    },
+    {
+      "id": "18",
+      "normalized_name": "Lewiatan",
+      "normalized_name_en": "Lewiatan",
+      "variations": [
+        "LEWIATAN",
+        "Lewiatan",
+        "lewiatan",
+        "Lewiatan Sp. z o.o.",
+        "Lewiatan Sp. z o.o. Sp.k."
+      ],
+      "chain": "Lewiatan",
+      "type": "convenience_store",
+      "country": "PL"
+    },
+    {
+      "id": "19",
+      "normalized_name": "Delikatesy Centrum",
+      "normalized_name_en": "Delikatesy Centrum",
+      "variations": [
+        "DELIKATESY CENTRUM",
+        "Delikatesy Centrum",
+        "delikatesy centrum",
+        "Delikatesy Centrum Sp. z o.o.",
+        "DC",
+        "dc"
+      ],
+      "chain": "Delikatesy Centrum",
+      "type": "convenience_store",
+      "country": "PL"
+    },
+    {
+      "id": "20",
+      "normalized_name": "Ruch",
+      "normalized_name_en": "Ruch",
+      "variations": [
+        "RUCH",
+        "Ruch",
+        "ruch",
+        "Ruch SA",
+        "Ruch Spółka Akcyjna"
+      ],
+      "chain": "Ruch",
+      "type": "kiosk",
+      "country": "PL"
+    },
+    {
+      "id": "21",
+      "normalized_name": "Orlen",
+      "normalized_name_en": "Orlen",
+      "variations": [
+        "ORLEN",
+        "Orlen",
+        "orlen",
+        "PKN Orlen",
+        "PKN Orlen SA",
+        "PKN Orlen Spółka Akcyjna",
+        "Orlen Sp. z o.o."
+      ],
+      "chain": "Orlen",
+      "type": "gas_station",
+      "country": "PL"
+    },
+    {
+      "id": "22",
+      "normalized_name": "BP",
+      "normalized_name_en": "BP",
+      "variations": [
+        "BP",
+        "bp",
+        "BP Polska",
+        "BP Polska Sp. z o.o.",
+        "British Petroleum"
+      ],
+      "chain": "BP",
+      "type": "gas_station",
+      "country": "PL"
+    },
+    {
+      "id": "23",
+      "normalized_name": "Shell",
+      "normalized_name_en": "Shell",
+      "variations": [
+        "SHELL",
+        "Shell",
+        "shell",
+        "Shell Polska",
+        "Shell Polska Sp. z o.o.",
+        "Shell Retail Polska"
+      ],
+      "chain": "Shell",
+      "type": "gas_station",
+      "country": "PL"
+    },
+    {
+      "id": "24",
+      "normalized_name": "Circle K",
+      "normalized_name_en": "Circle K",
+      "variations": [
+        "CIRCLE K",
+        "Circle K",
+        "circle k",
+        "Circle K Polska",
+        "Circle K Polska Sp. z o.o.",
+        "Circle K Sp. z o.o."
+      ],
+      "chain": "Circle K",
+      "type": "gas_station",
+      "country": "PL"
+    },
+    {
+      "id": "25",
+      "normalized_name": "Lotos",
+      "normalized_name_en": "Lotos",
+      "variations": [
+        "LOTOS",
+        "Lotos",
+        "lotos",
+        "Grupa Lotos",
+        "Grupa Lotos SA",
+        "Lotos Sp. z o.o."
+      ],
+      "chain": "Lotos",
+      "type": "gas_station",
+      "country": "PL"
+    },
+    {
+      "id": "26",
+      "normalized_name": "Rossmann",
+      "normalized_name_en": "Rossmann",
+      "variations": [
+        "ROSSMANN",
+        "Rossmann",
+        "rossmann",
+        "Rossmann Polska",
+        "Rossmann Polska Sp. z o.o.",
+        "Rossmann Sp. z o.o."
+      ],
+      "chain": "Rossmann",
+      "type": "drugstore",
+      "country": "PL"
+    },
+    {
+      "id": "27",
+      "normalized_name": "Hebe",
+      "normalized_name_en": "Hebe",
+      "variations": [
+        "HEBE",
+        "Hebe",
+        "hebe",
+        "Hebe Polska",
+        "Hebe Polska Sp. z o.o.",
+        "Hebe Sp. z o.o."
+      ],
+      "chain": "Hebe",
+      "type": "drugstore",
+      "country": "PL"
+    },
+    {
+      "id": "28",
+      "normalized_name": "Super-Pharm",
+      "normalized_name_en": "Super-Pharm",
+      "variations": [
+        "SUPER-PHARM",
+        "Super-Pharm",
+        "super-pharm",
+        "SUPER PHARM",
+        "Super Pharm",
+        "super pharm",
+        "Super-Pharm Polska",
+        "Super-Pharm Polska Sp. z o.o."
+      ],
+      "chain": "Super-Pharm",
+      "type": "drugstore",
+      "country": "PL"
+    },
+    {
+      "id": "29",
+      "normalized_name": "Douglas",
+      "normalized_name_en": "Douglas",
+      "variations": [
+        "DOUGLAS",
+        "Douglas",
+        "douglas",
+        "Douglas Polska",
+        "Douglas Polska Sp. z o.o.",
+        "Douglas Sp. z o.o."
+      ],
+      "chain": "Douglas",
+      "type": "perfumery",
+      "country": "PL"
+    },
+    {
+      "id": "30",
+      "normalized_name": "Sephora",
+      "normalized_name_en": "Sephora",
+      "variations": [
+        "SEPHORA",
+        "Sephora",
+        "sephora",
+        "Sephora Polska",
+        "Sephora Polska Sp. z o.o.",
+        "Sephora Sp. z o.o."
+      ],
+      "chain": "Sephora",
+      "type": "perfumery",
+      "country": "PL"
+    },
+    {
+      "id": "31",
+      "normalized_name": "Media Markt",
+      "normalized_name_en": "Media Markt",
+      "variations": [
+        "MEDIA MARKT",
+        "Media Markt",
+        "media markt",
+        "MediaMarkt",
+        "MediaMarkt Polska",
+        "MediaMarkt Polska Sp. z o.o."
+      ],
+      "chain": "Media Markt",
+      "type": "electronics",
+      "country": "PL"
+    },
+    {
+      "id": "32",
+      "normalized_name": "Saturn",
+      "normalized_name_en": "Saturn",
+      "variations": [
+        "SATURN",
+        "Saturn",
+        "saturn",
+        "Saturn Polska",
+        "Saturn Polska Sp. z o.o."
+      ],
+      "chain": "Saturn",
+      "type": "electronics",
+      "country": "PL"
+    },
+    {
+      "id": "33",
+      "normalized_name": "RTV Euro AGD",
+      "normalized_name_en": "RTV Euro AGD",
+      "variations": [
+        "RTV EURO AGD",
+        "RTV Euro AGD",
+        "rtv euro agd",
+        "RTV Euro AGD Sp. z o.o.",
+        "RTV Euro AGD Sp. z o.o. Sp.k."
+      ],
+      "chain": "RTV Euro AGD",
+      "type": "electronics",
+      "country": "PL"
+    },
+    {
+      "id": "34",
+      "normalized_name": "IKEA",
+      "normalized_name_en": "IKEA",
+      "variations": [
+        "IKEA",
+        "ikea",
+        "IKEA Polska",
+        "IKEA Polska Sp. z o.o.",
+        "IKEA Retail Polska"
+      ],
+      "chain": "IKEA",
+      "type": "furniture",
+      "country": "PL"
+    },
+    {
+      "id": "35",
+      "normalized_name": "Leroy Merlin",
+      "normalized_name_en": "Leroy Merlin",
+      "variations": [
+        "LEROY MERLIN",
+        "Leroy Merlin",
+        "leroy merlin",
+        "Leroy Merlin Polska",
+        "Leroy Merlin Polska Sp. z o.o."
+      ],
+      "chain": "Leroy Merlin",
+      "type": "diy",
+      "country": "PL"
+    },
+    {
+      "id": "36",
+      "normalized_name": "Castorama",
+      "normalized_name_en": "Castorama",
+      "variations": [
+        "CASTORAMA",
+        "Castorama",
+        "castorama",
+        "Castorama Polska",
+        "Castorama Polska Sp. z o.o."
+      ],
+      "chain": "Castorama",
+      "type": "diy",
+      "country": "PL"
+    },
+    {
+      "id": "37",
+      "normalized_name": "OBI",
+      "normalized_name_en": "OBI",
+      "variations": [
+        "OBI",
+        "obi",
+        "OBI Polska",
+        "OBI Polska Sp. z o.o.",
+        "OBI Sp. z o.o."
+      ],
+      "chain": "OBI",
+      "type": "diy",
+      "country": "PL"
+    },
+    {
+      "id": "38",
+      "normalized_name": "Pepco",
+      "normalized_name_en": "Pepco",
+      "variations": [
+        "PEPCO",
+        "Pepco",
+        "pepco",
+        "Pepco Polska",
+        "Pepco Polska Sp. z o.o.",
+        "Pepco Sp. z o.o."
+      ],
+      "chain": "Pepco",
+      "type": "discount_store",
+      "country": "PL"
+    },
+    {
+      "id": "39",
+      "normalized_name": "Tiger",
+      "normalized_name_en": "Tiger",
+      "variations": [
+        "TIGER",
+        "Tiger",
+        "tiger",
+        "Tiger Polska",
+        "Tiger Polska Sp. z o.o.",
+        "Tiger Sp. z o.o."
+      ],
+      "chain": "Tiger",
+      "type": "discount_store",
+      "country": "PL"
+    },
+    {
+      "id": "40",
+      "normalized_name": "Action",
+      "normalized_name_en": "Action",
+      "variations": [
+        "ACTION",
+        "Action",
+        "action",
+        "Action Polska",
+        "Action Polska Sp. z o.o.",
+        "Action Sp. z o.o."
+      ],
+      "chain": "Action",
+      "type": "discount_store",
+      "country": "PL"
+    }
+  ]
+} 

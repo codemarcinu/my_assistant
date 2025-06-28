@@ -159,7 +159,7 @@ build_images() {
     
     # Build frontend image
     print_status "Building frontend image..."
-    docker build -f foodsave-frontend/Dockerfile.prod -t foodsave-frontend:latest ./foodsave-frontend
+    docker build -f myappassistant-chat-frontend/Dockerfile.prod -t foodsave-frontend:latest ./myappassistant-chat-frontend
     
     print_success "Docker images built successfully"
 }

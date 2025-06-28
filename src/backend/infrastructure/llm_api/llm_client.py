@@ -24,8 +24,8 @@ class LLMClient:
     async def embed(self, text: str) -> list[float]:
         """Generate embeddings using hybrid LLM client"""
         try:
-            embeddings = await hybrid_llm_client.generate_embeddings([text])
-            return embeddings[0] if embeddings else []
+            embeddings = await hybrid_llm_client.embed(text=text)
+            return embeddings if embeddings else []
         except Exception as e:
             logger.error(f"Error generating embeddings: {e}")
             return []

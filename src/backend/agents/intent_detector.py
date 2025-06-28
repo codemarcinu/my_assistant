@@ -100,6 +100,14 @@ class SimpleIntentDetector:
         text_lower = text.lower()
         logger.info(f"Using fallback intent detection for text: '{text}'")
 
+        # Receipt OCR markers
+        receipt_markers = [
+            "paragon", "sklep", "suma", "produkt", "data", "kwota", "vat", "kasa fiskalna", "paragon fiskalny"
+        ]
+        if any(marker in text_lower for marker in receipt_markers):
+            logger.info(f"Receipt processing intent detected for text: '{text}'")
+            return IntentData(type="receipt_processing", entities={"ocr_text": text}, confidence=0.99)
+
         # General conversation detection
         general_keywords = [
             "cześć",

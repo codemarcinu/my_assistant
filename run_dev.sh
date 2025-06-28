@@ -40,7 +40,7 @@ echo "--- Setting up backend ---"
 # 2. Frontend Setup
 echo "--- Setting up frontend ---"
 (
-  cd foodsave-frontend
+  cd myappassistant-chat-frontend
   echo "Installing Node.js dependencies..."
   npm install
   echo "Frontend dependencies installed."
@@ -75,7 +75,7 @@ tmux select-layout tiled
 tmux send-keys -t $SESSION:0.0 "echo '--- Starting Backend ---'; poetry run uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000 --app-dir ./src &> logs/backend/server.log" C-m
 
 # Pane 1 (top-right): Frontend
-tmux send-keys -t $SESSION:0.1 "echo '--- Starting Frontend ---'; cd foodsave-frontend && npm run dev -- -p 3000 &> ../logs/frontend/server.log" C-m
+tmux send-keys -t $SESSION:0.1 "echo '--- Starting Frontend ---'; cd myappassistant-chat-frontend && npm run dev -- -p 3000 &> ../logs/frontend/server.log" C-m
 
 # Pane 2 (bottom-left): Ollama
 tmux send-keys -t $SESSION:0.2 "echo '--- Starting Ollama ---'; ollama serve" C-m
