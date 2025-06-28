@@ -258,7 +258,8 @@ class EnhancedLLMClient:
 
             if stream:
                 # Return streaming generator
-                return self._stream_response(model, formatted_messages, options, original_messages=messages)
+                sync_generator = self._stream_response(model, formatted_messages, options, original_messages=messages)
+                return self._convert_to_async_generator(sync_generator)
             else:
                 # For non-streaming, get complete response
                 response = await asyncio.to_thread(

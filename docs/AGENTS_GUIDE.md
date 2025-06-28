@@ -832,7 +832,7 @@ agents:
 
 ---
 
-**Last Updated**: 2025-06-28
+**Last Updated: 2025-06-28
 **Agent Version**: 2.1.0
 **Date Query Support**: ✅ Enabled
 

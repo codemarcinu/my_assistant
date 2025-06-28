@@ -1,3 +1,89 @@
+# 📚 FoodSave AI – Kompleksowy Spis Treści Projektu (28.06.2025)
+
+## 1. Główne przewodniki i przegląd
+- [README.md](README.md) – Szybki start, architektura, status, linki
+- [docs/README.md](docs/README.md) – Rozszerzony opis, funkcje, konfiguracja
+- [docs/TOC.md](docs/TOC.md) – Spis treści dokumentacji
+
+## 2. Backend (src/backend/)
+- **src/backend/agents/** – Agenty AI (Chef, Weather, RAG, OCR, Concise, itp.)
+- **src/backend/api/** – Endpointy API (v1, v2, receipts, chat, backup, concise, itp.)
+- **src/backend/core/** – Rdzeń systemu (LLM clients, async, monitoring, RAG, response length, itp.)
+- **src/backend/infrastructure/** – Baza danych, vector store, LLM API
+- **src/backend/models/** – Modele danych (konwersacje, dokumenty, produkty)
+- **src/backend/services/** – Serwisy biznesowe (np. shopping)
+- **src/backend/tests/** – Testy backendu (unit, integration, performance, contract)
+- **src/backend/config.py** – Konfiguracja aplikacji
+- **src/backend/app_factory.py** – Fabryka aplikacji FastAPI
+
+## 3. Frontend (myappassistant-chat-frontend/)
+- **myappassistant-chat-frontend/src/** – Kod źródłowy React/TypeScript
+  - **components/** – Komponenty UI (chat, layout, features, settings, ui/atoms)
+  - **pages/** – Strony (Dashboard, OCR, Pantry, itp.)
+  - **services/** – API clients (api.ts, conciseApi.ts, telegramApi.ts)
+  - **stores/** – Zustand stores (chatStore, settingsStore)
+  - **test/** – Testy jednostkowe i utils
+  - **types/** – Typy TypeScript
+  - **utils/** – Funkcje pomocnicze
+- **myappassistant-chat-frontend/tests/e2e/** – Testy end-to-end (Playwright)
+- **myappassistant-chat-frontend/Dockerfile.* / vite.config.ts** – Konfiguracja buildów i serwera
+
+## 4. Dokumentacja (docs/)
+- [docs/ARCHITECTURE_DOCUMENTATION.md](docs/ARCHITECTURE_DOCUMENTATION.md) – Architektura systemu (diagramy, przepływy)
+- [docs/AGENTS_GUIDE.md](docs/AGENTS_GUIDE.md) – Przewodnik po agentach AI
+- [docs/API_REFERENCE.md](docs/API_REFERENCE.md) – Pełna dokumentacja API
+- [docs/RECEIPT_ANALYSIS_GUIDE.md](docs/RECEIPT_ANALYSIS_GUIDE.md) – Analiza paragonów
+- [docs/RAG_SYSTEM_GUIDE.md](docs/RAG_SYSTEM_GUIDE.md) – Retrieval-Augmented Generation
+- [docs/CONCISE_RESPONSES_IMPLEMENTATION.md](docs/CONCISE_RESPONSES_IMPLEMENTATION.md) – Zwięzłe odpowiedzi
+- [docs/ANTI_HALLUCINATION_GUIDE.md](docs/ANTI_HALLUCINATION_GUIDE.md) – System anty-halucynacyjny
+- [docs/DATE_TIME_QUERY_GUIDE.md](docs/DATE_TIME_QUERY_GUIDE.md) – Obsługa daty/czasu
+- [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) – Strategia testowania
+- [docs/MONITORING_TELEMETRY_GUIDE.md](docs/MONITORING_TELEMETRY_GUIDE.md) – Monitoring, metryki, dashboardy
+- [docs/MODEL_OPTIMIZATION_GUIDE.md](docs/MODEL_OPTIMIZATION_GUIDE.md) – Optymalizacja modeli
+- [docs/CONVERSATION_CONTEXT_MANAGEMENT.md](docs/CONVERSATION_CONTEXT_MANAGEMENT.md) – Zarządzanie kontekstem rozmów
+- [docs/DATABASE_GUIDE.md](docs/DATABASE_GUIDE.md) – Baza danych, ERD, modele
+- [docs/BACKUP_SYSTEM_GUIDE.md](docs/BACKUP_SYSTEM_GUIDE.md) – Backup, retencja, weryfikacja
+- [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) – Wdrożenie (dev/prod, Docker, SSL)
+- [docs/TELEGRAM_BOT_DEPLOYMENT_GUIDE.md](docs/TELEGRAM_BOT_DEPLOYMENT_GUIDE.md) – Wdrożenie bota Telegram
+- [docs/TELEGRAM_BOT_INTEGRATION_REPORT.md](docs/TELEGRAM_BOT_INTEGRATION_REPORT.md) – Raport z integracji Telegram
+- [docs/INFORMATION_ARCHITECTURE.md](docs/INFORMATION_ARCHITECTURE.md) – Architektura informacji, UX
+- [docs/frontend-implementation-plan.md](docs/frontend-implementation-plan.md) – Plan wdrożenia frontendu
+- [docs/frontend-implementation-checklist.md](docs/frontend-implementation-checklist.md) – Checklist wdrożenia frontendu
+- [docs/CONTRIBUTING_GUIDE.md](docs/CONTRIBUTING_GUIDE.md) – Zasady kontrybucji
+- [docs/FINAL_TEST_STATUS.md](docs/FINAL_TEST_STATUS.md) – Status testów końcowych
+
+## 5. Testy i jakość
+- **tests/** – Testy globalne (unit, integration, contract, e2e, performance)
+- [backend_test_results.txt](backend_test_results.txt) – Wyniki testów backendu
+- [frontend_test_results.txt](frontend_test_results.txt) – Wyniki testów frontendu
+- **comprehensive_test_results_*.json** – Szczegółowe raporty testów
+- [docs/CRITICAL_FIXES_SUMMARY.md](docs/CRITICAL_FIXES_SUMMARY.md) – Krytyczne poprawki
+- [docs/TEST_EXECUTION_SUMMARY.md](docs/TEST_EXECUTION_SUMMARY.md) – Podsumowanie testów
+
+## 6. Monitoring, backup, narzędzia
+- **monitoring/** – Konfiguracja Prometheus, Grafana, Loki, dashboardy
+- **scripts/** – Skrypty CLI (backup, rag, monitoring, testy, itp.)
+- **backups/** – Backupy bazy, plików, konfiguracji, vector store
+- **data/** – Konfiguracje, słowniki, cache, vector store
+
+## 7. Konfiguracja i DevOps
+- [docker-compose*.yaml](docker-compose.yaml) – Konfiguracja Docker Compose (dev/prod)
+- [Dockerfile, Dockerfile.ollama](Dockerfile) – Buildy backendu i modeli
+- [env.dev, env.dev.example](env.dev.example) – Przykładowe pliki środowiskowe
+- [run_all.sh, run_dev.sh, foodsave*.sh](run_all.sh) – Skrypty uruchomieniowe
+
+## 8. Roadmapa, rozwój, licencje
+- [ROADMAP.md](ROADMAP.md) – Roadmapa rozwoju, fazy, statusy
+- [LICENSE](LICENSE) – Licencja MIT
+- [docs/CONTRIBUTING_GUIDE.md](docs/CONTRIBUTING_GUIDE.md) – Zasady wkładu
+- [PROJECT_CLEANUP_SUMMARY.md](PROJECT_CLEANUP_SUMMARY.md) – Podsumowanie porządkowania repozytorium
+
+---
+
+*Ten spis treści jest generowany automatycznie i powinien być aktualizowany wraz z rozwojem projektu. Każdy dłuższy plik markdown powinien mieć własny mini-TOC na początku. W przewodnikach wdrożeniowych, backupowych i integracyjnych zalecane są sekcje troubleshooting. W roadmapie i statusach testów – aktualizować daty i statusy.*
+
+---
+
 # 🍽️ FoodSave AI - Intelligent Culinary Assistant
 
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
@@ -529,7 +615,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🎯 Status projektu: ✅ STABILNY I PRZETESTOWANY
 
-**Ostatnia aktualizacja:** 2025-06-26  
+**Ostatnia aktualizacja: 2025-06-28  
 **Status testów:** 278/279 testów przechodzi (99.6% sukces)  
 **Krytyczne błędy:** 0 (wszystkie naprawione)
 
@@ -725,7 +811,7 @@ Ten projekt jest licencjonowany pod [LICENSE](LICENSE).
 ---
 
 **Status:** ✅ Produkcyjny, stabilny, przetestowany  
-**Ostatnia aktualizacja:** 2025-06-26  
+**Ostatnia aktualizacja: 2025-06-28  
 **Wersja:** 1.0.0
 
 ## Plan działania 2024

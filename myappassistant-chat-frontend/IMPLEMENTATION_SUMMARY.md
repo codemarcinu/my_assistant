@@ -383,5 +383,5 @@ MIT License - zobacz [LICENSE](LICENSE) dla szczegółów.
 **FoodSave AI Frontend** - Nowoczesny, responsywny interfejs użytkownika z Cosmic Design System, pełną obsługą RAG i polskim UI. 🚀
 
 **Status:** ✅ Gotowe do produkcji  
-**Ostatnia aktualizacja:** 2025-06-24  
+**Ostatnia aktualizacja: 2025-06-28  
 **Autor:** AI Assistant 

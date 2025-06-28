@@ -74,7 +74,7 @@ class HybridLLMClient:
     and automatic fallback.
     """
 
-    fallback_model = "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M"
+    fallback_model = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"
     gemma_model = "gemma3:12b"  # Nowy model Gemma 3
     use_perplexity_fallback = True
     perplexity_client = None  # do mockowania w testach
@@ -156,10 +156,10 @@ class HybridLLMClient:
                 ],
                 max_tokens=32768,
                 cost_per_token=0.10,
-                priority=1,  # Najwyższy priorytet - nowy domyślny model
-                concurrency_limit=3,
+                priority=1,  # Najwyższy priorytet - stabilny domyślny model
+                concurrency_limit=5,  # Zwiększony limit dla stabilnego modelu
                 supports_embedding=True,
-                description="Polish language specialized model v3 - primary model",
+                description="Polish language specialized model v3 - primary stable model",
             ),
             "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M": ModelConfig(
                 name="SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M",
@@ -171,10 +171,10 @@ class HybridLLMClient:
                 ],
                 max_tokens=32768,
                 cost_per_token=0.15,
-                priority=2,  # Obniżony priorytet - model zapasowy
+                priority=3,  # Obniżony priorytet - model zapasowy tylko dla złożonych zadań
                 concurrency_limit=2,
                 supports_embedding=True,
-                description="Polish language specialized model - fallback model",
+                description="Polish language specialized model - fallback for complex tasks only",
             ),
             "nomic-embed-text": ModelConfig(
                 name="nomic-embed-text",
@@ -422,6 +422,15 @@ class HybridLLMClient:
                 "repeat_penalty": 1.1,  # Zmniejszenie powtórzeń
                 "num_predict": 512,   # Ograniczenie długości odpowiedzi
             })
+        else:
+            # Dla general chat używamy bardzo konserwatywnych parametrów przeciwko hallucinacjom
+            options.update({
+                "temperature": 0.1,  # Bardzo niska temperatura = maksymalna deterministyczność
+                "top_p": 0.8,        # Bardziej ograniczone diversity
+                "top_k": 20,         # Bardziej ograniczony wybór tokenów
+                "repeat_penalty": 1.2,  # Większe zmniejszenie powtórzeń
+                "num_predict": 800,   # Ograniczenie długości odpowiedzi
+            })
         
         try:
             # Reszta oryginalnej implementacji
@@ -467,10 +476,50 @@ class HybridLLMClient:
                 except asyncio.TimeoutError:
                     logger.error(f"Timeout after {timeout}s for model {model}")
                     self._update_model_stats(model, timeout, False, "timeout")
+                    
+                    # Jeśli to nie jest już fallback model, spróbuj z fallback
+                    if model != self.fallback_model and self.fallback_model in self.model_configs:
+                        logger.info(f"Retrying with fallback model: {self.fallback_model}")
+                        try:
+                            fallback_response = await asyncio.wait_for(
+                                self.base_client.chat(
+                                    messages=messages,
+                                    model=self.fallback_model,
+                                    stream=stream,
+                                    options=options,
+                                    **kwargs
+                                ),
+                                timeout=timeout
+                            )
+                            logger.info("Fallback model response successful")
+                            return fallback_response
+                        except Exception as fallback_error:
+                            logger.error(f"Fallback model also failed: {fallback_error}")
+                    
                     raise
                 except Exception as e:
                     logger.error(f"Error in chat for model {model}: {e}")
                     self._update_model_stats(model, time.time() - start_time, False, str(e))
+                    
+                    # Jeśli to nie jest już fallback model, spróbuj z fallback
+                    if model != self.fallback_model and self.fallback_model in self.model_configs:
+                        logger.info(f"Retrying with fallback model: {self.fallback_model}")
+                        try:
+                            fallback_response = await asyncio.wait_for(
+                                self.base_client.chat(
+                                    messages=messages,
+                                    model=self.fallback_model,
+                                    stream=stream,
+                                    options=options,
+                                    **kwargs
+                                ),
+                                timeout=timeout
+                            )
+                            logger.info("Fallback model response successful")
+                            return fallback_response
+                        except Exception as fallback_error:
+                            logger.error(f"Fallback model also failed: {fallback_error}")
+                    
                     raise
                     
         except Exception as e:

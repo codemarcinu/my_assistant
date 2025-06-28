@@ -5,29 +5,22 @@ from backend.agents.search_agent import SearchAgent
 @pytest.mark.asyncio
 async def test_search_integration_wikipedia_encyclopedic():
     """Test integracyjny: zapytanie encyklopedyczne → Wikipedia provider."""
-    agent = SearchAgent()
+    # Wyłącz cache dla testów
+    agent = SearchAgent(config={"cache_enabled": False})
     
     # Mock odpowiedzi Wikipedii
-    wiki_response = {
-        "query": {
-            "search": [
-                {
-                    "title": "Albert Einstein",
-                    "snippet": "Albert Einstein was a German-born theoretical physicist...",
-                    "pageid": 736
-                }
-            ]
+    wiki_results = [
+        {
+            "title": "Albert Einstein",
+            "snippet": "Albert Einstein was a German-born theoretical physicist...",
+            "pageid": 736,
+            "url": "https://pl.wikipedia.org/wiki/Albert_Einstein",
+            "source": "wikipedia"
         }
-    }
+    ]
     
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_response = AsyncMock()
-        mock_response.json.return_value = wiki_response
-        mock_response.raise_for_status.return_value = None
-        mock_client.get.return_value = mock_response
-        mock_client_class.return_value = mock_client
-        
+    # Mock metody search w WikipediaSearchProvider
+    with patch.object(agent.search_providers["wikipedia"], "search", return_value=wiki_results):
         results = await agent.process_request("kto to Albert Einstein")
         
         assert len(results) == 1
@@ -38,29 +31,27 @@ async def test_search_integration_wikipedia_encyclopedic():
 @pytest.mark.asyncio
 async def test_search_integration_duckduckgo_web():
     """Test integracyjny: zapytanie webowe → DuckDuckGo provider."""
-    agent = SearchAgent()
+    # Wyłącz cache dla testów
+    agent = SearchAgent(config={"cache_enabled": False})
     
     # Mock odpowiedzi DuckDuckGo
-    duck_response = {
-        "AbstractText": "Python is a high-level programming language",
-        "Heading": "Python (programming language)",
-        "AbstractURL": "https://python.org",
-        "RelatedTopics": [
-            {
-                "Text": "Python Tutorial",
-                "FirstURL": "https://python.org/tutorial"
-            }
-        ]
-    }
+    duck_results = [
+        {
+            "title": "Python (programming language)",
+            "snippet": "Python is a high-level programming language",
+            "url": "https://python.org",
+            "source": "duckduckgo"
+        },
+        {
+            "title": "Python Tutorial",
+            "snippet": "Python Tutorial",
+            "url": "https://python.org/tutorial",
+            "source": "duckduckgo"
+        }
+    ]
     
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_response = AsyncMock()
-        mock_response.json.return_value = duck_response
-        mock_response.raise_for_status.return_value = None
-        mock_client.get.return_value = mock_response
-        mock_client_class.return_value = mock_client
-        
+    # Mock metody search w DuckDuckGoSearchProvider
+    with patch.object(agent.search_providers["duck"], "search", return_value=duck_results):
         results = await agent.process_request("szukaj informacji o Pythonie")
         
         assert len(results) == 2
@@ -71,28 +62,25 @@ async def test_search_integration_duckduckgo_web():
 @pytest.mark.asyncio
 async def test_search_integration_fallback_scenario():
     """Test integracyjny: Wikipedia nie ma wyników → fallback na DuckDuckGo."""
-    agent = SearchAgent()
+    # Wyłącz cache dla testów
+    agent = SearchAgent(config={"cache_enabled": False})
     
     # Wikipedia zwraca pustą odpowiedź
-    wiki_empty_response = {"query": {"search": []}}
+    wiki_empty_results = []
     
     # DuckDuckGo zwraca wyniki
-    duck_response = {
-        "AbstractText": "Machine learning is a subset of artificial intelligence",
-        "Heading": "Machine Learning",
-        "AbstractURL": "https://example.com/ml"
-    }
+    duck_results = [
+        {
+            "title": "Machine Learning",
+            "snippet": "Machine learning is a subset of artificial intelligence",
+            "url": "https://example.com/ml",
+            "source": "duckduckgo"
+        }
+    ]
     
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_response1 = AsyncMock()
-        mock_response1.json.return_value = wiki_empty_response
-        mock_response1.raise_for_status.return_value = None
-        mock_response2 = AsyncMock()
-        mock_response2.json.return_value = duck_response
-        mock_response2.raise_for_status.return_value = None
-        mock_client.get.side_effect = [mock_response1, mock_response2]
-        mock_client_class.return_value = mock_client
+    # Mock metody search w obu providerach
+    with patch.object(agent.search_providers["wikipedia"], "search", return_value=wiki_empty_results), \
+         patch.object(agent.search_providers["duck"], "search", return_value=duck_results):
         
         results = await agent.process_request("wikipedia: machine learning")
         
@@ -103,28 +91,23 @@ async def test_search_integration_fallback_scenario():
 @pytest.mark.asyncio
 async def test_search_integration_error_recovery():
     """Test integracyjny: błąd pierwszego providera → recovery przez drugi."""
-    agent = SearchAgent()
+    # Wyłącz cache dla testów
+    agent = SearchAgent(config={"cache_enabled": False})
     
     # DuckDuckGo zwraca błąd, ale Wikipedia działa
-    wiki_response = {
-        "query": {
-            "search": [
-                {
-                    "title": "Test Article",
-                    "snippet": "Test content",
-                    "pageid": 123
-                }
-            ]
+    wiki_results = [
+        {
+            "title": "Test Article",
+            "snippet": "Test content",
+            "pageid": 123,
+            "url": "https://pl.wikipedia.org/wiki/Test_Article",
+            "source": "wikipedia"
         }
-    }
+    ]
     
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_response = AsyncMock()
-        mock_response.json.return_value = wiki_response
-        mock_response.raise_for_status.return_value = None
-        mock_client.get.side_effect = [Exception("Network error"), mock_response]
-        mock_client_class.return_value = mock_client
+    # Mock metody search w obu providerach
+    with patch.object(agent.search_providers["duck"], "search", side_effect=Exception("Network error")), \
+         patch.object(agent.search_providers["wikipedia"], "search", return_value=wiki_results):
         
         results = await agent.process_request("test query")
         
@@ -134,23 +117,21 @@ async def test_search_integration_error_recovery():
 @pytest.mark.asyncio
 async def test_search_integration_prefix_override():
     """Test integracyjny: prefix wymusza provider niezależnie od heurystyki."""
-    agent = SearchAgent()
+    # Wyłącz cache dla testów
+    agent = SearchAgent(config={"cache_enabled": False})
     
     # Zapytanie z prefixem "duck:" ale treść encyklopedyczna
-    duck_response = {
-        "AbstractText": "Search results for encyclopedic query",
-        "Heading": "Search Results",
-        "AbstractURL": "https://example.com"
-    }
+    duck_results = [
+        {
+            "title": "Search Results",
+            "snippet": "Search results for encyclopedic query",
+            "url": "https://example.com",
+            "source": "duckduckgo"
+        }
+    ]
     
-    with patch("httpx.AsyncClient") as mock_client_class:
-        mock_client = AsyncMock()
-        mock_response = AsyncMock()
-        mock_response.json.return_value = duck_response
-        mock_response.raise_for_status.return_value = None
-        mock_client.get.return_value = mock_response
-        mock_client_class.return_value = mock_client
-        
+    # Mock metody search w DuckDuckGoSearchProvider
+    with patch.object(agent.search_providers["duck"], "search", return_value=duck_results):
         results = await agent.process_request("duck: kto to Albert Einstein")
         
         assert len(results) == 1

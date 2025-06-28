@@ -68,9 +68,9 @@ class ResponseLengthConfig(BaseModel):
         return {
             "num_predict": self.num_predict,
             "temperature": self.temperature,
-            "top_p": 0.9,  # Slightly lower for more focused responses
-            "top_k": 40,   # Limit vocabulary for consistency
-            "repeat_penalty": 1.1,  # Prevent repetition
+            "top_p": 0.8,  # Obniżone z 0.9 dla bardziej ograniczonego diversity
+            "top_k": 20,   # Obniżone z 40 dla bardziej ograniczonego wyboru tokenów
+            "repeat_penalty": 1.2,  # Zwiększone z 1.1 dla lepszego zapobiegania powtórzeniom
         }
     
     def get_system_prompt_modifier(self) -> str:
@@ -210,7 +210,7 @@ class ConciseMetrics:
 DEFAULT_CONCISE_CONFIG = ResponseLengthConfig(
     max_tokens=100,
     num_predict=60,
-    temperature=0.2,
+    temperature=0.1,
     response_style=ResponseStyle.CONCISE,
     concise_mode=True,
     target_char_length=200,
@@ -220,7 +220,7 @@ DEFAULT_CONCISE_CONFIG = ResponseLengthConfig(
 DEFAULT_STANDARD_CONFIG = ResponseLengthConfig(
     max_tokens=300,
     num_predict=150,
-    temperature=0.4,
+    temperature=0.15,
     response_style=ResponseStyle.STANDARD,
     concise_mode=False,
     target_char_length=500,
@@ -230,7 +230,7 @@ DEFAULT_STANDARD_CONFIG = ResponseLengthConfig(
 DEFAULT_DETAILED_CONFIG = ResponseLengthConfig(
     max_tokens=800,
     num_predict=400,
-    temperature=0.6,
+    temperature=0.2,
     response_style=ResponseStyle.DETAILED,
     concise_mode=False,
     target_char_length=1000,

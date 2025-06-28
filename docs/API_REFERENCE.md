@@ -902,7 +902,7 @@ For real-time communication, WebSocket endpoints are available:
 
 ---
 
-**Last Updated**: 2025-06-25
+**Last Updated: 2025-06-28
 **API Version**: 2.0.0
 
 ## Receipt Analysis Endpoints

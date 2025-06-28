@@ -271,9 +271,10 @@ class TestMemoryLeakDetection:
 class TestMemoryProfilingIntegration:
     """Testy integracyjne memory profiling"""
 
-    def test_full_profiling_cycle(self) -> None:
+    @pytest.mark.asyncio
+    async def test_full_profiling_cycle(self) -> None:
         """Test pełnego cyklu profilowania"""
-        with memory_profiling_context("integration_test") as profiler:
+        async with memory_profiling_context("integration_test") as profiler:
             # Wykonaj operacje
             for i in range(5):
                 profiler.take_snapshot()
