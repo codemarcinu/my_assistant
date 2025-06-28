@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Any, AsyncGenerator, Dict, cast, Generator
+from typing import Any, AsyncGenerator, Dict, cast, Generator, Optional
 import inspect
 from datetime import datetime
 
@@ -250,6 +250,38 @@ async def memory_chat_generator(
                 stream_callback=handle_chunk,
             )
 
+            # Update context with the conversation
+            try:
+                context = await orchestrator.memory_manager.get_context(request.session_id)
+                # Add user message to context
+                context.add_message(
+                    role="user",
+                    content=request.message,
+                    metadata={
+                        "session_id": request.session_id,
+                        "timestamp": datetime.now().isoformat(),
+                        "agent_states": request.agent_states
+                    }
+                )
+                
+                # Add assistant response to context
+                if response and response.text:
+                    context.add_message(
+                        role="assistant",
+                        content=response.text,
+                        metadata={
+                            "session_id": request.session_id,
+                            "timestamp": datetime.now().isoformat(),
+                            "success": response.success
+                        }
+                    )
+                
+                # Update context with optimized storage
+                await orchestrator.memory_manager.update_context(context)
+                
+            except Exception as e:
+                logger.error(f"Error updating conversation context: {e}")
+
             # If no chunks were collected, use the response
             if not chunks and response:
                 response_text = response.text or ""
@@ -364,7 +396,7 @@ async def get_chat_history(
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
-    """Get chat history for a session"""
+    """Get chat history for a session with enhanced memory management"""
     try:
         # Get orchestrator to access memory manager
         orchestrator = await orchestrator_pool.get_healthy_orchestrator()
@@ -378,33 +410,55 @@ async def get_chat_history(
         # Get context from memory manager
         context = await orchestrator.memory_manager.get_context(session_id)
         
-        # Extract chat history from context
+        # Extract chat history from context with optimization
         history = []
         if hasattr(context, 'history') and context.history:
-            # Take last 'limit' items
-            recent_history = context.history[-limit:] if limit > 0 else context.history
-            
-            for i, entry in enumerate(recent_history):
-                if isinstance(entry, dict) and 'data' in entry:
-                    data = entry['data']
-                    if isinstance(data, dict):
-                        # Extract message content from various possible formats
-                        content = data.get('message') or data.get('content') or data.get('text', '')
-                        role = data.get('role') or data.get('type', 'user')
-                        
+            # Use optimized context if available
+            if hasattr(context, 'get_optimized_context'):
+                optimized_messages = context.get_optimized_context(max_tokens=4000)
+                # Convert optimized messages to history format
+                for i, msg in enumerate(optimized_messages):
+                    if msg.get('role') != 'system':  # Skip system messages
                         history.append({
                             "id": f"history-{i}",
-                            "content": content,
-                            "type": role,
-                            "timestamp": entry.get('timestamp', datetime.now().isoformat()),
-                            "metadata": data
+                            "content": msg.get('content', ''),
+                            "type": msg.get('role', 'user'),
+                            "timestamp": datetime.now().isoformat(),
+                            "metadata": {"optimized": True}
                         })
+            else:
+                # Fallback to traditional approach
+                recent_history = context.history[-limit:] if limit > 0 else context.history
+                
+                for i, entry in enumerate(recent_history):
+                    if isinstance(entry, dict) and 'data' in entry:
+                        data = entry['data']
+                        if isinstance(data, dict):
+                            # Extract message content from various possible formats
+                            content = data.get('message') or data.get('content') or data.get('text', '')
+                            role = data.get('role') or data.get('type', 'user')
+                            
+                            history.append({
+                                "id": f"history-{i}",
+                                "content": content,
+                                "type": role,
+                                "timestamp": entry.get('timestamp', datetime.now().isoformat()),
+                                "metadata": data
+                            })
+        
+        # Get memory statistics
+        memory_stats = await orchestrator.memory_manager.get_context_stats()
         
         return {
             "success": True,
             "data": history,
             "session_id": session_id,
-            "total_count": len(history)
+            "total_count": len(history),
+            "memory_stats": {
+                "compression_ratio": memory_stats.get("compression_ratio", 0.0),
+                "persistent_contexts": memory_stats.get("persistent_contexts", 0),
+                "cached_contexts": memory_stats.get("cached_contexts", 0)
+            }
         }
         
     except Exception as e:
@@ -441,6 +495,90 @@ async def clear_chat_history(
         
     except Exception as e:
         logger.error(f"Error clearing chat history: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get("/memory_stats")
+async def get_memory_statistics(
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Get memory management statistics"""
+    try:
+        # Get orchestrator to access memory manager
+        orchestrator = await orchestrator_pool.get_healthy_orchestrator()
+        if not orchestrator:
+            return {
+                "success": False,
+                "error": "No healthy orchestrator available",
+                "stats": {}
+            }
+        
+        # Get comprehensive memory statistics
+        memory_stats = await orchestrator.memory_manager.get_context_stats()
+        
+        return {
+            "success": True,
+            "stats": memory_stats,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting memory statistics: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "stats": {}
+        }
+
+
+@router.post("/memory_optimize")
+async def optimize_memory_contexts(
+    session_id: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Manually trigger memory optimization for specific session or all sessions"""
+    try:
+        # Get orchestrator to access memory manager
+        orchestrator = await orchestrator_pool.get_healthy_orchestrator()
+        if not orchestrator:
+            return {
+                "success": False,
+                "error": "No healthy orchestrator available"
+            }
+        
+        if session_id:
+            # Optimize specific session
+            context = await orchestrator.memory_manager.get_context(session_id)
+            context._optimize_context_window(max_tokens=4000)
+            await orchestrator.memory_manager.update_context(context)
+            
+            return {
+                "success": True,
+                "message": f"Memory optimized for session: {session_id}",
+                "session_id": session_id
+            }
+        else:
+            # Optimize all sessions
+            all_contexts = await orchestrator.memory_manager.get_all_contexts()
+            optimized_count = 0
+            
+            for ctx in all_contexts.values():
+                if hasattr(ctx, '_optimize_context_window'):
+                    ctx._optimize_context_window(max_tokens=4000)
+                    await orchestrator.memory_manager.update_context(ctx)
+                    optimized_count += 1
+            
+            return {
+                "success": True,
+                "message": f"Memory optimized for {optimized_count} sessions",
+                "optimized_count": optimized_count
+            }
+        
+    except Exception as e:
+        logger.error(f"Error optimizing memory: {e}")
         return {
             "success": False,
             "error": str(e)

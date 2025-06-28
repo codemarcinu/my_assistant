@@ -102,7 +102,7 @@ export const chatAPI = {
     return response.data;
   },
 
-  // Get chat history
+  // Get chat history with enhanced memory management
   getHistory: async (limit: number = 50): Promise<ApiResponse<ChatMessage[]>> => {
     const response = await apiClient.get(`/api/chat/memory_chat?limit=${limit}`);
     return response.data;
@@ -123,6 +123,19 @@ export const chatAPI = {
   // Get suggested actions based on context
   getSuggestedActions: async (context: any): Promise<ApiResponse<string[]>> => {
     const response = await apiClient.post('/api/agents/process_query', { context });
+    return response.data;
+  },
+
+  // Get memory management statistics
+  getMemoryStats: async (): Promise<ApiResponse<any>> => {
+    const response = await apiClient.get('/api/chat/memory_stats');
+    return response.data;
+  },
+
+  // Optimize memory contexts
+  optimizeMemory: async (sessionId?: string): Promise<ApiResponse<any>> => {
+    const params = sessionId ? { session_id: sessionId } : {};
+    const response = await apiClient.post('/api/chat/memory_optimize', params);
     return response.data;
   },
 };

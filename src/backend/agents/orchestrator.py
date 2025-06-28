@@ -2,6 +2,7 @@ import logging
 import uuid
 from datetime import datetime
 from typing import Any, Callable, Coroutine, Dict, Optional
+import asyncio
 
 import pybreaker
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -97,24 +98,37 @@ class Orchestrator:
 
     def __init__(
         self,
-        db_session: Optional[AsyncSession] = None,
-        profile_manager: Optional[ProfileManager] = None,
-        intent_detector: Optional[IntentDetector] = None,
-        agent_router: Optional[AgentRouter] = None,
-        memory_manager: Optional[MemoryManager] = None,
-        response_generator: Optional[ResponseGenerator] = None,
+        db_session: AsyncSession,
+        profile_manager: Optional["ProfileManager"] = None,
+        intent_detector: Optional["IntentDetector"] = None,
+        agent_router: Optional["AgentRouter"] = None,
+        memory_manager: Optional["MemoryManager"] = None,
+        response_generator: Optional["ResponseGenerator"] = None,
+        orchestrator_id: Optional[str] = None,
     ) -> None:
         self.db = db_session
-        self.profile_manager = profile_manager or ProfileManager(db_session)
-        self.intent_detector = intent_detector or IntentDetector()
-        self.agent_router = agent_router or AgentRouter()
-        self.memory_manager = memory_manager or MemoryManager()
-        self.response_generator = response_generator or ResponseGenerator()
-
-        # Initialize circuit breaker
-        self.circuit_breaker = SimpleCircuitBreaker(
-            name="AgentCircuitBreaker", fail_max=3, reset_timeout=60
+        self.profile_manager = profile_manager
+        self.intent_detector = intent_detector
+        self.agent_router = agent_router
+        self.memory_manager = memory_manager or MemoryManager(
+            enable_persistence=True,
+            enable_semantic_cache=True
         )
+        self.response_generator = response_generator
+        self.orchestrator_id = orchestrator_id or str(uuid.uuid4())
+        
+        # Initialize circuit breaker for fault tolerance
+        self.circuit_breaker = pybreaker.CircuitBreaker(
+            failure_threshold=5,
+            recovery_timeout=60,
+            expected_exception=Exception,
+        )
+        
+        # Initialize memory manager if provided
+        if self.memory_manager:
+            asyncio.create_task(self.memory_manager.initialize())
+        
+        logger.info(f"Orchestrator {self.orchestrator_id} initialized")
 
         # Registered agents will be added via register_agent()
         self._agents: Dict[AgentType, "BaseAgent"] = {}

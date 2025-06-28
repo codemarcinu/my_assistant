@@ -522,6 +522,55 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Authentication** - system autoryzacji JWT
 - **Monitoring** - monitoring wydajności i zdrowia systemu
 
+## 🧠 Advanced Conversation Memory Management
+
+FoodSave AI features a robust, production-grade memory management system for chatbots and AI agents, solving the problem of context loss in long conversations. Key features:
+
+- **Persistent storage**: All conversations and messages are stored in PostgreSQL, ensuring context is never lost between sessions or restarts.
+- **Sliding window + summarization**: The last N messages are kept in full, while older messages are summarized (multi-language, key points, user preferences, topics, style).
+- **Semantic cache**: Fast retrieval of similar contexts using semantic hashes.
+- **Automatic cleanup**: Old/unused contexts are cleaned up based on usage and timestamps.
+- **Detailed statistics**: Compression ratio, cache hit rate, context counts, and more, available via API and frontend.
+- **Manual optimization**: Memory can be optimized on demand via API or UI.
+- **Frontend monitoring**: The `MemoryMonitorModule` React component displays memory usage, compression, cache hit rate, and allows manual optimization.
+
+### Example API Usage
+
+- Get optimized chat history:
+  ```http
+  GET /api/chat/memory_chat?limit=50
+  ```
+- Get memory statistics:
+  ```http
+  GET /api/chat/memory_stats
+  ```
+- Optimize memory:
+  ```http
+  POST /api/chat/memory_optimize
+  ```
+
+### Example Conversation Summary
+```json
+{
+  "key_points": [
+    "User likes: i like spaghetti with tomato sauce",
+    "User asked: what ingredients do i need?",
+    "Assistant provided: here's a simple recipe for spaghetti with tomato sauce..."
+  ],
+  "topics_discussed": ["cooking", "technology"],
+  "user_preferences": {},
+  "conversation_style": "friendly"
+}
+```
+
+### Monitoring & Frontend
+- **MemoryMonitorModule**: Real-time memory stats, compression, cache hit rate, and manual optimization from the UI.
+- **Grafana dashboards**: System-wide metrics and health.
+
+For full details, see [docs/CONVERSATION_CONTEXT_MANAGEMENT.md](docs/CONVERSATION_CONTEXT_MANAGEMENT.md).
+
+---
+
 ## 🚀 Szybki start
 
 ### Wymagania

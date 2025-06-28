@@ -640,7 +640,7 @@ class GeneralConversationAgent(BaseAgent):
     def _prepare_messages(
         self, query: str, conversation_history: List[Dict[str, str]], context: str
     ) -> List[Dict[str, str]]:
-        """Prepare messages for LLM with context and conversation history"""
+        """Prepare messages for LLM with optimized context and conversation history"""
         messages = []
 
         # System message with instructions
@@ -659,10 +659,20 @@ class GeneralConversationAgent(BaseAgent):
 
         messages.append({"role": "system", "content": system_message})
 
-        # Add conversation history
-        for entry in conversation_history:
-            if isinstance(entry, dict) and "role" in entry and "content" in entry:
-                messages.append({"role": entry["role"], "content": entry["content"]})
+        # Use optimized conversation history if available
+        if hasattr(conversation_history, 'get_optimized_context'):
+            # If conversation_history is a MemoryContext object
+            optimized_messages = conversation_history.get_optimized_context(max_tokens=3000)
+            messages.extend(optimized_messages)
+        else:
+            # Fallback to traditional approach with limit
+            # Limit conversation history to prevent context window overflow
+            max_history_messages = 15  # Keep last 15 messages
+            recent_history = conversation_history[-max_history_messages:] if len(conversation_history) > max_history_messages else conversation_history
+            
+            for entry in recent_history:
+                if isinstance(entry, dict) and "role" in entry and "content" in entry:
+                    messages.append({"role": entry["role"], "content": entry["content"]})
 
         # Add current query
         messages.append({"role": "user", "content": query})

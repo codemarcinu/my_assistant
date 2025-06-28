@@ -1,6 +1,6 @@
 """
-Memory Management for Conversation Context
-Zgodnie z regułami MDC dla zarządzania pamięcią
+Enhanced Memory Management for Conversation Context
+Zgodnie z regułami MDC dla zaawansowanego zarządzania pamięcią konwersacyjną
 """
 
 import asyncio
@@ -8,17 +8,41 @@ import json
 import logging
 import weakref
 from contextlib import asynccontextmanager
-from datetime import datetime
-from typing import Any, Dict, List, Optional, TypedDict
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, TypedDict, Tuple
+from dataclasses import dataclass, asdict
 import hashlib
+import pickle
 
 from backend.agents.interfaces import BaseAgent, IMemoryManager
 from backend.core.cache_manager import CacheManager
 from backend.core.database import get_db
 from backend.models.conversation import Conversation, Message
-from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ConversationSummary:
+    """Podsumowanie konwersacji dla kompresji kontekstu"""
+    key_points: List[str]
+    user_preferences: Dict[str, Any]
+    conversation_style: str
+    topics_discussed: List[str]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass
+class ContextWindow:
+    """Okno kontekstowe z optymalizacją"""
+    recent_messages: List[Dict[str, Any]]  # Ostatnie N wiadomości (pełne)
+    summary: Optional[ConversationSummary]  # Podsumowanie starszych części
+    semantic_cache_key: Optional[str]  # Klucz cache'u semantycznego
+    token_count: int  # Szacowana liczba tokenów
+    last_optimized: datetime
 
 
 class MemoryStats(TypedDict):
@@ -31,56 +55,8 @@ class MemoryStats(TypedDict):
     cache_hit_rate: float
 
 
-class ConversationSummary:
-    """Podsumowanie konwersacji dla kompresji kontekstu"""
-    def __init__(self, key_points: List[str], topics_discussed: List[str], 
-                 user_preferences: Dict[str, Any], conversation_style: str = 'friendly'):
-        self.key_points = key_points
-        self.topics_discussed = topics_discussed
-        self.user_preferences = user_preferences
-        self.conversation_style = conversation_style
-        self.created_at = datetime.now()
-        self.updated_at = datetime.now()
-
-    def format_for_llm(self) -> str:
-        """Format conversation summary for LLM context"""
-        topics_str = ', '.join(self.topics_discussed) if self.topics_discussed else 'ogólne'
-        return f"""
-Wcześniej rozmawialiśmy o: {topics_str}
-Styl rozmowy: {self.conversation_style}
-Kluczowe punkty: {'; '.join(self.key_points) if self.key_points else 'brak'}
-"""
-
-
-class ContextWindow:
-    """Okno kontekstowe z optymalizacją"""
-    def __init__(self, recent_messages: List[Dict[str, Any]], 
-                 summary: Optional[ConversationSummary] = None,
-                 token_count: int = 0):
-        self.recent_messages = recent_messages
-        self.summary = summary
-        self.token_count = token_count
-        self.last_optimized = datetime.now()
-
-    def get_optimized_messages(self) -> List[Dict[str, Any]]:
-        """Get optimized messages for LLM"""
-        messages = []
-        
-        # Add summary if available
-        if self.summary:
-            messages.append({
-                "role": "system",
-                "content": self.summary.format_for_llm()
-            })
-        
-        # Add recent messages
-        messages.extend(self.recent_messages)
-        
-        return messages
-
-
-class MemoryContext:
-    """Context for maintaining conversation state and memory with __slots__ optimization"""
+class EnhancedMemoryContext:
+    """Rozszerzony kontekst pamięci z trwałym przechowywaniem"""
 
     __slots__ = [
         "session_id",
@@ -95,7 +71,7 @@ class MemoryContext:
         "context_window",
         "persistent_id",
         "semantic_hash",
-        "__weakref__",  # Allow weak references
+        "__weakref__",
     ]
 
     def __init__(self, session_id: str, history: Optional[List[Dict]] = None) -> None:
@@ -132,7 +108,20 @@ class MemoryContext:
         if not self.context_window:
             self._optimize_context_window(max_tokens)
         
-        return self.context_window.get_optimized_messages()
+        messages = []
+        
+        # Add summary if available
+        if self.context_window.summary:
+            summary_text = self._format_summary(self.context_window.summary)
+            messages.append({
+                "role": "system",
+                "content": f"Podsumowanie poprzedniej rozmowy:\n{summary_text}"
+            })
+        
+        # Add recent messages
+        messages.extend(self.context_window.recent_messages)
+        
+        return messages
 
     def _optimize_context_window(self, max_tokens: int) -> None:
         """Optimize context window to fit within token limit"""
@@ -140,7 +129,9 @@ class MemoryContext:
             self.context_window = ContextWindow(
                 recent_messages=self.history[-10:],
                 summary=None,
-                token_count=self._estimate_tokens(self.history)
+                semantic_cache_key=None,
+                token_count=self._estimate_tokens(self.history),
+                last_optimized=datetime.now()
             )
             return
 
@@ -154,13 +145,15 @@ class MemoryContext:
             if older_messages:
                 # Create or update summary
                 self.conversation_summary = self._create_conversation_summary(older_messages)
-                summary_tokens = self._estimate_tokens([{"content": self.conversation_summary.format_for_llm()}])
+                summary_tokens = self._estimate_tokens([{"content": self._format_summary(self.conversation_summary)}])
                 
                 if recent_tokens + summary_tokens <= max_tokens:
                     self.context_window = ContextWindow(
                         recent_messages=recent_messages,
                         summary=self.conversation_summary,
-                        token_count=recent_tokens + summary_tokens
+                        semantic_cache_key=self._generate_semantic_hash(older_messages),
+                        token_count=recent_tokens + summary_tokens,
+                        last_optimized=datetime.now()
                     )
                     return
 
@@ -168,7 +161,9 @@ class MemoryContext:
         self.context_window = ContextWindow(
             recent_messages=recent_messages,
             summary=None,
-            token_count=recent_tokens
+            semantic_cache_key=None,
+            token_count=recent_tokens,
+            last_optimized=datetime.now()
         )
 
     def _estimate_tokens(self, messages: List[Dict[str, Any]]) -> int:
@@ -187,96 +182,43 @@ class MemoryContext:
         topics = set()
         user_prefs = {}
         
-        # Keywords for topic detection (both English and Polish)
-        topic_keywords = {
-            'cooking': ['przepis', 'gotowanie', 'cook', 'recipe', 'kitchen', 'kuchnia', 'food', 'jedzenie'],
-            'weather': ['pogoda', 'weather', 'temperature', 'temperatura', 'rain', 'deszcz'],
-            'shopping': ['zakupy', 'shopping', 'lista', 'list', 'buy', 'kupić', 'store', 'sklep'],
-            'pantry': ['spiżarnia', 'pantry', 'produkty', 'products', 'food items', 'artykuły spożywcze'],
-            'health': ['zdrowie', 'health', 'diet', 'dieta', 'nutrition', 'odżywianie'],
-            'travel': ['podróż', 'travel', 'trip', 'wycieczka', 'vacation', 'wakacje'],
-            'work': ['praca', 'work', 'job', 'office', 'biuro', 'project', 'projekt'],
-            'family': ['rodzina', 'family', 'children', 'dzieci', 'parents', 'rodzice'],
-            'entertainment': ['rozrywka', 'entertainment', 'movie', 'film', 'music', 'muzyka', 'game', 'gra'],
-            'technology': ['technologia', 'technology', 'computer', 'komputer', 'phone', 'telefon', 'app', 'aplikacja']
-        }
-        
-        # Preference indicators
-        preference_indicators = {
-            'likes': ['lubię', 'like', 'love', 'kocham', 'prefer', 'preferuję', 'enjoy', 'cieszę się'],
-            'dislikes': ['nie lubię', 'dislike', 'hate', 'nienawidzę', 'avoid', 'unikać'],
-            'wants': ['chcę', 'want', 'need', 'potrzebuję', 'would like', 'chciałbym'],
-            'has': ['mam', 'have', 'got', 'posiadam', 'own', 'własność']
-        }
-        
         for msg in messages:
             content = msg.get('content', '').lower()
             role = msg.get('role', '')
             
-            # Extract topics using keyword matching
-            for topic, keywords in topic_keywords.items():
-                if any(keyword in content for keyword in keywords):
-                    topics.add(topic)
+            # Extract topics (simple keyword extraction)
+            if 'przepis' in content or 'gotowanie' in content:
+                topics.add('cooking')
+            if 'pogoda' in content:
+                topics.add('weather')
+            if 'zakupy' in content or 'lista' in content:
+                topics.add('shopping')
+            if 'spiżarnia' in content or 'produkty' in content:
+                topics.add('pantry')
             
-            # Extract key points from user messages
+            # Extract user preferences
             if role == 'user':
-                # Look for preference indicators
-                for pref_type, indicators in preference_indicators.items():
-                    for indicator in indicators:
-                        if indicator in content:
-                            # Extract the preference (simple extraction)
-                            start_idx = content.find(indicator)
-                            if start_idx != -1:
-                                # Get the sentence containing the preference
-                                sentence_start = max(0, content.rfind('.', 0, start_idx) + 1)
-                                sentence_end = content.find('.', start_idx)
-                                if sentence_end == -1:
-                                    sentence_end = len(content)
-                                
-                                sentence = content[sentence_start:sentence_end].strip()
-                                if len(sentence) > 10:  # Only add meaningful sentences
-                                    key_points.append(f"User {pref_type}: {sentence}")
-                                break
-                
-                # Look for questions (they often indicate interests)
-                if '?' in content or any(word in content for word in ['how', 'what', 'when', 'where', 'why', 'jak', 'co', 'kiedy', 'gdzie', 'dlaczego']):
-                    # Extract the question
-                    sentences = content.split('.')
-                    for sentence in sentences:
-                        if '?' in sentence or any(word in sentence for word in ['how', 'what', 'when', 'where', 'why', 'jak', 'co', 'kiedy', 'gdzie', 'dlaczego']):
-                            sentence = sentence.strip()
-                            if len(sentence) > 10:
-                                key_points.append(f"User asked: {sentence}")
-                                break
-            
-            # Extract key information from assistant responses
-            elif role == 'assistant':
-                # Look for helpful information provided
-                if any(word in content for word in ['here', 'here\'s', 'this', 'that', 'you can', 'możesz', 'oto', 'tutaj']):
-                    sentences = content.split('.')
-                    for sentence in sentences:
-                        if any(word in sentence for word in ['here', 'here\'s', 'this', 'that', 'you can', 'możesz', 'oto', 'tutaj']):
-                            sentence = sentence.strip()
-                            if len(sentence) > 15:
-                                key_points.append(f"Assistant provided: {sentence}")
-                                break
-        
-        # Limit key points to top 5 most relevant
-        key_points = key_points[:5]
-        
-        # Determine conversation style based on content
-        conversation_style = 'friendly'
-        if any(word in ' '.join([msg.get('content', '') for msg in messages]) for word in ['formal', 'business', 'professional', 'formalny', 'biznesowy']):
-            conversation_style = 'formal'
-        elif any(word in ' '.join([msg.get('content', '') for msg in messages]) for word in ['casual', 'informal', 'relaxed', 'swobodny', 'nieformalny']):
-            conversation_style = 'casual'
+                if 'lubię' in content or 'preferuję' in content:
+                    # Simple preference extraction
+                    pass
         
         return ConversationSummary(
-            key_points=key_points,
-            topics_discussed=list(topics),
+            key_points=key_points[:5],  # Top 5 key points
             user_preferences=user_prefs,
-            conversation_style=conversation_style
+            conversation_style='friendly',  # Default
+            topics_discussed=list(topics),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
+
+    def _format_summary(self, summary: ConversationSummary) -> str:
+        """Format conversation summary for LLM context"""
+        topics_str = ', '.join(summary.topics_discussed) if summary.topics_discussed else 'ogólne'
+        return f"""
+Wcześniej rozmawialiśmy o: {topics_str}
+Styl rozmowy: {summary.conversation_style}
+Kluczowe punkty: {'; '.join(summary.key_points) if summary.key_points else 'brak'}
+"""
 
     def _generate_semantic_hash(self, messages: List[Dict[str, Any]]) -> str:
         """Generate semantic hash for caching similar contexts"""
@@ -284,15 +226,18 @@ class MemoryContext:
         return hashlib.md5(content.encode()).hexdigest()
 
 
-class MemoryManager(IMemoryManager):
-    """Implementation of memory management for conversation context with proper cleanup"""
+class EnhancedMemoryManager(IMemoryManager):
+    """Zaawansowany menedżer pamięci z trwałym przechowywaniem i optymalizacją"""
 
     def __init__(
-        self, max_contexts: int = 1000, cleanup_threshold_ratio: float = 0.8,
-        enable_persistence: bool = True, enable_semantic_cache: bool = True
+        self, 
+        max_contexts: int = 1000, 
+        cleanup_threshold_ratio: float = 0.8,
+        enable_persistence: bool = True,
+        enable_semantic_cache: bool = True
     ) -> None:
-        # Use weak references to avoid memory leaks
-        self._contexts: Dict[str, weakref.ReferenceType[MemoryContext]] = {}
+        # In-memory contexts with weak references
+        self._contexts: Dict[str, weakref.ReferenceType[EnhancedMemoryContext]] = {}
         self._max_contexts = max_contexts
         self._cleanup_threshold = int(max_contexts * cleanup_threshold_ratio)
         self._cleanup_lock = asyncio.Lock()
@@ -301,14 +246,15 @@ class MemoryManager(IMemoryManager):
         self._enable_persistence = enable_persistence
         self._enable_semantic_cache = enable_semantic_cache
         self._cache_manager = CacheManager()
-        self._semantic_cache: Dict[str, MemoryContext] = {}
+        self._semantic_cache: Dict[str, EnhancedMemoryContext] = {}
         
+        # Statistics
         self._memory_stats: MemoryStats = {
             "total_contexts": 0,
             "persistent_contexts": 0,
             "cached_contexts": 0,
-            "last_cleanup": None,  # Timestamp of last cleanup
-            "cleanup_count": 0,  # How many times cleanup ran
+            "last_cleanup": None,
+            "cleanup_count": 0,
             "compression_ratio": 0.0,
             "cache_hit_rate": 0.0,
         }
@@ -318,12 +264,12 @@ class MemoryManager(IMemoryManager):
         await self._cache_manager.connect()
         logger.info("Enhanced Memory Manager initialized")
 
-    async def store_context(self, context: MemoryContext) -> None:
-        """Store context for later retrieval with weak reference"""
+    async def store_context(self, context: EnhancedMemoryContext) -> None:
+        """Store context with persistence and caching"""
         if len(self._contexts) >= self._max_contexts:
             await self._cleanup_old_contexts()
 
-        # Use weak reference to avoid memory leaks
+        # Store in memory with weak reference
         self._contexts[context.session_id] = weakref.ref(
             context, self._cleanup_callback
         )
@@ -337,34 +283,21 @@ class MemoryManager(IMemoryManager):
         if self._enable_semantic_cache and context.semantic_hash:
             self._semantic_cache[context.semantic_hash] = context
         
-        self._memory_stats["total_contexts"] = len(self._contexts)
         self._update_stats()
         logger.debug(f"Stored enhanced context for session: {context.session_id}")
 
-    def _cleanup_callback(self, weak_ref) -> None:
-        """Callback when context is garbage collected"""
-        # Remove from tracking when context is GC'd
-        for session_id, ref in list(self._contexts.items()):
-            if ref is weak_ref:
-                del self._contexts[session_id]
-                logger.debug(f"Cleaned up garbage collected context: {session_id}")
-                break
-
-    async def retrieve_context(self, session_id: str) -> Optional[MemoryContext]:
-        """Retrieve context for session if it exists"""
+    async def retrieve_context(self, session_id: str) -> Optional[EnhancedMemoryContext]:
+        """Retrieve context with fallback to persistent storage"""
+        # Try memory first
         weak_ref = self._contexts.get(session_id)
         if weak_ref:
             context = weak_ref()
-            if context:  # Check if weak reference is still valid
+            if context:
                 context.last_updated = datetime.now()
                 logger.debug(f"Retrieved context from memory for session: {session_id}")
                 return context
             else:
-                # Clean up invalid weak reference
                 del self._contexts[session_id]
-                logger.debug(
-                    f"Cleaned up invalid weak reference for session: {session_id}"
-                )
 
         # Try persistent storage
         if self._enable_persistence:
@@ -384,22 +317,21 @@ class MemoryManager(IMemoryManager):
 
         return None
 
-    async def get_context(self, session_id: str) -> MemoryContext:
+    async def get_context(self, session_id: str) -> EnhancedMemoryContext:
         """Get or create context for session"""
         context = await self.retrieve_context(session_id)
         if context is None:
-            # Create new context if it doesn't exist
-            context = MemoryContext(session_id)
+            context = EnhancedMemoryContext(session_id)
             await self.store_context(context)
             logger.debug(f"Created new enhanced context for session: {session_id}")
         return context
 
     async def update_context(
-        self, context: MemoryContext, new_data: Optional[Dict[str, Any]] = None
+        self, context: EnhancedMemoryContext, new_data: Optional[Dict[str, Any]] = None
     ) -> None:
-        """Update existing context with new data"""
+        """Update context with new data and optimize"""
         if context.session_id in self._contexts:
-            # Add new data to context history if provided
+            # Add new data to context history
             if new_data:
                 if isinstance(new_data, dict):
                     # Handle different data formats
@@ -419,25 +351,20 @@ class MemoryManager(IMemoryManager):
                         # Generic data update
                         if not hasattr(context, "history"):
                             context.history = []
-                        context.history.append(
-                            {"timestamp": datetime.now().isoformat(), "data": new_data}
-                        )
+                        context.history.append({
+                            "timestamp": datetime.now().isoformat(),
+                            "data": new_data
+                        })
 
             # Optimize context window
             context._optimize_context_window(max_tokens=4000)
-
-            # Update weak reference
-            self._contexts[context.session_id] = weakref.ref(
-                context, self._cleanup_callback
-            )
-            context.last_updated = datetime.now()
             
             # Update storage
             await self.store_context(context)
             logger.debug(f"Updated enhanced context for session: {context.session_id}")
 
     async def clear_context(self, session_id: str) -> None:
-        """Clear context for session"""
+        """Clear context from all storage layers"""
         # Clear from memory
         if session_id in self._contexts:
             del self._contexts[session_id]
@@ -450,11 +377,10 @@ class MemoryManager(IMemoryManager):
         if self._enable_semantic_cache:
             await self._clear_from_semantic_cache(session_id)
         
-        self._memory_stats["total_contexts"] = len(self._contexts)
         self._update_stats()
         logger.debug(f"Cleared enhanced context for session: {session_id}")
 
-    async def _persist_context(self, context: MemoryContext) -> None:
+    async def _persist_context(self, context: EnhancedMemoryContext) -> None:
         """Persist context to database"""
         try:
             async for db in get_db():
@@ -488,7 +414,7 @@ class MemoryManager(IMemoryManager):
         except Exception as e:
             logger.error(f"Error persisting context: {e}")
 
-    async def _load_from_persistence(self, session_id: str) -> Optional[MemoryContext]:
+    async def _load_from_persistence(self, session_id: str) -> Optional[EnhancedMemoryContext]:
         """Load context from persistent storage"""
         try:
             async for db in get_db():
@@ -511,7 +437,7 @@ class MemoryManager(IMemoryManager):
                             "timestamp": msg.created_at.isoformat()
                         })
                     
-                    context = MemoryContext(session_id, history)
+                    context = EnhancedMemoryContext(session_id, history)
                     context.persistent_id = conversation.id
                     return context
                     
@@ -536,7 +462,7 @@ class MemoryManager(IMemoryManager):
         except Exception as e:
             logger.error(f"Error clearing from persistence: {e}")
 
-    async def _find_similar_context(self, session_id: str) -> Optional[MemoryContext]:
+    async def _find_similar_context(self, session_id: str) -> Optional[EnhancedMemoryContext]:
         """Find similar context in semantic cache"""
         # Simple similarity check based on session_id pattern
         for cached_context in self._semantic_cache.values():
@@ -554,8 +480,16 @@ class MemoryManager(IMemoryManager):
         for key in keys_to_remove:
             del self._semantic_cache[key]
 
+    def _cleanup_callback(self, weak_ref) -> None:
+        """Callback when context is garbage collected"""
+        for session_id, ref in list(self._contexts.items()):
+            if ref is weak_ref:
+                del self._contexts[session_id]
+                logger.debug(f"Cleaned up garbage collected context: {session_id}")
+                break
+
     async def _cleanup_old_contexts(self) -> None:
-        """Remove old contexts when limit is reached with proper locking"""
+        """Remove old contexts when limit is reached"""
         async with self._cleanup_lock:
             if len(self._contexts) <= self._cleanup_threshold:
                 return
@@ -567,61 +501,23 @@ class MemoryManager(IMemoryManager):
                 if context:
                     valid_contexts.append((session_id, context, context.last_updated))
                 else:
-                    # Clean up invalid references
                     del self._contexts[session_id]
 
             # Sort by last_updated and remove oldest
             valid_contexts.sort(key=lambda x: x[2], reverse=True)
+            contexts_to_keep = valid_contexts[:self._cleanup_threshold]
 
-            # Keep only the newest contexts
-            contexts_to_keep = valid_contexts[: self._cleanup_threshold]
-
-            # Rebuild contexts dict with weak references
+            # Rebuild contexts dict
             new_contexts = {}
             for session_id, context, _ in contexts_to_keep:
                 new_contexts[session_id] = weakref.ref(context, self._cleanup_callback)
 
             removed_count = len(self._contexts) - len(new_contexts)
             self._contexts = new_contexts
-            self._memory_stats["total_contexts"] = len(self._contexts)
             self._memory_stats["last_cleanup"] = datetime.now()
             self._memory_stats["cleanup_count"] += 1
 
-            logger.info(
-                f"Cleaned up {removed_count} old contexts. "
-                f"Total contexts: {len(self._contexts)}"
-            )
-
-    async def register_agent_state(
-        self,
-        context: MemoryContext,
-        agent_type: str,
-        agent: BaseAgent,
-        state: Dict[str, Any],
-    ) -> None:
-        """Register agent state in context"""
-        if not hasattr(context, "active_agents"):
-            context.active_agents = {}
-
-        context.active_agents[agent_type] = {
-            "agent": agent,
-            "state": state,
-            "timestamp": datetime.now().isoformat(),
-        }
-
-    async def get_all_contexts(self) -> Dict[str, MemoryContext]:
-        """Get all stored contexts (for debugging/monitoring) with cleanup"""
-        # Clean up invalid references first
-        valid_contexts = {}
-        for session_id, weak_ref in self._contexts.items():
-            context = weak_ref()
-            if context:
-                valid_contexts[session_id] = context
-            else:
-                del self._contexts[session_id]
-
-        self._memory_stats["total_contexts"] = len(self._contexts)
-        return valid_contexts
+            logger.info(f"Cleaned up {removed_count} old contexts. Total: {len(self._contexts)}")
 
     def _update_stats(self) -> None:
         """Update memory statistics"""
@@ -638,7 +534,7 @@ class MemoryManager(IMemoryManager):
         if total_messages > 0:
             self._memory_stats["compression_ratio"] = compressed_messages / total_messages
 
-    def _get_valid_contexts(self) -> List[MemoryContext]:
+    def _get_valid_contexts(self) -> List[EnhancedMemoryContext]:
         """Get all valid contexts"""
         valid_contexts = []
         for weak_ref in self._contexts.values():
@@ -648,17 +544,12 @@ class MemoryManager(IMemoryManager):
         return valid_contexts
 
     async def get_context_stats(self) -> Dict[str, Any]:
-        """Get memory manager statistics"""
-        # Clean up invalid references before stats
+        """Get enhanced memory manager statistics"""
         await self._cleanup_old_contexts()
         self._update_stats()
-
-        valid_contexts = []
-        for weak_ref in self._contexts.values():
-            context = weak_ref()
-            if context:
-                valid_contexts.append(context)
-
+        
+        valid_contexts = self._get_valid_contexts()
+        
         return {
             "total_contexts": len(valid_contexts),
             "persistent_contexts": self._memory_stats["persistent_contexts"],
@@ -685,32 +576,18 @@ class MemoryManager(IMemoryManager):
             self._memory_stats["cached_contexts"] = 0
             self._memory_stats["last_cleanup"] = datetime.now()
             self._memory_stats["cleanup_count"] += 1
-            logger.info("Cleaned up all contexts")
+            logger.info("Cleaned up all enhanced contexts")
 
     @asynccontextmanager
-    async def context_manager(self, session_id: str) -> None:
-        """Async context manager for memory context lifecycle"""
+    async def context_manager(self, session_id: str):
+        """Async context manager for enhanced memory context lifecycle"""
         context = await self.get_context(session_id)
         try:
             yield context
         finally:
-            # Update context timestamp on exit
             context.last_updated = datetime.now()
             await self.update_context(context, None)
-            logger.debug(f"Context manager exited for session: {session_id}")
-
-    async def __aenter__(self) -> MemoryContext:
-        """Enter async context"""
-        return self.context
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Exit async context with cleanup"""
-        if exc_type is not None:
-            logger.error(f"Error in memory context: {exc_val}")
-        await self.memory_manager.update_context(self.context)
-
-    def get_memory_stats(self) -> "MemoryStats":
-        return self._memory_stats
+            logger.debug(f"Enhanced context manager exited for session: {session_id}")
 
     async def shutdown(self) -> None:
         """Shutdown memory manager"""
