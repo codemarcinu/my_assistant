@@ -109,6 +109,8 @@ services:
       - TESTING_MODE=true
       - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND_URL=redis://redis:6379/0
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma3:12b}
@@ -135,6 +137,60 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        tag: "{{.Name}}/{{.ID}}"
+
+  # Celery Worker for Background Tasks
+  celery_worker:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile.dev
+    container_name: foodsave-celery-worker-dev
+    command: celery -A src.worker.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./:/app
+      - ./logs/backend:/app/logs
+      - ./data:/app/data
+      - backend_cache:/app/.cache
+      - temp_uploads:/app/temp_uploads
+    environment:
+      - PYTHONPATH=/app:/app/src
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - TESTING_MODE=true
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND_URL=redis://redis:6379/0
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma3:12b}
+      - DEFAULT_CHAT_MODEL=${DEFAULT_CHAT_MODEL:-gemma3:12b}
+      - DEFAULT_CODE_MODEL=${DEFAULT_CODE_MODEL:-gemma3:12b}
+      - DEFAULT_EMBEDDING_MODEL=${DEFAULT_EMBEDDING_MODEL:-nomic-embed-text}
+      - RAG_VECTOR_STORE_PATH=/app/data/vector_store_dev
+    networks:
+      - foodsave-dev-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A src.worker.celery_app inspect ping || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -339,6 +395,8 @@ volumes:
     name: foodsave-frontend-node-modules-dev
   backend_cache:
     name: foodsave-backend-cache-dev
+  temp_uploads:
+    name: foodsave-temp-uploads-dev
   prometheus_data:
     name: foodsave-prometheus-data-dev
   grafana_data:
