@@ -401,85 +401,64 @@ class CategorizationAgent(BaseAgent):
 
 ### 8. 💬 General Conversation Agent
 
-**Primary Responsibility**: General conversation handling, date/time queries, and fallback responses
+**Primary Responsibility**: General conversation handling with advanced anti-hallucination protection
 
 **Key Features**:
-- General conversation and chit-chat
-- **Date and time queries** - provides accurate current date/time information
-- Fallback responses for unrecognized queries
-- Context-aware responses using RAG and internet search
-- Multi-language support (Polish and English)
-- Hybrid model selection for optimal performance
+- **🛡️ Anti-Hallucination System**: Multi-layered protection against AI making up information
+- **🎯 Fuzzy Name Matching**: Detects when AI invents biographies for unknown people
+- **📱 Product Hallucination Detection**: Prevents fake product specifications
+- **🔍 Pattern Recognition**: Identifies common hallucination patterns
+- **📋 Whitelist System**: Allows known public figures while blocking unknown individuals
+- **🌍 Polish Name Detection**: Specialized detection for Polish names and surnames
+- **⚡ Post-Processing Filter**: Real-time response filtering with intelligent fallbacks
+- **📊 Context Validation**: Ensures responses are based on available information
 
-**Date/Time Query Examples**:
+**Anti-Hallucination Features**:
+- **System Prompt Enhancement**: Explicit instructions against fabricating facts
+- **Temperature Optimization**: Lowered from 0.3 to 0.1 for better determinism
+- **Response Pattern Detection**: Identifies biographical and technical specification patterns
+- **Fallback Mechanisms**: Graceful degradation when hallucinations are detected
+
+**Example Commands**:
 ```
-"jaki dzisiaj jest dzień?"
-"podaj dzisiejszą datę"
-"what day is it today?"
-"today's date"
-"jaki mamy dzisiaj dzień tygodnia?"
-"który to dzień?"
+"Who is the current president of Poland?"  # ✅ Allowed (known person)
+"Tell me about Jan Kowalski, a Polish scientist"  # ❌ Blocked (unknown person)
+"What are the specs of Samsung Galaxy XYZ 2025?"  # ❌ Blocked (fictional product)
+"What's the weather like today?"  # ✅ Allowed (general query)
 ```
 
 **Implementation**:
 ```python
 class GeneralConversationAgent(BaseAgent):
-    """Agent for general conversation and date/time queries"""
+    """Agent for general conversation with anti-hallucination protection"""
 
     def __init__(self):
         super().__init__("general_conversation_agent")
-        self.rag_client = RAGClient()
-        self.web_search = WebSearchClient()
-        self.hybrid_llm = HybridLLMClient()
+        self.anti_hallucination_filter = AntiHallucinationFilter()
+        self.name_detector = PolishNameDetector()
+        self.pattern_detector = HallucinationPatternDetector()
 
-    async def process(self, input_data: Dict[str, Any]) -> AgentResponse:
-        query = self._extract_query_from_input(input_data)
+    async def process_query(self, query: str, context: Dict) -> AgentResponse:
+        # Check for hallucination triggers
+        if self.anti_hallucination_filter.detect_hallucination_risk(query):
+            return self.generate_safe_response(query)
         
-        # Check if this is a date/time query - immediate response
-        if self._is_date_query(query):
-            date_response = get_current_date()
-            return AgentResponse(
-                success=True,
-                text=date_response,
-                data={"is_date_query": True}
-            )
+        # Process with enhanced system prompt
+        response = await self.generate_response_with_anti_hallucination(query, context)
         
-        # Regular conversation processing with RAG and web search
-        rag_context = await self._get_rag_context(query)
-        internet_context = await self._get_internet_context(query)
+        # Post-processing filter
+        if self.pattern_detector.contains_hallucination_patterns(response):
+            return self.generate_fallback_response(query)
         
-        response = await self._generate_response(
-            query, rag_context, internet_context
-        )
-        
-        return AgentResponse(
-            success=True,
-            text=response,
-            data={"used_rag": bool(rag_context), "used_internet": bool(internet_context)}
-        )
+        return response
+```
 
-    def _is_date_query(self, query: str) -> bool:
-        """Detects date/time related queries with high precision"""
-        # Excludes weather queries that might contain time-related words
-        weather_keywords = ["weather", "pogoda", "temperature", "temperatura"]
-        if any(keyword in query.lower() for keyword in weather_keywords):
-            return False
-        
-        # Specific patterns for date queries
-        date_patterns = [
-            r"\b(jaki|which|what)\s+(dzisiaj|today|dzień|day)\b",
-            r"\b(podaj|tell)\s+(mi|me|dzisiejszą|today's)?\s*(datę|date)\b",
-            r"\b(dzisiejsza|today's)\s+(data|date)\b",
-            r"\b(jaki|what)\s+(to|is)\s+(dzień|day)\b",
-            r"\b(dzień|day)\s+(tygodnia|of\s+week)\b",
-        ]
-        
-        import re
-        for pattern in date_patterns:
-            if re.search(pattern, query.lower()):
-                return True
-        
-        return False
+**Anti-Hallucination Detection**:
+- **Fuzzy Name Matching**: Detects Polish names in responses
+- **Biographical Pattern Detection**: Identifies fake biographies
+- **Product Specification Detection**: Catches fake product specs
+- **Context Validation**: Ensures information is from available sources
+- **Whitelist System**: Allows known public figures and historical figures
 
 ## 🎯 Intent Detection
 
