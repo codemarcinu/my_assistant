@@ -3,6 +3,40 @@
 ## Table of Contents
 
  - [FoodSave AI - Docker Environment](#foodsave-ai-docker-environment)
+ - [Table of Contents](#table-of-contents)
+ - [Requirements](#requirements)
+ - [Environment Structure](#environment-structure)
+ - [Management Script](#management-script)
+ - [Basic Usage](#basic-usage)
+ - [Make the script executable](#make-the-script-executable)
+ - [Show help](#show-help)
+ - [Starting the Environment](#starting-the-environment)
+ - [Start core services only (Backend, Frontend, Ollama, PostgreSQL)](#start-core-services-only-backend-frontend-ollama-postgresql)
+ - [Start with monitoring services (adds Prometheus and Grafana)](#start-with-monitoring-services-adds-prometheus-and-grafana)
+ - [Start with caching services (adds Redis)](#start-with-caching-services-adds-redis)
+ - [Start with logging services (adds Loki and Promtail)](#start-with-logging-services-adds-loki-and-promtail)
+ - [Start with all services](#start-with-all-services)
+ - [Checking Status](#checking-status)
+ - [Viewing Logs](#viewing-logs)
+ - [View logs from all services](#view-logs-from-all-services)
+ - [View logs from a specific service](#view-logs-from-a-specific-service)
+ - [Stopping the Environment](#stopping-the-environment)
+ - [Service Access](#service-access)
+ - [Environment Variables](#environment-variables)
+ - [Troubleshooting](#troubleshooting)
+ - [Container Name Conflicts](#container-name-conflicts)
+ - [Database Connection Issues](#database-connection-issues)
+ - [Ollama Connection Issues](#ollama-connection-issues)
+ - [Volume Issues](#volume-issues)
+ - [Advanced Configuration](#advanced-configuration)
+ - [Available Profiles](#available-profiles)
+
+---
+
+
+## Table of Contents
+
+ - [FoodSave AI - Docker Environment](#foodsave-ai-docker-environment)
  - [Requirements](#requirements)
  - [Environment Structure](#environment-structure)
  - [Management Script](#management-script)
