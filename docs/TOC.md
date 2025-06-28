@@ -3,6 +3,7 @@
 ## 1. Project Overview & Quick Start
 - [README.md](../README.md) – Project summary, quick start, architecture, status
 - [docs/README.md](README.md) – Extended overview, features, stack, configuration
+- [docs/DOCUMENTATION_SUMMARY.md](DOCUMENTATION_SUMMARY.md) – Documentation overview and structure
 
 ## 2. System Architecture & Design
 - [docs/ARCHITECTURE_DOCUMENTATION.md](ARCHITECTURE_DOCUMENTATION.md) – System architecture, diagrams, data flow, components
@@ -41,11 +42,18 @@
 - [docs/DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) – Deployment (dev/prod), Docker, environment, SSL, troubleshooting
 - [docs/TELEGRAM_BOT_DEPLOYMENT_GUIDE.md](TELEGRAM_BOT_DEPLOYMENT_GUIDE.md) – Telegram Bot deployment, configuration, security
 
-## 9. Frontend Implementation & UX
+## 9. Development Tools & Automation
+- [docs/ALL_SCRIPTS_DOCUMENTATION.md](ALL_SCRIPTS_DOCUMENTATION.md) – Complete documentation of all .sh scripts in the project
+- [docs/SCRIPTS_DOCUMENTATION.md](SCRIPTS_DOCUMENTATION.md) – Documentation automation scripts, TOC generation, usage guides
+- [scripts/README.md](../scripts/README.md) – Scripts usage instructions and examples
+- [scripts/update_documentation.sh](../scripts/update_documentation.sh) – Main documentation update automation script
+- [scripts/generate_toc.sh](../scripts/generate_toc.sh) – Table of contents generation script
+
+## 10. Frontend Implementation & UX
 - [docs/frontend-implementation-plan.md](frontend-implementation-plan.md) – Frontend implementation plan
 - [docs/frontend-implementation-checklist.md](frontend-implementation-checklist.md) – Frontend implementation checklist
 
-## 10. Contribution, Roadmap & Governance
+## 11. Contribution, Roadmap & Governance
 - [docs/CONTRIBUTING_GUIDE.md](CONTRIBUTING_GUIDE.md) – Contribution guidelines, workflow, code standards
 - [../ROADMAP.md](../ROADMAP.md) – Roadmap, planned features, phases
 
@@ -61,6 +69,7 @@
 - **Status & update dates:** At the end of each guide – last update date and status.
 - **Links to Swagger/Redoc:** In API Reference and README.
 - **Checklists & roadmaps:** For development, testing, deployment.
+- **Automation scripts:** Documentation update and TOC generation automation.
 
 ---
 
