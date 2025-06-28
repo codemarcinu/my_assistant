@@ -1,6 +1,9 @@
 import logging
 from typing import Any, Dict, List
 
+import datetime
+import locale
+
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -207,9 +210,6 @@ def get_current_date() -> str:
     """
     Narzędzie, które zwraca aktualną datę i dzień tygodnia.
     """
-    import datetime
-    import locale
-
     try:
         # Ustawienie polskiej lokalizacji dla nazw dni tygodnia
         locale.setlocale(locale.LC_TIME, "pl_PL.UTF-8")

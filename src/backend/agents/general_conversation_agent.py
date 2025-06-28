@@ -72,6 +72,25 @@ class GeneralConversationAgent(BaseAgent):
                 f"[GeneralConversationAgent] Processing query: {query[:100]}... use_perplexity={use_perplexity}, use_bielik={use_bielik}"
             )
 
+            # Sprawdź czy to pytanie o datę/czas - natychmiastowa odpowiedź
+            if self._is_date_query(query):
+                logger.info(f"Detected date query: {query}")
+                date_response = get_current_date()
+                return AgentResponse(
+                    success=True,
+                    text=date_response,
+                    data={
+                        "query": query,
+                        "used_rag": False,
+                        "used_internet": False,
+                        "rag_confidence": 0.0,
+                        "use_perplexity": use_perplexity,
+                        "use_bielik": use_bielik,
+                        "session_id": session_id,
+                        "is_date_query": True,
+                    },
+                )
+
             # Debug prints
             logger.debug("Input data: {}".format(input_data))
             logger.debug(
@@ -278,11 +297,6 @@ class GeneralConversationAgent(BaseAgent):
         use_bielik: bool,
     ) -> str:
         """Generuje odpowiedź z wykorzystaniem wszystkich źródeł informacji i weryfikacji wiedzy"""
-
-        # Sprawdź czy to pytanie o datę/czas
-        if self._is_date_query(query):
-            logger.info(f"Detected date query: {query}")
-            return get_current_date()
 
         # Buduj system prompt z uwzględnieniem weryfikacji wiedzy
         system_prompt = """Jesteś pomocnym asystentem AI prowadzącym swobodne konwersacje.
@@ -687,6 +701,40 @@ class GeneralConversationAgent(BaseAgent):
 
     def _is_date_query(self, query: str) -> bool:
         """Sprawdza czy zapytanie dotyczy daty/czasu"""
+        query_lower = query.lower()
+        
+        # Wyklucz zapytania o pogodę
+        weather_keywords = ["weather", "pogoda", "temperature", "temperatura", "rain", "deszcz", "snow", "śnieg"]
+        if any(keyword in query_lower for keyword in weather_keywords):
+            return False
+            
+        # Wyklucz zapytania o inne tematy, które mogą zawierać słowa związane z czasem
+        exclude_keywords = ["weather", "pogoda", "temperature", "temperatura", "forecast", "prognoza"]
+        if any(keyword in query_lower for keyword in exclude_keywords):
+            return False
+        
+        # Specyficzne wzorce dla zapytań o datę
+        date_patterns = [
+            r"\b(jaki|which|what)\s+(dzisiaj|today|dzień|day)\b",
+            r"\b(kiedy|when)\s+(jest|is)\b",
+            r"\b(dzisiaj|today)\s+(jest|is)\b",
+            r"\b(podaj|tell)\s+(mi|me|dzisiejszą|today's)?\s*(datę|date)\b",
+            r"\b(jaki|what)\s+(to|is)\s+(dzień|day)\b",
+            r"\b(dzień|day)\s+(tygodnia|of\s+week)\b",
+            r"\b(data|date)\s+(dzisiaj|today)\b",
+            r"\b(dzisiaj|today)\s+(data|date)\b",
+            r"\b(jaki|what)\s+(mamy|do\s+we\s+have)\s+(dzisiaj|today)\b",
+            r"\b(który|which)\s+(dzień|day)\s+(dzisiaj|today)\b",
+            r"\b(podaj|tell)\s+(dzisiejszą|today's)\s+(datę|date)\b",
+            r"\b(dzisiejsza|today's)\s+(data|date)\b",
+        ]
+        
+        import re
+        for pattern in date_patterns:
+            if re.search(pattern, query_lower):
+                return True
+        
+        # Dodatkowe słowa kluczowe tylko jeśli nie ma kontekstu pogodowego
         date_keywords = [
             "dzisiaj", "dziś", "today", "wczoraj", "yesterday", "jutro", "tomorrow",
             "dzień", "day", "miesiąc", "month", "rok", "year", "godzina", "hour",
@@ -696,5 +744,13 @@ class GeneralConversationAgent(BaseAgent):
             "wtorek", "tuesday", "środa", "wednesday", "czwartek", "thursday",
             "piątek", "friday", "sobota", "saturday", "niedziela", "sunday"
         ]
-        query_lower = query.lower()
-        return any(keyword in query_lower for keyword in date_keywords)
+        
+        # Sprawdź czy zapytanie zawiera głównie słowa związane z datą
+        date_word_count = sum(1 for keyword in date_keywords if keyword in query_lower)
+        total_words = len(query_lower.split())
+        
+        # Jeśli więcej niż 50% słów to słowa związane z datą, to prawdopodobnie zapytanie o datę
+        if date_word_count > 0 and date_word_count / total_words > 0.3:
+            return True
+            
+        return False

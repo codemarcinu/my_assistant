@@ -307,3 +307,33 @@ class TestGeneralConversationAgent:
             result = await agent._get_internet_context("test query", use_perplexity=True)
             # Elastyczne sprawdzanie - sprawdzamy obecność frazy 'internet' lub 'result'
             assert "internet" in result.lower() or "result" in result.lower()
+
+    @pytest.mark.asyncio
+    async def test_process_date_query(self, agent) -> None:
+        """Testuje czy agent zwraca aktualną datę na pytania o datę"""
+        import datetime
+        from unittest.mock import patch
+        # Przygotuj różne warianty pytań o datę
+        date_queries = [
+            "jaki dzisiaj jest dzień?",
+            "który to dzień?",
+            "jaki mamy dzisiaj dzień tygodnia?",
+            "podaj dzisiejszą datę",
+            "what day is it today?",
+            "today's date",
+            "dzień tygodnia",
+        ]
+        # Ustalona data do mockowania
+        fixed_now = datetime.datetime(2025, 6, 28, 8, 10, 0)
+        expected_day = fixed_now.strftime("%A").lower()
+        expected_date = fixed_now.strftime("%d %B %Y")
+        with patch("src.backend.agents.tools.tools.datetime.datetime") as mock_datetime:
+            mock_datetime.now.return_value = fixed_now
+            mock_datetime.strftime = datetime.datetime.strftime
+            for query in date_queries:
+                result = await agent.process({"query": query, "session_id": "test"})
+                assert isinstance(result, AgentResponse)
+                assert result.success is True
+                # Odpowiedź powinna zawierać dzień tygodnia i datę
+                assert expected_day.split()[0] in result.text.lower() or expected_date in result.text
+                assert "2025" in result.text
