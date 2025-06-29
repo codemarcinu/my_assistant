@@ -179,8 +179,8 @@ bash scripts/generate_toc.sh --check
 
 ## 1. Przegląd Projektu
 - README.md
-- ROADMAP.md
-- IMPLEMENTATION_SUMMARY.md
+- reports/ROADMAP.md
+- reports/IMPLEMENTATION_SUMMARY.md
 
 ## 2. Backend
 - docs/ARCHITECTURE_DOCUMENTATION.md
@@ -218,7 +218,7 @@ bash scripts/generate_toc.sh --check
 
 ## 10. Rozwój i Roadmap
 - docs/CONTRIBUTING_GUIDE.md
-- docs/ROADMAP.md
+- reports/ROADMAP.md
 ```
 
 ## 3. Plik README dla Skryptów

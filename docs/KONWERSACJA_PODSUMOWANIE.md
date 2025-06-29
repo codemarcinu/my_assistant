@@ -203,7 +203,7 @@ async def async_client():
 ### 📖 Utworzona Dokumentacja
 
 **Główna dokumentacja**:
-- ✅ **[📚 Dokumentacja Główna](README.md)** - Kompletny przewodnik
+- ✅ **[📚 Dokumentacja Główna](README_MAIN.md)** - Kompletny przewodnik
 - ✅ **[📱 Integracja Telegram Bot](TELEGRAM_BOT_INTEGRATION_REPORT.md)** - Szczegółowy raport
 - ✅ **[🤖 Przewodnik Wdrażania Telegram Bot](TELEGRAM_BOT_DEPLOYMENT_GUIDE.md)** - Instrukcje wdrażania
 
@@ -219,8 +219,8 @@ async def async_client():
 ## 📚 Documentation
 
 ### 🚀 **Kompletna Dokumentacja**
-- **[📚 Dokumentacja Główna](docs/README.md)** - Kompletny przewodnik
-- **[📖 Główny README](README.md)** - Przegląd projektu
+- **[📚 Dokumentacja Główna](README_MAIN.md)** - Kompletny przewodnik
+- **[📖 Główny README](../README.md)** - Przegląd projektu
 - **[🚀 Przewodnik Wdrażania](docs/DEPLOYMENT_GUIDE.md)** - Instrukcje wdrażania
 
 ### 🏗️ **Architektura i Technologie**
@@ -420,7 +420,7 @@ pytest tests/integration/test_receipt_endpoints.py -v
 ### 🆘 **Pomoc**
 - **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
-- **Documentation**: [Dokumentacja Główna](docs/README.md)
+- **Documentation**: [Dokumentacja Główna](README_MAIN.md)
 
 ### 📚 **Zasoby**
 - **API Docs**: http://localhost:8000/docs

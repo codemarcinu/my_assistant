@@ -589,7 +589,7 @@ sudo apt update && sudo apt upgrade
 
 - **Dokumentacja skryptów:** [docs/SCRIPTS_DOCUMENTATION.md](SCRIPTS_DOCUMENTATION.md)
 - **Docker setup:** [DOCKER_SETUP.md](../DOCKER_SETUP.md)
-- **Development guide:** [README_DEVELOPMENT.md](../README_DEVELOPMENT.md)
+- **Development guide:** [README_DEVELOPMENT.md](guides/README_DEVELOPMENT.md)
 - **API reference:** [docs/API_REFERENCE.md](API_REFERENCE.md)
 
 ---

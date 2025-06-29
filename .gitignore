@@ -71,6 +71,12 @@ Thumbs.db
 .next/static-runtime/
 .next/static-webpack/
 
+# Tauri
+myappassistant-chat-frontend/src-tauri/target/
+myappassistant-chat-frontend/src-tauri/Cargo.lock
+myappassistant-chat-frontend/test-results/
+myappassistant-chat-frontend/playwright-report/
+
 # Loki data files
 monitoring/loki-data/chunks/
 monitoring/loki-data/wal/
