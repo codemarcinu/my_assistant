@@ -20,6 +20,7 @@ import {
 import { useChatStore, Message } from '@/stores/chatStore';
 import { chatAPI } from '@/lib/api';
 import { useFontSize } from '../providers';
+import { TypewriterText } from './TypewriterText';
 
 export function ChatWindow() {
   const theme = useTheme();
@@ -191,9 +192,18 @@ export function ChatWindow() {
                     : '1px solid rgba(255, 255, 255, 0.1)',
                 }}
               >
-                <Typography variant="body2" sx={{ color: message.role === 'user' ? 'white' : 'text.primary' }}>
-                  {message.content}
-                </Typography>
+                {message.role === 'assistant' ? (
+                  <TypewriterText 
+                    text={message.content} 
+                    speed={30}
+                    variant="body2"
+                    color="text.primary"
+                  />
+                ) : (
+                  <Typography variant="body2" sx={{ color: 'white' }}>
+                    {message.content}
+                  </Typography>
+                )}
                 
                 {message.agentType && (
                   <Chip

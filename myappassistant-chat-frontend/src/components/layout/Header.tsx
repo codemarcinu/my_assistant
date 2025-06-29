@@ -19,13 +19,21 @@ import {
 } from '@mui/icons-material';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useAgentStore } from '@/stores/agentStore';
+import { useRouter, usePathname } from 'next/navigation';
 
 export function Header() {
   const theme = useTheme();
   const { settings, toggleTheme } = useSettingsStore();
   const { agents } = useAgentStore();
+  const router = useRouter();
+  const pathname = usePathname() || "";
 
   const activeAgents = agents.filter(agent => agent.status === 'active').length;
+  const isSettingsActive = pathname === "/settings";
+
+  const handleSettingsClick = () => {
+    router.push('/settings');
+  };
 
   return (
     <AppBar
@@ -136,11 +144,16 @@ export function Header() {
           
           <IconButton
             data-testid="settings-button"
+            onClick={handleSettingsClick}
             sx={{
-              color: 'text.primary',
+              color: isSettingsActive ? '#007AFF' : 'text.primary',
+              background: isSettingsActive ? 'rgba(0,122,255,0.12)' : 'none',
+              border: isSettingsActive ? '2px solid #007AFF' : 'none',
+              boxShadow: isSettingsActive ? '0 2px 8px 0 #007AFF33' : 'none',
               '&:hover': {
-                background: 'rgba(255, 255, 255, 0.1)',
+                background: 'rgba(0,122,255,0.18)',
               },
+              transition: 'all 0.25s cubic-bezier(.4,2,.6,1)',
             }}
           >
             <Settings />

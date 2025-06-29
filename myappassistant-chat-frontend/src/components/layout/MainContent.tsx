@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
+import { BreadcrumbsNav } from './BreadcrumbsNav';
 
 interface MainContentProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export function MainContent({ children }: MainContentProps) {
         background: 'transparent',
       }}
     >
+      <BreadcrumbsNav />
       {children}
     </Box>
   );

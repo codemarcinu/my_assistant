@@ -22,61 +22,65 @@ import {
   Settings,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import { useRouter, usePathname } from 'next/navigation';
 
 const drawerWidth = 240;
 
-interface SidebarProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
-}
-
-export function Sidebar({ activeSection = 'dashboard', onSectionChange }: SidebarProps) {
+export function Sidebar() {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const handleSectionChange = (section: string) => {
-    onSectionChange?.(section);
-  };
+  const router = useRouter();
+  const pathname = usePathname();
 
   const menuItems = [
     {
       id: 'dashboard',
+      path: '/dashboard',
       label: t('sidebar.dashboard'),
       icon: Dashboard,
       description: t('sidebar.dashboard_desc'),
     },
     {
       id: 'ocr',
+      path: '/ocr',
       label: t('sidebar.ocr'),
       icon: CameraAlt,
       description: t('sidebar.ocr_desc'),
     },
     {
       id: 'pantry',
+      path: '/pantry',
       label: t('sidebar.pantry'),
       icon: Kitchen,
       description: t('sidebar.pantry_desc'),
     },
     {
       id: 'analytics',
+      path: '/analytics',
       label: t('sidebar.analytics'),
       icon: Analytics,
       description: t('sidebar.analytics_desc'),
     },
     {
       id: 'rag',
+      path: '/rag',
       label: t('sidebar.rag'),
       icon: LibraryBooks,
       description: t('sidebar.rag_desc'),
     },
     {
       id: 'settings',
+      path: '/settings',
       label: t('sidebar.settings'),
       icon: Settings,
       description: t('sidebar.settings_desc'),
     },
   ];
+
+  const handleNavigation = (path: string) => {
+    router.push(path);
+  };
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -104,24 +108,27 @@ export function Sidebar({ activeSection = 'dashboard', onSectionChange }: Sideba
       <List sx={{ flex: 1, pt: 2 }}>
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeSection === item.id;
+          const isActive = pathname === item.path;
           
           return (
             <ListItem key={item.id} disablePadding>
               <ListItemButton
-                onClick={() => handleSectionChange(item.id)}
+                onClick={() => handleNavigation(item.path)}
                 sx={{
                   mx: 1,
                   mb: 0.5,
                   borderRadius: 2,
                   background: isActive
-                    ? 'linear-gradient(45deg, rgba(0, 122, 255, 0.2) 30%, rgba(88, 86, 214, 0.2) 90%)'
+                    ? 'linear-gradient(90deg, #007AFF22 0%, #5856D622 100%)'
                     : 'transparent',
-                  border: isActive ? '1px solid rgba(0, 122, 255, 0.3)' : 'none',
+                  border: isActive ? '2px solid #007AFF' : 'none',
+                  boxShadow: isActive ? '0 2px 8px 0 #007AFF33' : 'none',
+                  transition: 'all 0.25s cubic-bezier(.4,2,.6,1)',
                   '&:hover': {
                     background: isActive
-                      ? 'linear-gradient(45deg, rgba(0, 122, 255, 0.3) 30%, rgba(88, 86, 214, 0.3) 90%)'
-                      : 'rgba(255, 255, 255, 0.05)',
+                      ? 'linear-gradient(90deg, #007AFF33 0%, #5856D633 100%)'
+                      : 'rgba(255, 255, 255, 0.07)',
+                    boxShadow: isActive ? '0 4px 16px 0 #007AFF44' : '0 2px 8px 0 #007AFF11',
                   },
                 }}
               >

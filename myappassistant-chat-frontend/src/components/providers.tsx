@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, createContext, useContext, ReactNode } from "react";
+import React, { useState, createContext, useContext, ReactNode } from "react";
 import '../lib/i18n';
 
 export function Providers({ children }: { children: React.ReactNode }) {
