@@ -17,7 +17,8 @@ export default defineConfig({
   reporter: [
     ['html'],
     ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/results.xml' }]
+    ['junit', { outputFile: 'test-results/results.xml' }],
+    ['list'] // Add list reporter for better console output
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -32,6 +33,12 @@ export default defineConfig({
     
     /* Record video on failure */
     video: 'retain-on-failure',
+
+    /* Global timeout for actions */
+    actionTimeout: 10000,
+
+    /* Global timeout for navigation */
+    navigationTimeout: 30000,
   },
 
   /* Configure projects for major browsers */
