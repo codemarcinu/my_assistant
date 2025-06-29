@@ -269,7 +269,7 @@ cleanup() {
 install_models() {
     log_step "Instalacja modeli Ollama..."
 
-    local models=("gemma3:12b" "gemma3:8b" "nomic-embed-text")
+    local models=("SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0" "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M" "nomic-embed-text")
     
     for model in "${models[@]}"; do
         log_info "Instalacja modelu: $model"

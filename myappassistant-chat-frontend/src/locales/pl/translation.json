@@ -1,0 +1,30 @@
+{
+  "navigation": {
+    "dashboard": "Główna",
+    "ocr": "Analiza paragonów",
+    "pantry": "Zarządzanie spiżarnią",
+    "analytics": "Analityka wydatków",
+    "rag": "Baza wiedzy",
+    "settings": "Ustawienia systemowe"
+  },
+  "dashboard": {
+    "ready_commands": "Gotowe Komendy",
+    "file_upload": "Upload Plików",
+    "status_agents": "Status Agentów"
+  },
+  "commands": {
+    "shopping_done": "Zrobiłem zakupy",
+    "weather": "Jaka pogoda?",
+    "breakfast": "Co na śniadanie?",
+    "lunch": "Co na obiad do pracy?",
+    "pantry_review": "Co mam do jedzenia?"
+  },
+  "upload": {
+    "drag_drop": "Przeciągnij pliki tutaj lub kliknij",
+    "formats": "Obsługiwane formaty: image/jpeg, image/png, application/pdf",
+    "max_size": "Maksymalny rozmiar: 10 MB"
+  },
+  "settings": {
+    "agent_status": "Status Agentów"
+  }
+} 

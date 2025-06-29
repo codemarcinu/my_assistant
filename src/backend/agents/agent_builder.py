@@ -235,9 +235,6 @@ class AgentBuilder:
 
     def _get_default_model_for_agent(self, agent_type: AgentType) -> str:
         """Zwraca domyślny model dla danego typu agenta"""
-        # Agenty wymagające modelu multimodalnego
-        if agent_type in {AgentType.OCR, AgentType.SHOPPING}:
-            return "gemma3:12b"
-
-        # Dla pozostałych agentów Bielik jest wystarczający
+        # Dla wszystkich agentów używaj Bielik-4.5B jako domyślnego
+        # Gemma3:12b będzie używana tylko gdy model_selector wykryje zadania wymagające obrazów
         return "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"

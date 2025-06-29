@@ -17,6 +17,7 @@ import {
   Image,
   PictureAsPdf,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 interface FileUploadAreaProps {
   accept: string[];
@@ -55,6 +56,7 @@ export function FileUploadArea({
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -150,13 +152,13 @@ export function FileUploadArea({
             }}
           />
           <Typography variant="h6" sx={{ mb: 1, fontWeight: 500 }}>
-            Przeciągnij pliki tutaj lub kliknij
+            {t('upload.drag_drop')}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-            Obsługiwane formaty: {accept.join(', ')}
+            {t('upload.formats')}: {accept.join(', ')}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Maksymalny rozmiar: {formatFileSize(maxSize)}
+            {t('upload.max_size', { maxSize: formatFileSize(maxSize) })}
           </Typography>
         </Box>
       </Paper>

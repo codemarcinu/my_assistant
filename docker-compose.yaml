@@ -56,9 +56,9 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://foodsave:foodsave_dev_password@postgres:5432/foodsave_dev}
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma3:12b}
-      - DEFAULT_CHAT_MODEL=${DEFAULT_CHAT_MODEL:-gemma3:12b}
-      - DEFAULT_CODE_MODEL=${DEFAULT_CODE_MODEL:-gemma3:12b}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0}
+      - DEFAULT_CHAT_MODEL=${DEFAULT_CHAT_MODEL:-SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0}
+      - DEFAULT_CODE_MODEL=${DEFAULT_CODE_MODEL:-SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0}
       - DEFAULT_EMBEDDING_MODEL=${DEFAULT_EMBEDDING_MODEL:-nomic-embed-text}
       - RAG_VECTOR_STORE_PATH=${RAG_VECTOR_STORE_PATH:-/app/data/vector_store}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://frontend:3000}

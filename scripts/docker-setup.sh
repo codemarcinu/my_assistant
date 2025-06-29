@@ -119,9 +119,9 @@ DATABASE_URL=postgresql+asyncpg://foodsave:\${POSTGRES_PASSWORD}@postgres:5432/f
 REDIS_URL=redis://redis:6379/0
 
 # LLM Configuration
-OLLAMA_MODEL=gemma3:12b
-DEFAULT_CHAT_MODEL=gemma3:12b
-DEFAULT_CODE_MODEL=gemma3:12b
+OLLAMA_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+DEFAULT_CHAT_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+DEFAULT_CODE_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
 DEFAULT_EMBEDDING_MODEL=nomic-embed-text
 
 # Application Configuration

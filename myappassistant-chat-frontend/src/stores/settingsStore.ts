@@ -43,7 +43,7 @@ const defaultSettings: Settings = {
     sound: true,
   },
   ai: {
-    model: 'gemma3:12b',
+    model: 'SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
     temperature: 0.7,
     maxTokens: 2048,
   },

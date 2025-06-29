@@ -1,0 +1,20 @@
+This is a test upload file for the FoodSave AI system.
+
+This file is used to test the file upload functionality
+in the e2e tests. It contains sample text that can be
+processed by the system.
+
+File Information:
+- Name: test-upload-file.txt
+- Type: Text file
+- Size: Small
+- Purpose: Testing upload functionality
+
+Content for testing:
+- Line 1: Basic text content
+- Line 2: More content for testing
+- Line 3: Additional test data
+- Line 4: Final test line
+
+This file should be successfully uploaded and processed
+by the file upload component in the dashboard. 

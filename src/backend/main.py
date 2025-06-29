@@ -8,7 +8,7 @@ from typing import (Any, AsyncGenerator, Callable, Coroutine, Dict, List,
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from backend.app_factory import create_app
+from .app_factory import create_app
 
 app = create_app()
 

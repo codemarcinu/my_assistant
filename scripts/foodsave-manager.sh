@@ -163,7 +163,7 @@ check_and_pull_models() {
     REQUIRED_MODELS=(
         "nomic-embed-text:latest"
         "gemma3:12b"
-        "speakleash/bielik-4.5b-v3.0-instruct:Q8_0"
+        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"
     )
 
     print_info "Pobieranie listy zainstalowanych modeli..."

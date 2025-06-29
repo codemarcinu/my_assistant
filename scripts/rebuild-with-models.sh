@@ -43,7 +43,7 @@ docker rmi my_ai_assistant_backend_1 2>/dev/null || true
 echo "🔨 Rebuilding backend with pre-loaded models..."
 echo "This will download the following models:"
 echo "- MMLW embedding model (~248MB)"
-echo "- Bielik-4.5B-v3.0-Instruct model"
+echo "- Bielik-4.5B model"
 echo "- gemma3:12b model"
 echo "- nomic-embed-text model"
 echo ""

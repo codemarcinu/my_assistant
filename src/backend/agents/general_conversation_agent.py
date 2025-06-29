@@ -675,7 +675,7 @@ class GeneralConversationAgent(BaseAgent):
         else:
             # Dla modeli Gemma
             if complexity == ModelComplexity.SIMPLE:
-                return "gemma3:12b"  # Mniejszy model dla prostych zapytań
+                return "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Główny model dla prostych zapytań
             else:
                 return "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Stabilny model dla złożonych
 

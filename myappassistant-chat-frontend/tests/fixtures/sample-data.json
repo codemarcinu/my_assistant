@@ -1,0 +1,51 @@
+{
+  "testData": {
+    "agents": [
+      {
+        "id": "shopping-agent",
+        "name": "Shopping Agent",
+        "status": "active",
+        "description": "Handles shopping and receipt processing",
+        "color": "#007AFF",
+        "lastActivity": "2 minutes ago"
+      },
+      {
+        "id": "weather-agent",
+        "name": "Weather Agent",
+        "status": "active",
+        "description": "Provides weather information",
+        "color": "#34C759",
+        "lastActivity": "5 minutes ago"
+      },
+      {
+        "id": "recipe-agent",
+        "name": "Recipe Agent",
+        "status": "idle",
+        "description": "Suggests recipes and meal planning",
+        "color": "#FF9500",
+        "lastActivity": "10 minutes ago"
+      }
+    ],
+    "messages": [
+      {
+        "id": "msg-1",
+        "content": "Hello, how can I help you today?",
+        "role": "assistant",
+        "timestamp": "2025-01-15T10:00:00Z",
+        "agentType": "general"
+      },
+      {
+        "id": "msg-2",
+        "content": "I need help with shopping",
+        "role": "user",
+        "timestamp": "2025-01-15T10:01:00Z"
+      }
+    ],
+    "settings": {
+      "theme": "dark",
+      "language": "pl",
+      "notifications": true,
+      "autoSave": true
+    }
+  }
+} 

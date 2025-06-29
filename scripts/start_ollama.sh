@@ -58,8 +58,8 @@ fi
 echo "📥 Pulling required models..."
 
 # Pull Bielik models
-echo "   Pulling SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0..."
-ollama pull SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0 || echo "⚠️  Failed to pull bielik-4.5b-v3.0-instruct:Q8_0"
+echo "   Pulling Bielik-4.5B..."
+ollama pull SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0 || echo "⚠️  Failed to pull Bielik-4.5B"
 
 echo "   Pulling SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M..."
 ollama pull SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M || echo "⚠️  Failed to pull bielik-11b-v2.3-instruct:Q5_K_M"

@@ -16,6 +16,7 @@ import {
   Kitchen,
 } from '@mui/icons-material';
 import { useChatStore } from '@/stores/chatStore';
+import { useTranslation } from 'react-i18next';
 
 interface QuickCommand {
   id: string;
@@ -72,6 +73,7 @@ const quickCommands: QuickCommand[] = [
 export function QuickCommands() {
   const theme = useTheme();
   const { addMessage } = useChatStore();
+  const { t } = useTranslation();
 
   const handleCommandClick = (command: QuickCommand) => {
     // Dodaj wiadomość użytkownika
@@ -88,12 +90,20 @@ export function QuickCommands() {
     console.log('Executing command:', command.action);
   };
 
+  // Mapujemy quickCommands, podmieniając label, action i description na tłumaczenia
+  const commands = quickCommands.map((cmd) => ({
+    ...cmd,
+    label: t(`commands.${cmd.id === 'shopping' ? 'shopping_done' : cmd.id}`),
+    action: t(`commands.${cmd.id === 'shopping' ? 'shopping_done' : cmd.id}`),
+    description: t(`dashboard.${cmd.id}`),
+  }));
+
   return (
     <Box 
       sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
       data-testid="quick-commands"
     >
-      {quickCommands.map((command) => (
+      {commands.map((command) => (
         <Button
           key={command.id}
           data-testid={`quick-command-${command.id}`}

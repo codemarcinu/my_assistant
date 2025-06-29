@@ -38,18 +38,18 @@ class ModelSelector:
 
     # Modele domyślne
     DEFAULT_POLISH_MODEL = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"
-    DEFAULT_INTERNATIONAL_MODEL = "gemma3:12b"
+    DEFAULT_INTERNATIONAL_MODEL = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"
 
     # Moce przetwarzania poszczególnych modeli (arbitralne wartości)
     MODEL_CAPABILITIES: Dict[str, ModelCapability] = {
         "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0": {
-            "languages": {"pl": 0.95, "en": 0.75},
+            "languages": {"pl": 0.95, "en": 0.85, "de": 0.75, "fr": 0.75, "es": 0.75},
             "tasks": {
-                ModelTask.TEXT_ONLY: 0.9,
-                ModelTask.CODE_GENERATION: 0.7,
-                ModelTask.CREATIVE: 0.8,
-                ModelTask.RAG: 0.8,
-                ModelTask.STRUCTURED_OUTPUT: 0.7,
+                ModelTask.TEXT_ONLY: 0.95,
+                ModelTask.CODE_GENERATION: 0.8,
+                ModelTask.CREATIVE: 0.9,
+                ModelTask.RAG: 0.9,
+                ModelTask.STRUCTURED_OUTPUT: 0.8,
                 ModelTask.IMAGE_ANALYSIS: 0.0,  # Nie obsługuje obrazów
             },
             "context_length": 32000,
@@ -181,10 +181,14 @@ class ModelSelector:
                 # Dla innych języków zadanie ma większe znaczenie
                 final_score = 0.4 * language_score + 0.6 * task_score
 
-            # Dla bardzo złożonych zadań preferuj zawsze Gemmę
-            if complexity > 0.8:
+            # Preferuj Bielik-4.5B dla większości zadań (bonus)
+            if model == self.DEFAULT_POLISH_MODEL:
+                final_score += 0.1
+
+            # Dla bardzo złożonych zadań i zadań wymagających obrazów preferuj Gemmę
+            if complexity > 0.8 and task == ModelTask.IMAGE_ANALYSIS:
                 if model == self.DEFAULT_INTERNATIONAL_MODEL:
-                    final_score += 0.2
+                    final_score += 0.3
 
             model_scores[model] = final_score
 

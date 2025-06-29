@@ -1,0 +1,32 @@
+# This is a placeholder file for testing PDF upload functionality
+# In a real scenario, this would be an actual PDF document
+# For testing purposes, we'll create a simple text file that can be used
+# to test the upload functionality without requiring actual PDF files
+
+SAMPLE_DOCUMENT_CONTENT = """
+Sample PDF document for testing purposes.
+This file simulates a PDF document that would be uploaded
+and processed by the RAG functionality.
+
+Title: Sample Recipe Document
+Author: Test Kitchen
+Date: 2025-01-15
+
+Content:
+This is a sample recipe document that would be processed
+by the RAG system for knowledge extraction and retrieval.
+
+Recipe: Test Recipe
+Ingredients:
+- Ingredient 1: 100g
+- Ingredient 2: 200ml
+- Ingredient 3: 1 piece
+
+Instructions:
+1. Step one
+2. Step two
+3. Step three
+
+This document serves as a test fixture for the RAG upload
+and processing functionality in the FoodSave AI system.
+""" 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
+from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -47,18 +48,20 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Modele językowe - z fallback na działające modele
-    OLLAMA_MODEL: str = "bielik:11b-q4_k_m"  # Model domyślny (polski)
-    DEFAULT_CODE_MODEL: str = "bielik:11b-q4_k_m"  # Model do kodu
-    DEFAULT_CHAT_MODEL: str = "bielik:11b-q4_k_m"  # Model do ogólnej konwersacji
-    DEFAULT_MODEL: str = "bielik:11b-q4_k_m"  # Model domyślny dla planisty
+    OLLAMA_MODEL: str = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Główny model (polski + angielski)
+    DEFAULT_CODE_MODEL: str = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Model do kodu
+    DEFAULT_CHAT_MODEL: str = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Model do ogólnej konwersacji
+    DEFAULT_MODEL: str = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"  # Model domyślny dla planisty
     DEFAULT_EMBEDDING_MODEL: str = "nomic-embed-text"  # Model do embeddingów
 
     # Lista dostępnych modeli (w kolejności preferencji)
-    AVAILABLE_MODELS: list = [
-        "bielik:11b-q4_k_m",  # Model domyślny (polski, najszybszy)
-        "mistral:7b",  # Model fallback (równowaga)
-        "gemma3:12b",  # Model zaawansowany (większe okno kontekstowe)
-        "llama3.2:3b",  # Dodatkowy fallback
+    AVAILABLE_MODELS: List[str] = [
+        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",  # Główny model (polski + angielski)
+        "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M",  # Model zapasowy dla złożonych zadań
+        "gemma3:12b",  # Model multimodalny (dla zadań z obrazami)
+        "gemma3:8b",  # Lżejszy model
+        "llama3.2:3b",  # Bardzo lekki model
+        "mistral:7b",  # Model alternatywny
     ]
 
     # Strategia fallback modeli

@@ -75,7 +75,7 @@ class HybridLLMClient:
     """
 
     fallback_model = "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"
-    gemma_model = "gemma3:12b"  # Nowy model Gemma 3
+    gemma_model = "gemma3:12b"  # Model multimodalny dla zadań z obrazami
     use_perplexity_fallback = True
     perplexity_client = None  # do mockowania w testach
 
@@ -156,10 +156,10 @@ class HybridLLMClient:
                 ],
                 max_tokens=32768,
                 cost_per_token=0.10,
-                priority=1,  # Najwyższy priorytet - stabilny domyślny model
-                concurrency_limit=5,  # Zwiększony limit dla stabilnego modelu
+                priority=1,  # Najwyższy priorytet - główny model
+                concurrency_limit=6,  # Zwiększony limit dla głównego modelu
                 supports_embedding=True,
-                description="Polish language specialized model v3 - primary stable model",
+                description="Polish language specialized model v3 - primary model for all tasks",
             ),
             "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M": ModelConfig(
                 name="SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M",
@@ -171,10 +171,10 @@ class HybridLLMClient:
                 ],
                 max_tokens=32768,
                 cost_per_token=0.15,
-                priority=3,  # Obniżony priorytet - model zapasowy tylko dla złożonych zadań
-                concurrency_limit=2,
+                priority=2,  # Drugi priorytet - model zapasowy dla złożonych zadań
+                concurrency_limit=3,
                 supports_embedding=True,
-                description="Polish language specialized model - fallback for complex tasks only",
+                description="Polish language specialized model - fallback for complex tasks",
             ),
             "nomic-embed-text": ModelConfig(
                 name="nomic-embed-text",
@@ -193,15 +193,15 @@ class HybridLLMClient:
                     ModelComplexity.SIMPLE,
                     ModelComplexity.STANDARD,
                     ModelComplexity.COMPLEX,
-                    ModelComplexity.CRITICAL,  # Potrafimy obsłużyć operacje krytyczne
+                    ModelComplexity.CRITICAL,
                 ],
-                max_tokens=8192,  # Zwiększony kontekst
+                max_tokens=8192,
                 cost_per_token=0.02,
-                priority=1,  # Wysoki priorytet - domyślny dla międzynarodowych użytkowników
-                concurrency_limit=5,  # Ograniczona liczba równoczesnych zapytań ze względu na większe wymagania
+                priority=3,  # Niższy priorytet - tylko dla zadań wymagających obrazów
+                concurrency_limit=3,
                 supports_embedding=True,
                 supports_streaming=True,
-                description="State-of-the-art model with multimodal capabilities",
+                description="Multimodal model for image analysis tasks",
             ),
         }
 

@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import { useChatStore, Message } from '@/stores/chatStore';
 import { chatAPI } from '@/lib/api';
+import { useFontSize } from '../providers';
 
 export function ChatWindow() {
   const theme = useTheme();
@@ -28,6 +29,10 @@ export function ChatWindow() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { messages, addMessage, setTyping, updateMessage } = useChatStore();
+  const { fontSize } = useFontSize();
+  let fontSizeValue = '1rem';
+  if (fontSize === 'small') fontSizeValue = '0.9rem';
+  if (fontSize === 'large') fontSizeValue = '1.2rem';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -105,7 +110,7 @@ export function ChatWindow() {
 
   return (
     <Box 
-      sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      sx={{ height: '100%', display: 'flex', flexDirection: 'column', fontSize: fontSizeValue }}
       data-testid="chat-window"
     >
       {/* Obszar wiadomości */}

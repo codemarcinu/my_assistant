@@ -152,7 +152,7 @@ BING_SEARCH_API_KEY=your_bing_search_api_key_here
 
 # Ollama Configuration
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gemma3:latest
+OLLAMA_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
 
 # Application Settings
 DEBUG=true

@@ -28,9 +28,21 @@
     }
   },
   "performance_settings": {
-    "max_concurrent_requests": 3,
+    "max_concurrent_requests": 5,
     "cache_ttl": 3600,
     "enable_streaming": true,
-    "enable_cache": true
+    "enable_cache": true,
+    "gpu_memory_fraction": 0.8,
+    "batch_size": 4,
+    "max_gpu_memory_mb": 10240
+  },
+  "hardware_optimization": {
+    "rtx_3060_settings": {
+      "gpu_layers": 35,
+      "cpu_layers": 10,
+      "context_length": 4096,
+      "rope_freq_base": 10000,
+      "rope_freq_scale": 0.5
+    }
   }
 } 

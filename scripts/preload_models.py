@@ -62,45 +62,31 @@ def preload_ollama_models():
                     "Ollama is available, preloading Bielik-4.5B-v3.0-Instruct model..."
                 )
 
-                # Tworzenie pliku Modfile dla Bielik-4.5B
-                template = 'TEMPLATE """{{ if .System }}system\n\n{{ .System }}{{ end }}{{ if .Prompt }}user\n\n{{ .Prompt }}{{ end }}assistant\n\n{{ .Response }}"""'
-
-                with open("/tmp/Bielik-4.5B.modfile", "w") as f:
-                    f.write(
-                        f"""
-FROM ./Bielik-4.5B-v3.0-Instruct.Q8_0.gguf
-
-{template}
-
-PARAMETER stop ""
-PARAMETER stop ""
-PARAMETER stop ""
-PARAMETER temperature 0.1
-                    """
-                    )
-
-                # Pobieranie modelu
+                # Pobieranie modelu Bielik-4.5B
+                logger.info("Preloading Bielik-4.5B model...")
                 try:
                     subprocess.run(
                         ["ollama", "pull", "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0"],
                         check=True,
+                        capture_output=True,
+                        text=True,
                     )
-                    logger.info(
-                        "Bielik-4.5B-v3.0-Instruct model preloaded successfully!"
-                    )
+                    logger.info("Bielik-4.5B model preloaded successfully!")
                 except subprocess.CalledProcessError as e:
-                    logger.warning(f"Failed to pull Bielik model: {e}")
+                    logger.warning(f"Failed to pull Bielik-4.5B model: {e}")
 
-                # Pobieranie modelu gemma3:12b
-                logger.info("Preloading gemma3:12b model...")
+                # Pobieranie modelu Bielik-11B
+                logger.info("Preloading Bielik-11B model...")
                 try:
                     subprocess.run(
-                        ["ollama", "pull", "gemma3:12b"],
+                        ["ollama", "pull", "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M"],
                         check=True,
+                        capture_output=True,
+                        text=True,
                     )
-                    logger.info("gemma3:12b model preloaded successfully!")
+                    logger.info("Bielik-11B model preloaded successfully!")
                 except subprocess.CalledProcessError as e:
-                    logger.warning(f"Failed to pull gemma3:12b model: {e}")
+                    logger.warning(f"Failed to pull Bielik-11B model: {e}")
 
                 # Pobieranie modelu do embeddingów
                 logger.info("Preloading nomic-embed-text model...")
