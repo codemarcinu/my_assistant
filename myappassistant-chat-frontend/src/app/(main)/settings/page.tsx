@@ -5,6 +5,7 @@ import { Box, Container, Typography, Tabs, Tab } from '@mui/material';
 import { AgentStatusPanel } from '@/components/settings/AgentStatusPanel';
 import { FontSizeSettings } from '@/components/settings/FontSizeSettings';
 import { QuickCommandsEditor } from '@/components/settings/QuickCommandsEditor';
+import { RAGDatabaseManager } from '@/components/settings/RAGDatabaseManager';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -57,6 +58,7 @@ export default function SettingsPage() {
           <Tab label="Szybkie Komendy" />
           <Tab label="Agenty" />
           <Tab label="Wygląd" />
+          <Tab label="Baza RAG" />
         </Tabs>
       </Box>
 
@@ -70,6 +72,10 @@ export default function SettingsPage() {
 
       <TabPanel value={value} index={2}>
         <FontSizeSettings />
+      </TabPanel>
+
+      <TabPanel value={value} index={3}>
+        <RAGDatabaseManager />
       </TabPanel>
     </Container>
   );

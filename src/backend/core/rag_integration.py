@@ -449,14 +449,44 @@ class RAGDatabaseIntegration:
         """
         try:
             # For now, return basic stats since we don't have a proper document storage
+            # In a full implementation, this would query the vector store or database
             return {
                 "total_documents": 0,
                 "total_chunks": 0,
-                "directories": ["default"],
-                "last_updated": datetime.now().isoformat()
+                "total_embeddings": 0,
+                "storage_size_mb": 0.0,
+                "last_updated": datetime.now().isoformat(),
+                "vector_store_type": "local",
+                "embedding_model": "SpeakLeash/bielik-4.5b-v3.0-instruct: Q8_0"
             }
         except Exception as e:
             logger.error(f"Error getting RAG stats: {e}")
+            return {"error": str(e)}
+
+    async def get_rag_directory_stats(self, directory_path: str, db: AsyncSession) -> Dict[str, Any]:
+        """
+        Get statistics for a specific RAG directory
+
+        Args:
+            directory_path: Directory path
+            db: Database session
+
+        Returns:
+            Directory statistics
+        """
+        try:
+            # For now, return basic directory stats since we don't have a proper document storage
+            # In a full implementation, this would query the vector store for documents in this directory
+            return {
+                "directory_path": directory_path,
+                "document_count": 0,
+                "total_chunks": 0,
+                "total_size_mb": 0.0,
+                "last_updated": datetime.now().isoformat(),
+                "documents": []
+            }
+        except Exception as e:
+            logger.error(f"Error getting directory stats: {e}")
             return {"error": str(e)}
 
     async def query_rag(self, question: str, db: AsyncSession) -> Dict[str, Any]:
