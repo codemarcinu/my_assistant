@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
-from typing import List
+from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -35,6 +35,53 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"
+
+    # Security Configuration
+    SECURITY_ENCRYPTION_KEY: str = secrets.token_urlsafe(32)
+    SECURITY_KEY_SALT: str = secrets.token_urlsafe(16)
+    SECURITY_MAX_REQUESTS_PER_MINUTE: int = 60
+    SECURITY_MAX_REQUESTS_PER_HOUR: int = 1000
+    SECURITY_MAX_LOGIN_ATTEMPTS: int = 5
+    SECURITY_LOCKOUT_DURATION: int = 15
+    SECURITY_MIN_PASSWORD_LENGTH: int = 12
+    SECURITY_REQUIRE_UPPERCASE: bool = True
+    SECURITY_REQUIRE_LOWERCASE: bool = True
+    SECURITY_REQUIRE_DIGITS: bool = True
+    SECURITY_REQUIRE_SPECIAL: bool = True
+    SECURITY_PASSWORD_HISTORY: int = 5
+    SECURITY_SESSION_TIMEOUT: int = 30
+    SECURITY_MAX_SESSIONS: int = 3
+    SECURITY_MAX_INPUT_LENGTH: int = 10000
+    SECURITY_MAX_FILE_SIZE_MB: int = 10
+    SECURITY_AUDIT_LOG_ENABLED: bool = True
+    SECURITY_AUDIT_LOG_PATH: str = os.getenv("SECURITY_AUDIT_LOG_PATH", "./logs/security_audit.log")
+
+    # Enhanced Backup Configuration
+    BACKUP_LOCAL_DIR: str = os.getenv("BACKUP_LOCAL_DIR", "./backups")
+    CLOUD_BACKUP_ENABLED: bool = False
+    CLOUD_PROVIDER: str = "aws"
+    CLOUD_BUCKET: Optional[str] = None
+    CLOUD_REGION: str = "us-east-1"
+    BACKUP_ENCRYPTION_ENABLED: bool = True
+    BACKUP_ENCRYPTION_KEY: Optional[str] = None
+    BACKUP_DAILY_RETENTION: int = 7
+    BACKUP_WEEKLY_RETENTION: int = 4
+    BACKUP_MONTHLY_RETENTION: int = 12
+    BACKUP_YEARLY_RETENTION: int = 5
+    AUTO_BACKUP_ENABLED: bool = True
+    BACKUP_SCHEDULE_HOUR: int = 2
+    BACKUP_SCHEDULE_MINUTE: int = 0
+    BACKUP_VERIFY_ENABLED: bool = True
+    BACKUP_CHECKSUM_VERIFICATION: bool = True
+    BACKUP_COMPRESSION_LEVEL: int = 6
+    BACKUP_COMPRESSION_TYPE: str = "gzip"
+
+    # AWS Configuration (for cloud backups)
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    AWS_DEFAULT_REGION: str = "us-east-1"
+    AWS_S3_BUCKET: Optional[str] = None
+    AWS_S3_ENDPOINT_URL: Optional[str] = None  # For custom S3-compatible storage
 
     # Redis Configuration
     REDIS_HOST: str = "localhost"

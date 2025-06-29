@@ -23,8 +23,8 @@ def preload_mmlw_model():
         logger.info("Pre-downloading MMLW embedding model...")
 
         # Ustaw zmienne środowiskowe dla cache
-        os.environ["HF_HOME"] = "/app/.cache/huggingface"
-        os.environ["TRANSFORMERS_CACHE"] = "/app/.cache/huggingface/transformers"
+        os.environ["HF_HOME"] = os.getenv("HF_HOME", "./.cache/huggingface")
+        os.environ["TRANSFORMERS_CACHE"] = os.getenv("TRANSFORMERS_CACHE", "./.cache/huggingface/transformers")
 
         # Import i pobieranie modelu
         from transformers import AutoModel, AutoTokenizer

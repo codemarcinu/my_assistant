@@ -5,6 +5,7 @@ Handles background processing of receipt images with Celery tasks.
 
 import shutil
 import uuid
+import os
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
@@ -19,7 +20,7 @@ from src.worker import celery_app
 router = APIRouter()
 
 # Configuration
-UPLOAD_DIR = Path("/app/temp_uploads")
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./temp_uploads"))
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 
 # Allowed file types

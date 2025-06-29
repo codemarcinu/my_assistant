@@ -22,7 +22,7 @@ from backend.core.exceptions import FoodSaveError
 logger = get_task_logger(__name__)
 
 # Configuration
-UPLOAD_DIR = Path("/app/temp_uploads")
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./temp_uploads"))
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 
 # Cleanup old files (older than 24 hours)
