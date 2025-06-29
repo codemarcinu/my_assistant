@@ -1,141 +1,93 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { chatAPI } from '../services/api';
-import type { ChatMessage, ApiResponse } from '../types';
+"use client";
 
-// Query keys
-export const chatKeys = {
-  all: ['chat'] as const,
-  history: () => [...chatKeys.all, 'history'] as const,
-  memory: () => [...chatKeys.all, 'memory'] as const,
-  suggestions: () => [...chatKeys.all, 'suggestions'] as const,
-};
+import { useState, useCallback } from "react";
+import { chatAPI } from "@/lib/api";
 
-export const useChatHistory = (limit: number = 50) => {
-  return useQuery({
-    queryKey: chatKeys.history(),
-    queryFn: () => chatAPI.getHistory(limit),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-};
+interface Message {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: Date;
+  agentType?: string;
+  isStreaming?: boolean;
+}
 
-export const useSendMessage = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (message: string) => {
-      const response = await chatAPI.sendMessage(message);
-      return response;
-    },
-    onMutate: async (message) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: chatKeys.history() });
-      
-      // Snapshot the previous value
-      const previousHistory = queryClient.getQueryData(chatKeys.history());
-      
-      // Optimistically update to the new value
-      const optimisticMessage: ChatMessage = {
-        id: `optimistic-${Date.now()}`,
-        content: message,
-        type: 'user',
+export function useChat() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const sendMessage = useCallback(async (content: string) => {
+    if (!content.trim()) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content,
+      role: 'user',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      // Dodaj tymczasową wiadomość asystenta dla efektu strumieniowania
+      const tempAssistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "",
+        role: 'assistant',
         timestamp: new Date(),
-        metadata: { 
-          responseType: 'info',
-          isConcise: false,
-          status: 'sending'
-        },
+        isStreaming: true
       };
-      
-      queryClient.setQueryData(chatKeys.history(), (old: any) => {
-        const messages = old?.data || [];
-        return {
-          ...old,
-          data: [...messages, optimisticMessage],
-        };
+
+      setMessages(prev => [...prev, tempAssistantMessage]);
+
+      // Wyślij wiadomość do backendu
+      const response = await chatAPI.sendMessage({
+        message: content,
+        session_id: "default",
+        usePerplexity: false,
+        useBielik: true,
+        agent_states: {}
       });
+
+      // Zaktualizuj tymczasową wiadomość rzeczywistą odpowiedzią
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempAssistantMessage.id 
+          ? {
+              ...msg,
+              content: response.data.data?.reply || "Przepraszam, nie udało się przetworzyć Twojego zapytania.",
+              isStreaming: false,
+              agentType: response.data.data?.agent_type
+            }
+          : msg
+      ));
+
+    } catch (error) {
+      console.error("Błąd wysyłania wiadomości:", error);
       
-      // Return a context object with the snapshotted value
-      return { previousHistory, optimisticMessage };
-    },
-    onSuccess: (data, message, context) => {
-      // Update the optimistic message status to 'sent'
-      if (context?.optimisticMessage) {
-        queryClient.setQueryData(chatKeys.history(), (old: any) => {
-          const messages = old?.data || [];
-          return {
-            ...old,
-            data: messages.map((msg: ChatMessage) => 
-              msg.id === context.optimisticMessage.id 
-                ? { ...msg, metadata: { ...msg.metadata, status: 'sent' } }
-                : msg
-            ),
-          };
-        });
-      }
-    },
-    onError: (err, message, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousHistory) {
-        queryClient.setQueryData(chatKeys.history(), context.previousHistory);
-      } else if (context?.optimisticMessage) {
-        // Update the optimistic message status to 'error'
-        queryClient.setQueryData(chatKeys.history(), (old: any) => {
-          const messages = old?.data || [];
-          return {
-            ...old,
-            data: messages.map((msg: ChatMessage) => 
-              msg.id === context.optimisticMessage.id 
-                ? { ...msg, metadata: { ...msg.metadata, status: 'error' } }
-                : msg
-            ),
-          };
-        });
-      }
-    },
-    onSettled: () => {
-      // Always refetch after error or success
-      queryClient.invalidateQueries({ queryKey: chatKeys.history() });
-    },
-  });
-};
+      // Zaktualizuj tymczasową wiadomość błędem
+      setMessages(prev => prev.map(msg => 
+        msg.isStreaming 
+          ? {
+              ...msg,
+              content: "Przepraszam, wystąpił błąd podczas przetwarzania Twojego zapytania. Spróbuj ponownie.",
+              isStreaming: false
+            }
+          : msg
+      ));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-export const useClearChatHistory = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: () => chatAPI.clearHistory(),
-    onSuccess: () => {
-      // Optimistically clear the chat history
-      queryClient.setQueryData(chatKeys.history(), { data: [] });
-    },
-  });
-};
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+  }, []);
 
-export const useMemoryStats = () => {
-  return useQuery({
-    queryKey: chatKeys.memory(),
-    queryFn: () => chatAPI.getMemoryStats(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
-
-export const useOptimizeMemory = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (sessionId?: string) => chatAPI.optimizeMemory(sessionId),
-    onSuccess: () => {
-      // Invalidate memory-related queries
-      queryClient.invalidateQueries({ queryKey: chatKeys.memory() });
-      queryClient.invalidateQueries({ queryKey: chatKeys.history() });
-    },
-  });
-};
-
-export const useSuggestedActions = () => {
-  return useQuery({
-    queryKey: chatKeys.suggestions(),
-    queryFn: () => chatAPI.getSuggestedActions({}),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
-}; 
+  return {
+    messages,
+    sendMessage,
+    clearMessages,
+    isLoading
+  };
+} 

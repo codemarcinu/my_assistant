@@ -120,21 +120,23 @@ services:
       - ./src:/app
       - ./logs:/app/logs
 
-  # Frontend (jeśli istnieje)
+  # Next.js Frontend
   frontend:
     build:
       context: ./myappassistant-chat-frontend
       dockerfile: Dockerfile.prod
     ports:
-      - "3000:80"
+      - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
-      - REACT_APP_WS_URL=ws://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=production
     depends_on:
       - backend
-    volumes:
-      - ./myappassistant-chat-frontend:/app
-      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   redis_data:

@@ -1,143 +1,192 @@
-# 🚀 FoodSave AI - Frontend
+# Mój Asystent - Frontend
 
-Nowoczesny, responsywny interfejs użytkownika dla FoodSave AI - inteligentnego asystenta zarządzania spiżarnią i zakupami, zbudowany w React 19 + TypeScript + Tailwind CSS v4 + Cosmic Design System.
+Nowoczesny frontend dla systemu zarządzania agentami AI, zbudowany z Next.js 15, React 18 i TypeScript.
 
-## ✨ Funkcjonalności
+## 🚀 Funkcje
 
-### 🏠 Dashboard
-- **WeatherCard**: Aktualna pogoda z ikonami
-- **ChatContainer**: Inteligentny chat z AI, loading, skeletony, concise responses
-- **Moduły kontekstowe**: PantryModule, ReceiptUploadModule
-- **FAB**: Floating Action Button do szybkich akcji
+- **Centrum Dowodzenia AI** - Zaawansowany interfejs zarządzania agentami
+- **Interfejs Czatu** - Komunikacja w czasie rzeczywistym z agentami AI
+- **Panel Kontrolny Agentów** - Monitorowanie i zarządzanie statusem agentów
+- **Moduł RAG** - Zarządzanie bazą wiedzy i wyszukiwanie semantyczne
+- **Monitor Systemu** - Śledzenie metryk wydajności w czasie rzeczywistym
+- **Konsola Deweloperska** - Narzędzia dla programistów
+- **Zaawansowane Ustawienia** - Konfiguracja systemu
 
-### 📦 Zarządzanie Spiżarnią
-- **PantryModule**: Szybki podgląd produktów z terminami, statusy, badge
-- **PantryPage**: Pełne zarządzanie (dodawanie, edycja, usuwanie)
-- **Kategorie produktów**: Automatyczne sortowanie
-- **Alerty terminów**: Produkty z kończącym się terminem
+## 🛠️ Technologie
 
-### 🛒 Zarządzanie Zakupami
-- **ReceiptUploadModule**: Upload paragonów z OCR, drag&drop, progres, walidacja
-- **ShoppingPage**: Historia zakupów i paragonów
-- **Analiza paragonów**: Automatyczne wyodrębnianie danych
-- **Generowanie list zakupów**: Na podstawie spiżarni
+- **Next.js 15** - Framework React z SSR
+- **React 18** - Biblioteka UI z nowoczesnymi wzorcami
+- **TypeScript** - Typowanie statyczne
+- **Tailwind CSS v4** - Framework CSS z nowoczesnym designem
+- **shadcn/ui** - Komponenty UI
+- **TanStack Query** - Zarządzanie stanem serwera
+- **Zustand** - Zarządzanie stanem klienta
+- **WebSockets** - Komunikacja w czasie rzeczywistym
 
-### 📄 Zarządzanie Dokumentami RAG
-- **RAGManagerModule**: Pełne zarządzanie dokumentami, upload, kategorie, wyszukiwanie, podgląd, pytania do AI, CRUD
+## 📦 Instalacja
 
-### ⚙️ Ustawienia
-- **Zarządzanie modelami AI**: Status Ollama, Tesseract
-- **Integracja Telegram**: Bot API configuration
-- **Zarządzanie bazą danych**: Export, backup, clear
-- **RAG Management**: Pełna sekcja zarządzania dokumentami
-
-### 🎨 Theme System
-- **ThemeToggle**: Przełącznik jasny/ciemny
-- **localStorage**: Zapisywanie preferencji
-- **System preference**: Automatyczne wykrywanie
-- **Cosmic Design System**: Spójny system kolorów
-
-## 🏗️ Architektura i Routing
-
-- Routing oparty o React Router v7, lazy loading stron (`Suspense`, `lazy`)
-- Sidebar z emoji, aktywne stany, pełna dostępność (ARIA)
-- Layout: Sidebar, Header (widget pogody, status), Footer, responsywność (mobile-first)
-
-### Struktura projektu
-```
-src/
-├── components/
-│   ├── layout/Sidebar.tsx, Header.tsx, MainLayout.tsx
-│   ├── chat/ChatContainer.tsx, ConciseResponseBubble.tsx, ChatBubble.tsx
-│   ├── modules/PantryModule.tsx, ReceiptUploadModule.tsx, RAGManagerModule.tsx
-│   └── ui/ (Button, Badge, Card, Modal, Input, Spinner, LoadingSpinner, ErrorFallback)
-├── pages/
-│   ├── DashboardPage.tsx, PantryPage.tsx, ShoppingPage.tsx, SettingsPage.tsx
-└── App.tsx
-```
-
-## 💬 Chat System
-
-- Komponent czatu (`ChatContainer`) korzysta z globalnego store (Zustand), obsługuje loading, skeletony, zwięzłe odpowiedzi AI (ConciseResponseBubble)
-- Przykładowe komendy aktywują odpowiednie moduły (np. „co mam do jedzenia” → PantryModule)
-- Zwięzłe odpowiedzi AI są wyświetlane w specjalnych bąbelkach z typem (info, warning, success, error)
-- Pełna obsługa trybu jasny/ciemny, automatyczne przewijanie, loading spinner
-
-## 📦 Moduły
-
-- **PantryModule**: szybki podgląd produktów, statusy (świeży, kończy się, przeterminowany), badge, mock API
-- **ReceiptUploadModule**: drag&drop, progres uploadu, walidacja, UX feedback, obsługa PDF/JPG/PNG
-- **RAGManagerModule**: upload, kategorie, wyszukiwanie, podgląd, pytania do AI, CRUD
-
-## 🧩 UI/UX
-
-- Wszystkie komponenty UI zgodne z Cosmic Design System, typowane, dostępne, modularne
-- Animacje: fade-in, bounce-in, skeletony, transitions
-- Pełna obsługa trybu jasny/ciemny, automatyczne wykrywanie, localStorage
-
-## 🧪 Testowanie
-
-- Kod gotowy do testów jednostkowych (Vitest, Testing Library) i e2e (Playwright)
-- Przykładowe komendy testowe:
 ```bash
-npm run test
-npm run test:e2e
-npm run test:coverage
-```
-
-## 🔄 Integracja z Backendem
-
-- API endpoints są mockowane, gotowe do podmiany na realne
-- Opisane endpointy dla czatu, spiżarni, paragonów, RAG
-
-## 🚀 Szybki Start
-
-### Wymagania
-```bash
-Node.js >= 18
-npm >= 9
-```
-
-### Instalacja
-```bash
+# Klonuj repozytorium
+git clone <repository-url>
 cd myappassistant-chat-frontend
+
+# Zainstaluj zależności
 npm install
+
+# Uruchom w trybie deweloperskim
+npm run dev
 ```
 
-### Development
+## 🚀 Uruchomienie
+
+### Tryb Deweloperski
+
 ```bash
 npm run dev
-# Otwórz http://localhost:5173
 ```
 
-### Build
+Aplikacja będzie dostępna pod adresem `http://localhost:3000`
+
+### Produkcja
+
 ```bash
+# Budowanie
 npm run build
-npm run preview
+
+# Uruchomienie
+npm start
 ```
 
 ### Docker
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 5173
-CMD ["npm", "run", "preview"]
+
+```bash
+# Budowanie obrazu
+docker build -f Dockerfile.prod -t myappassistant-frontend .
+
+# Uruchomienie kontenera
+docker run -p 3000:3000 myappassistant-frontend
 ```
 
-## 🎯 Roadmap i Zaawansowane Funkcje
+## 🏗️ Struktura Projektu
 
-- Lazy loading, code splitting, skeletony, optymalizacja bundle
-- Gotowość pod PWA, WebSocket, push notifications, CI/CD, monitoring
-- Pełna zgodność z `.cursorrules` (typy, error boundaries, podział na małe funkcje, docstringi, brak any, accessibility, brak mutowalnych domyślnych argumentów, importy absolutne)
+```
+src/
+├── app/                    # App Router (Next.js 13+)
+│   ├── layout.tsx         # Główny layout
+│   └── page.tsx           # Strona główna
+├── components/            # Komponenty React
+│   ├── agents/           # Komponenty agentów
+│   ├── chat/             # Komponenty czatu
+│   ├── dashboard/        # Komponenty dashboardu
+│   ├── developer/        # Konsola deweloperska
+│   ├── monitoring/       # Monitor systemu
+│   ├── rag/              # Moduł RAG
+│   ├── settings/         # Ustawienia
+│   └── ui/               # Komponenty UI (shadcn/ui)
+├── hooks/                # Custom hooks
+├── lib/                  # Narzędzia i konfiguracja
+└── types/                # Definicje TypeScript
+```
+
+## 🎨 Design System
+
+Aplikacja wykorzystuje nowoczesny design system z:
+
+- **Ciemny motyw** - Przyjazny dla oczu interfejs
+- **Skeuomorfizm** - Nowoczesne efekty 3D
+- **Mikrointerakcje** - Płynne animacje i przejścia
+- **AI-driven UX** - Personalizacja oparta na AI
+- **Responsywność** - Działanie na wszystkich urządzeniach
+
+## 🔧 Konfiguracja
+
+### Zmienne Środowiskowe
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NODE_ENV=development
+```
+
+### API Endpoints
+
+Aplikacja komunikuje się z backendem przez następujące endpointy:
+
+- `POST /memory_chat` - Wysyłanie wiadomości
+- `GET /agents` - Pobieranie listy agentów
+- `POST /api/v2/rag/upload` - Upload dokumentów RAG
+- `GET /api/v2/rag/search` - Wyszukiwanie w bazie wiedzy
+
+## 🧪 Testowanie
+
+```bash
+# Uruchom testy
+npm test
+
+# Testy w trybie watch
+npm run test:watch
+
+# Pokrycie testami
+npm run test:coverage
+```
+
+## 📦 Deployment
+
+### Vercel
+
+```bash
+# Instalacja Vercel CLI
+npm i -g vercel
+
+# Deployment
+vercel
+```
+
+### Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  frontend:
+    build:
+      context: ./myappassistant-chat-frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+```
+
+## 🤝 Współpraca
+
+1. Fork projektu
+2. Utwórz branch dla nowej funkcji (`git checkout -b feature/amazing-feature`)
+3. Commit zmian (`git commit -m 'Add amazing feature'`)
+4. Push do brancha (`git push origin feature/amazing-feature`)
+5. Otwórz Pull Request
 
 ## 📄 Licencja
 
-MIT License - zobacz [LICENSE](LICENSE) dla szczegółów.
+Ten projekt jest licencjonowany pod MIT License - zobacz plik [LICENSE](LICENSE) dla szczegółów.
+
+## 🆘 Wsparcie
+
+Jeśli masz pytania lub problemy:
+
+1. Sprawdź [dokumentację](docs/)
+2. Przeszukaj [issues](../../issues)
+3. Utwórz nowy issue z opisem problemu
+
+## 🗺️ Roadmap
+
+- [ ] Integracja z WebSocket dla komunikacji w czasie rzeczywistym
+- [ ] System powiadomień push
+- [ ] Zaawansowane filtry i wyszukiwanie
+- [ ] Eksport danych i raporty
+- [ ] Integracja z systemami monitorowania
+- [ ] Wsparcie dla wielu języków
+- [ ] Tryb offline
+- [ ] Progressive Web App (PWA)
 
 ---
 
-**FoodSave AI Frontend** – Nowoczesny, responsywny interfejs użytkownika z Cosmic Design System, pełną obsługą RAG i polskim UI. 🚀
+Built with ❤️ using Next.js 15 and modern web technologies.
