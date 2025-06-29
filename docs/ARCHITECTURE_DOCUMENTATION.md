@@ -598,3 +598,11 @@ ANTI_HALLUCINATION_CONFIG = {
     }
 }
 ```
+
+### Celery Exception Serialization
+
+If you encounter errors related to exception serialization in Celery (e.g., with Redis or rpc:// as result backend), refer to the diagnostic checklist in `docs/TESTING_GUIDE.md`.
+
+- Only use standard Python exceptions in Celery tasks.
+- Ensure all task results are JSON-serializable.
+- See the Testing Guide for full troubleshooting steps.

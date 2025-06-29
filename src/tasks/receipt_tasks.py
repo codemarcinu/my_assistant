@@ -17,6 +17,7 @@ from celery.utils.log import get_task_logger
 from src.worker import celery_app
 from backend.agents.ocr_agent import OCRAgent, OCRAgentInput
 from backend.agents.receipt_analysis_agent import ReceiptAnalysisAgent
+from backend.core.exceptions import FoodSaveError
 
 logger = get_task_logger(__name__)
 
@@ -102,12 +103,16 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
             raise ValueError(f"Nieobsługiwany typ pliku: {file_extension}")
         
         # Process with OCR Agent
-        ocr_agent = OCRAgent()
-        ocr_input = OCRAgentInput(file_bytes=file_bytes, file_type=file_type)
-        ocr_result = asyncio.run(ocr_agent.process(ocr_input))
+        try:
+            ocr_agent = OCRAgent()
+            ocr_input = OCRAgentInput(file_bytes=file_bytes, file_type=file_type)
+            ocr_result = asyncio.run(ocr_agent.process(ocr_input))
+        except FoodSaveError as e:
+            # Convert custom exception to standard exception for Celery serialization
+            raise RuntimeError(f"OCR processing failed: {str(e)}")
         
         if not ocr_result.success:
-            raise Exception(f"Błąd OCR: {ocr_result.error}")
+            raise RuntimeError(f"Błąd OCR: {ocr_result.error}")
         
         # Step 5: OCR Quality Check
         self.update_state(
@@ -123,7 +128,7 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         # Basic quality check - ensure we have some meaningful text
         ocr_text = ocr_result.text.strip()
         if len(ocr_text) < 10:
-            raise Exception("Wynik OCR jest zbyt krótki - prawdopodobnie błąd rozpoznawania")
+            raise ValueError("Wynik OCR jest zbyt krótki - prawdopodobnie błąd rozpoznawania")
         
         # Check for receipt keywords
         receipt_keywords = ['PLN', 'SUMA', 'PARAGON', 'RACHUNEK', 'SKLEP', 'SKLEP:', 'TOTAL', 'SUBTOTAL']
@@ -144,11 +149,15 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         )
         
         # Process with Receipt Analysis Agent
-        analysis_agent = ReceiptAnalysisAgent()
-        analysis_result = asyncio.run(analysis_agent.process({"ocr_text": ocr_text}))
+        try:
+            analysis_agent = ReceiptAnalysisAgent()
+            analysis_result = asyncio.run(analysis_agent.process({"ocr_text": ocr_text}))
+        except FoodSaveError as e:
+            # Convert custom exception to standard exception for Celery serialization
+            raise RuntimeError(f"Receipt analysis failed: {str(e)}")
         
         if not analysis_result.success:
-            raise Exception(f"Błąd analizy AI: {analysis_result.error}")
+            raise RuntimeError(f"Błąd analizy AI: {analysis_result.error}")
         
         # Step 7: Data Validation
         self.update_state(
@@ -164,7 +173,7 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         # Validate extracted data
         analysis_data = analysis_result.data
         if not analysis_data:
-            raise Exception("Brak danych w wyniku analizy")
+            raise ValueError("Brak danych w wyniku analizy")
         
         # Step 8: Save to Database (if user_id provided)
         self.update_state(
@@ -224,7 +233,8 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         # Retry logic for transient errors
         if self.request.retries < self.max_retries:
             logger.info(f"Ponawiam próbę {self.request.retries + 1}/{self.max_retries} dla {original_filename}")
-            raise self.retry(exc=e, countdown=self.default_retry_delay)
+            # Pass only string, not the exception object, to exc for Celery JSON serialization
+            raise self.retry(exc=str(e), countdown=self.default_retry_delay)
         
         # If max retries reached, return error result
         return {
@@ -276,4 +286,10 @@ def health_check():
         "status": "HEALTHY",
         "timestamp": datetime.now().isoformat(),
         "worker_id": os.environ.get("CELERY_WORKER_ID", "unknown")
-    } 
+    }
+
+
+@celery_app.task
+def test_exception_serialization_task():
+    """Minimal task to test Celery exception serialization."""
+    raise RuntimeError("Test exception for Celery serialization.") 

@@ -893,6 +893,34 @@ repos:
        # Test implementation...
    ```
 
+## Celery Exception Serialization Issues
+
+### Problem
+If you see errors like `Exception information must include the exception type` when using Celery with Redis or rpc:// as the result backend, it means Celery cannot serialize/deserialize exceptions properly.
+
+### Diagnostic Checklist
+1. **Update dependencies**: Ensure Celery, kombu, billiard, redis-py are up to date.
+2. **Celery config**: Use only standard Python exceptions in tasks. Set:
+   - `task_serializer: json`
+   - `result_serializer: json`
+   - `accept_content: ['json']`
+3. **Clean Redis**: `redis-cli FLUSHALL` and remove persistent volumes if needed.
+4. **Restart all containers** after config/code changes.
+5. **Test minimal task**: Create a task that raises a standard exception and check if the error persists.
+6. **Check for non-serializable returns**: Only return JSON-serializable objects from tasks.
+7. **Test in a clean environment**: Try a minimal Celery+Redis project.
+8. **Enable debug logs**: Set Celery worker log level to DEBUG.
+9. **If still broken, report an issue**: Prepare a minimal reproducible example for the Celery maintainers.
+
+### Recommended Solution
+- Always use standard Python exceptions in Celery tasks.
+- Never return custom objects from tasks unless they are JSON-serializable.
+- If using Redis as a result backend, ensure no legacy/corrupted data remains after code changes.
+- If the problem persists, try switching to `rpc://` for debugging.
+
+---
+This checklist is based on real-world debugging of Celery/Redis integration in this project (2025-06-29).
+
 ---
 
 **📚 Więcej informacji**: Zobacz [Dokumentację Architektury](ARCHITECTURE_DOCUMENTATION.md) dla szczegółów implementacji.

@@ -7,7 +7,7 @@ from celery import Celery
 
 # Ustawienia Celery
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'rpc://')
 
 # Konfiguracja Celery
 celery_config = {
@@ -24,6 +24,18 @@ celery_config = {
     'worker_prefetch_multiplier': 1,
     'worker_max_tasks_per_child': 1000,
     'broker_connection_retry_on_startup': True,
+    # Dodatkowe ustawienia dla poprawy serializacji
+    'result_expires': 3600,  # 1 godzina
+    'result_persistent': False,  # Nie zapisuj wyników na dysku
+    'task_ignore_result': False,
+    'task_store_errors_even_if_ignored': True,
+    'worker_disable_rate_limits': False,
+    'worker_send_task_events': True,
+    'task_send_sent_event': True,
+    # Ustawienia dla lepszej obsługi wyjątków
+    'task_remote_tracebacks': True,
+    'worker_redirect_stdouts': False,
+    'worker_redirect_stdouts_level': 'WARNING',
 }
 
 # Inicjalizacja aplikacji Celery
