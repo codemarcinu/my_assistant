@@ -24,6 +24,13 @@ interface ApiResponse<T> {
   timestamp: string;
 }
 
+interface StreamingChatResponse {
+  text: string;
+  success: boolean;
+  session_id: string;
+  data?: any;
+}
+
 class ApiClient {
   private baseURL: string;
 
@@ -58,8 +65,78 @@ class ApiClient {
     };
   }
 
+  private async streamingRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    const defaultOptions: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    };
+
+    const response = await fetch(url, { ...defaultOptions, ...options });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    // Handle streaming response (NDJSON format)
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body available');
+    }
+
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let lastChunk: StreamingChatResponse | null = null;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          try {
+            const data: StreamingChatResponse = JSON.parse(line);
+            fullText += data.text || '';
+            lastChunk = data;
+          } catch (e) {
+            console.warn('Failed to parse JSON line:', line);
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    // Return the accumulated response
+    return {
+      data: {
+        reply: fullText,
+        agent_type: lastChunk?.data?.agent_type,
+        history_length: lastChunk?.data?.history_length,
+      } as T,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
+  }
+
   async post<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async postStreaming<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+    return this.streamingRequest<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -76,7 +153,7 @@ const apiClient = new ApiClient();
 
 export const chatAPI = {
   sendMessage: async (request: ChatRequest): Promise<ApiResponse<ChatResponse>> => {
-    return apiClient.post<ChatResponse>('/api/chat/memory_chat', request);
+    return apiClient.postStreaming<ChatResponse>('/api/chat/memory_chat', request);
   },
 
   getHistory: async (sessionId: string = 'default'): Promise<ApiResponse<any>> => {
@@ -206,9 +283,33 @@ export const receiptAPI = {
     });
 
     if (!response.ok) {
-      throw new Error(`Błąd zapisu danych: ${response.statusText}`);
+      throw new Error(`Błąd zapisywania danych: ${response.statusText}`);
     }
 
     return response.json();
   },
+
+  // Pobieranie historii paragonów
+  async getReceiptHistory(limit: number = 50): Promise<any> {
+    const url = `${apiClient['baseURL']}/api/v2/receipts/history?limit=${limit}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Błąd pobierania historii: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  // Analiza wydatków
+  async analyzeExpenses(timeRange: string = 'month'): Promise<any> {
+    const url = `${apiClient['baseURL']}/api/v2/receipts/analyze?time_range=${timeRange}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Błąd analizy wydatków: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }; 

@@ -1,4 +1,18 @@
 {
+  "sidebar": {
+    "dashboard": "Główna",
+    "dashboard_desc": "Strona główna",
+    "ocr": "Analiza paragonów",
+    "ocr_desc": "OCR paragonów",
+    "pantry": "Spiżarnia",
+    "pantry_desc": "Zarządzanie spiżarnią",
+    "analytics": "Analityka",
+    "analytics_desc": "Analityka wydatków",
+    "rag": "Baza wiedzy",
+    "rag_desc": "Zarządzanie wiedzą",
+    "settings": "Ustawienia",
+    "settings_desc": "Ustawienia systemowe"
+  },
   "navigation": {
     "dashboard": "Główna",
     "ocr": "Analiza paragonów",

@@ -21,47 +21,9 @@ import {
   LibraryBooks,
   Settings,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 const drawerWidth = 240;
-
-const menuItems = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: Dashboard,
-    description: 'Główna',
-  },
-  {
-    id: 'ocr',
-    label: 'OCR',
-    icon: CameraAlt,
-    description: 'Analiza paragonów',
-  },
-  {
-    id: 'pantry',
-    label: 'Pantry',
-    icon: Kitchen,
-    description: 'Zarządzanie spiżarnią',
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    icon: Analytics,
-    description: 'Analityka wydatków',
-  },
-  {
-    id: 'rag',
-    label: 'RAG Management',
-    icon: LibraryBooks,
-    description: 'Baza wiedzy',
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-    description: 'Ustawienia systemowe',
-  },
-];
 
 interface SidebarProps {
   activeSection?: string;
@@ -69,12 +31,52 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeSection = 'dashboard', onSectionChange }: SidebarProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleSectionChange = (section: string) => {
     onSectionChange?.(section);
   };
+
+  const menuItems = [
+    {
+      id: 'dashboard',
+      label: t('sidebar.dashboard'),
+      icon: Dashboard,
+      description: t('sidebar.dashboard_desc'),
+    },
+    {
+      id: 'ocr',
+      label: t('sidebar.ocr'),
+      icon: CameraAlt,
+      description: t('sidebar.ocr_desc'),
+    },
+    {
+      id: 'pantry',
+      label: t('sidebar.pantry'),
+      icon: Kitchen,
+      description: t('sidebar.pantry_desc'),
+    },
+    {
+      id: 'analytics',
+      label: t('sidebar.analytics'),
+      icon: Analytics,
+      description: t('sidebar.analytics_desc'),
+    },
+    {
+      id: 'rag',
+      label: t('sidebar.rag'),
+      icon: LibraryBooks,
+      description: t('sidebar.rag_desc'),
+    },
+    {
+      id: 'settings',
+      label: t('sidebar.settings'),
+      icon: Settings,
+      description: t('sidebar.settings_desc'),
+    },
+  ];
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

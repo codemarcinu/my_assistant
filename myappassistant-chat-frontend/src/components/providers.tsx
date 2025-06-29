@@ -39,4 +39,18 @@ export const FontSizeProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useFontSize = () => useContext(FontSizeContext); 
+export const useFontSize = () => useContext(FontSizeContext);
+
+// Komponent kliencki do obsługi rozmiaru czcionki
+export const FontSizeWrapper = ({ children }: { children: ReactNode }) => {
+  const { fontSize } = useFontSize();
+  let fontSizeValue = '16px';
+  if (fontSize === 'small') fontSizeValue = '14px';
+  if (fontSize === 'large') fontSizeValue = '20px';
+  
+  return (
+    <div style={{ fontSize: fontSizeValue }}>
+      {children}
+    </div>
+  );
+}; 

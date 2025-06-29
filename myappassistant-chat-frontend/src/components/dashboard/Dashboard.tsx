@@ -43,8 +43,8 @@ export function Dashboard() {
     >
       {/* Główny grid */}
       <Grid container spacing={3} sx={{ flex: 1, minHeight: 0 }}>
-        {/* Główny obszar - Okno czatu (rozszerzony) */}
-        <Grid item xs={12} md={8}>
+        {/* Główne okno czatu - szersze */}
+        <Grid item xs={12} md={9}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 0 }}>
               <ChatWindow />
@@ -52,11 +52,10 @@ export function Dashboard() {
           </Card>
         </Grid>
 
-        {/* Prawy panel - Komendy i upload (przesunięty do prawej) */}
-        <Grid item xs={12} md={4}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 2 }}>
-            {/* Gotowe komendy */}
-            <Card sx={{ flex: 1 }}>
+        {/* Panel boczny - węższy, doklejony do prawej krawędzi */}
+        <Grid item xs={12} md={3} sx={{ pr: 0, mr: 0, ml: 'auto', height: '100%' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
+            <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   {t('dashboard.ready_commands')}
