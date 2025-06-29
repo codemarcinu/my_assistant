@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { FontSizeProvider, FontSizeWrapper } from "@/components/providers";
+import { EmotionRegistry } from "@/components/EmotionRegistry";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,13 +20,15 @@ export default function RootLayout({
   return (
     <html lang="pl" suppressHydrationWarning>
       <FontSizeProvider>
-        <Providers>
-          <body>
-            <FontSizeWrapper>
-              {children}
-            </FontSizeWrapper>
-          </body>
-        </Providers>
+        <EmotionRegistry>
+          <Providers>
+            <body>
+              <FontSizeWrapper>
+                {children}
+              </FontSizeWrapper>
+            </body>
+          </Providers>
+        </EmotionRegistry>
       </FontSizeProvider>
     </html>
   );
