@@ -104,11 +104,17 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         
         # Process with OCR Agent
         try:
-            ocr_agent = OCRAgent()
-            ocr_input = OCRAgentInput(file_bytes=file_bytes, file_type=file_type)
-            ocr_result = asyncio.run(ocr_agent.process(ocr_input))
+            logger.info(f"Starting OCR processing for {original_filename}")
+            ocr_result = run_ocr_agent_sync(file_bytes, file_type)
+            
+            logger.info(f"OCR processing completed for {original_filename}")
         except FoodSaveError as e:
             # Convert custom exception to standard exception for Celery serialization
+            logger.error(f"FoodSaveError in OCR: {str(e)}")
+            raise RuntimeError(f"OCR processing failed: {str(e)}")
+        except Exception as e:
+            # Catch any other exceptions and convert to standard exception
+            logger.error(f"Unexpected error in OCR: {str(e)}")
             raise RuntimeError(f"OCR processing failed: {str(e)}")
         
         if not ocr_result.success:
@@ -150,10 +156,17 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         
         # Process with Receipt Analysis Agent
         try:
-            analysis_agent = ReceiptAnalysisAgent()
-            analysis_result = asyncio.run(analysis_agent.process({"ocr_text": ocr_text}))
+            logger.info(f"Starting AI analysis for {original_filename}")
+            analysis_result = run_analysis_agent_sync(ocr_text)
+            
+            logger.info(f"AI analysis completed for {original_filename}")
         except FoodSaveError as e:
             # Convert custom exception to standard exception for Celery serialization
+            logger.error(f"FoodSaveError in AI analysis: {str(e)}")
+            raise RuntimeError(f"Receipt analysis failed: {str(e)}")
+        except Exception as e:
+            # Catch any other exceptions and convert to standard exception
+            logger.error(f"Unexpected error in AI analysis: {str(e)}")
             raise RuntimeError(f"Receipt analysis failed: {str(e)}")
         
         if not analysis_result.success:
@@ -174,6 +187,23 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         analysis_data = analysis_result.data
         if not analysis_data:
             raise ValueError("Brak danych w wyniku analizy")
+        
+        # Ensure analysis_data is JSON-serializable
+        def ensure_serializable(obj):
+            """Recursively ensure object is JSON-serializable."""
+            if isinstance(obj, dict):
+                return {k: ensure_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [ensure_serializable(item) for item in obj]
+            elif hasattr(obj, 'isoformat'):  # datetime objects
+                return obj.isoformat()
+            elif hasattr(obj, '__dict__'):  # custom objects
+                return str(obj)
+            else:
+                return obj
+        
+        # Clean analysis_data for serialization
+        analysis_data = ensure_serializable(analysis_data)
         
         # Step 8: Save to Database (if user_id provided)
         self.update_state(
@@ -219,6 +249,8 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         
     except Exception as e:
         logger.error(f"Błąd podczas przetwarzania paragonu {original_filename}: {str(e)}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception args: {e.args}")
         
         # Update task state to FAILURE
         self.update_state(
@@ -233,8 +265,8 @@ def process_receipt_task(self, file_path: str, original_filename: str, user_id: 
         # Retry logic for transient errors
         if self.request.retries < self.max_retries:
             logger.info(f"Ponawiam próbę {self.request.retries + 1}/{self.max_retries} dla {original_filename}")
-            # Pass only string, not the exception object, to exc for Celery JSON serialization
-            raise self.retry(exc=str(e), countdown=self.default_retry_delay)
+            # Don't pass exception object to retry - just retry without exc parameter
+            raise self.retry(countdown=self.default_retry_delay)
         
         # If max retries reached, return error result
         return {
@@ -292,4 +324,266 @@ def health_check():
 @celery_app.task
 def test_exception_serialization_task():
     """Minimal task to test Celery exception serialization."""
-    raise RuntimeError("Test exception for Celery serialization.") 
+    raise RuntimeError("Test exception for Celery serialization.")
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+def process_receipt_task_simple(self, file_path: str, original_filename: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Uproszczona wersja zadania przetwarzania paragonu bez async operacji.
+    """
+    task_id = self.request.id
+    logger.info(f"Rozpoczynam uproszczone przetwarzanie paragonu: {original_filename} (Task ID: {task_id})")
+    
+    try:
+        # Step 1: Update task state
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'step': 'Initializing',
+                'progress': 10,
+                'message': 'Inicjalizacja przetwarzania paragonu',
+                'filename': original_filename
+            }
+        )
+        
+        # Step 2: Validate file exists
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"Plik nie został znaleziony: {file_path}")
+        
+        # Step 3: Check file size
+        file_size = file_path_obj.stat().st_size
+        if file_size > 10 * 1024 * 1024:  # 10MB limit
+            raise ValueError(f"Plik jest zbyt duży: {file_size / (1024*1024):.2f}MB")
+        
+        # Step 4: Simulate processing
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'step': 'Processing',
+                'progress': 50,
+                'message': 'Przetwarzanie pliku',
+                'filename': original_filename
+            }
+        )
+        
+        # Simulate some processing time
+        import time
+        time.sleep(1)
+        
+        # Step 5: Cleanup
+        try:
+            os.remove(file_path)
+            logger.info(f"Usunięto plik tymczasowy: {file_path}")
+        except Exception as e:
+            logger.warning(f"Nie udało się usunąć pliku tymczasowego {file_path}: {e}")
+        
+        # Step 6: Return simple result
+        result = {
+            "status": "SUCCESS",
+            "task_id": task_id,
+            "filename": original_filename,
+            "processing_time": datetime.now().isoformat(),
+            "message": "Uproszczone przetwarzanie zakończone pomyślnie",
+            "metadata": {
+                "file_size": file_size,
+                "user_id": user_id
+            }
+        }
+        
+        logger.info(f"Pomyślnie przetworzono paragon (uproszczony): {original_filename} (Task ID: {task_id})")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas uproszczonego przetwarzania paragonu {original_filename}: {str(e)}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception args: {e.args}")
+        
+        # Update task state to FAILURE
+        self.update_state(
+            state='FAILURE',
+            meta={
+                'error': str(e),
+                'filename': original_filename,
+                'task_id': task_id
+            }
+        )
+        
+        # Retry logic for transient errors
+        if self.request.retries < self.max_retries:
+            logger.info(f"Ponawiam próbę {self.request.retries + 1}/{self.max_retries} dla {original_filename}")
+            raise self.retry(countdown=self.default_retry_delay)
+        
+        # If max retries reached, return error result
+        return {
+            "status": "FAILURE",
+            "task_id": task_id,
+            "filename": original_filename,
+            "error": str(e),
+            "retries": self.request.retries
+        }
+
+
+@celery_app.task
+def process_receipt_task_minimal(file_path: str, original_filename: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Minimalna wersja zadania przetwarzania paragonu bez żadnych skomplikowanych operacji.
+    """
+    logger.info(f"Rozpoczynam minimalne przetwarzanie paragonu: {original_filename}")
+    
+    try:
+        # Simple file check
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"Plik nie został znaleziony: {file_path}")
+        
+        # Simple result
+        result = {
+            "status": "SUCCESS",
+            "filename": original_filename,
+            "processing_time": datetime.now().isoformat(),
+            "message": "Minimalne przetwarzanie zakończone pomyślnie",
+            "user_id": user_id
+        }
+        
+        logger.info(f"Pomyślnie przetworzono paragon (minimalny): {original_filename}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas minimalnego przetwarzania paragonu {original_filename}: {str(e)}")
+        
+        # Simple error result
+        return {
+            "status": "FAILURE",
+            "filename": original_filename,
+            "error": str(e),
+            "user_id": user_id
+        }
+
+
+@celery_app.task(bind=True)
+def process_receipt_task_minimal_with_state(self, file_path: str, original_filename: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Minimalna wersja zadania przetwarzania paragonu z update_state.
+    """
+    logger.info(f"Rozpoczynam minimalne przetwarzanie paragonu z state: {original_filename}")
+    
+    try:
+        # Test update_state
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'step': 'Processing',
+                'progress': 50,
+                'message': 'Przetwarzanie pliku',
+                'filename': original_filename
+            }
+        )
+        
+        # Simple file check
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"Plik nie został znaleziony: {file_path}")
+        
+        # Simple result
+        result = {
+            "status": "SUCCESS",
+            "filename": original_filename,
+            "processing_time": datetime.now().isoformat(),
+            "message": "Minimalne przetwarzanie z state zakończone pomyślnie",
+            "user_id": user_id
+        }
+        
+        logger.info(f"Pomyślnie przetworzono paragon (minimalny z state): {original_filename}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas minimalnego przetwarzania paragonu z state {original_filename}: {str(e)}")
+        
+        # Simple error result
+        return {
+            "status": "FAILURE",
+            "filename": original_filename,
+            "error": str(e),
+            "user_id": user_id
+        }
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+def process_receipt_task_minimal_with_retry(self, file_path: str, original_filename: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Minimalna wersja zadania przetwarzania paragonu z retry.
+    """
+    logger.info(f"Rozpoczynam minimalne przetwarzanie paragonu z retry: {original_filename}")
+    
+    try:
+        # Test update_state
+        self.update_state(
+            state='PROGRESS',
+            meta={
+                'step': 'Processing',
+                'progress': 50,
+                'message': 'Przetwarzanie pliku',
+                'filename': original_filename
+            }
+        )
+        
+        # Simple file check
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"Plik nie został znaleziony: {file_path}")
+        
+        # Simple result
+        result = {
+            "status": "SUCCESS",
+            "filename": original_filename,
+            "processing_time": datetime.now().isoformat(),
+            "message": "Minimalne przetwarzanie z retry zakończone pomyślnie",
+            "user_id": user_id
+        }
+        
+        logger.info(f"Pomyślnie przetworzono paragon (minimalny z retry): {original_filename}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas minimalnego przetwarzania paragonu z retry {original_filename}: {str(e)}")
+        
+        # Test retry logic
+        if self.request.retries < self.max_retries:
+            logger.info(f"Ponawiam próbę {self.request.retries + 1}/{self.max_retries} dla {original_filename}")
+            raise self.retry(countdown=self.default_retry_delay)
+        
+        # Simple error result
+        return {
+            "status": "FAILURE",
+            "filename": original_filename,
+            "error": str(e),
+            "user_id": user_id
+        }
+
+# Synchronous wrappers for async agents
+def run_ocr_agent_sync(file_bytes: bytes, file_type: str):
+    """Synchronous wrapper for OCR agent."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        ocr_agent = OCRAgent()
+        ocr_input = OCRAgentInput(file_bytes=file_bytes, file_type=file_type)
+        return loop.run_until_complete(ocr_agent.process(ocr_input))
+    finally:
+        loop.close()
+
+def run_analysis_agent_sync(ocr_text: str):
+    """Synchronous wrapper for Receipt Analysis agent."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        analysis_agent = ReceiptAnalysisAgent()
+        return loop.run_until_complete(analysis_agent.process({"ocr_text": ocr_text}))
+    finally:
+        loop.close() 

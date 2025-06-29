@@ -7,10 +7,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
+import { Send, Bot, User, Loader2, Sparkles, Upload } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
+import { ReceiptProcessor } from "./ReceiptProcessor";
 
 interface Message {
   id: string;
@@ -24,6 +25,7 @@ interface Message {
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showReceiptProcessor, setShowReceiptProcessor] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { messages, sendMessage, isLoading } = useChat();
 
@@ -56,11 +58,37 @@ export function ChatInterface() {
     }
   };
 
+  const handleReceiptUpload = () => {
+    setShowReceiptProcessor(true);
+  };
+
+  const handleReceiptComplete = (data: any) => {
+    setShowReceiptProcessor(false);
+    // Można dodać automatyczną wiadomość o przetworzonym paragonie
+    console.log("Paragon przetworzony:", data);
+  };
+
+  const handleReceiptCancel = () => {
+    setShowReceiptProcessor(false);
+  };
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Jeśli pokazujemy procesor paragonów, ukryj normalny interfejs czatu
+  if (showReceiptProcessor) {
+    return (
+      <div className="flex flex-col h-full">
+        <ReceiptProcessor
+          onComplete={handleReceiptComplete}
+          onCancel={handleReceiptCancel}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -119,9 +147,10 @@ export function ChatInterface() {
           <Badge 
             variant="outline" 
             className="cursor-pointer hover:bg-slate-700 border-slate-600 text-slate-300"
-            onClick={() => setInputValue("Przeanalizuj ten paragon")}
+            onClick={handleReceiptUpload}
           >
-            📄 OCR
+            <Upload className="w-3 h-3 mr-1" />
+            📄 Paragon
           </Badge>
           <Badge 
             variant="outline" 

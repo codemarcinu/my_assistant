@@ -152,30 +152,52 @@ async def get_receipt_status(job_id: str):
     try:
         task_result = AsyncResult(job_id, app=celery_app)
         
+        # Handle potential serialization errors from Celery
+        try:
+            task_status = task_result.status
+        except (ValueError, KeyError) as e:
+            # Handle Celery serialization errors
+            if "Exception information must include the exception type" in str(e):
+                return JSONResponse(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    content={
+                        "status_code": 500,
+                        "error_code": "SERIALIZATION_ERROR",
+                        "message": "Task status corrupted - serialization error detected",
+                        "details": {
+                            "error": "Celery task result contains improperly serialized exception data",
+                            "job_id": job_id,
+                            "suggestion": "Task may have failed due to custom exception serialization issues"
+                        },
+                    },
+                )
+            else:
+                raise e
+        
         response_data = {
             "job_id": job_id,
-            "status": task_result.status,
+            "status": task_status,
             "timestamp": datetime.now().isoformat()
         }
         
         # Add additional data based on status
-        if task_result.status == "PENDING":
+        if task_status == "PENDING":
             response_data["message"] = "Task is waiting for execution"
-        elif task_result.status == "STARTED":
+        elif task_status == "STARTED":
             response_data["message"] = "Task has been started"
-        elif task_result.status == "PROGRESS":
+        elif task_status == "PROGRESS":
             # Include progress information
             if task_result.info:
                 response_data.update(task_result.info)
-        elif task_result.status == "SUCCESS":
+        elif task_status == "SUCCESS":
             response_data["message"] = "Task completed successfully"
             if task_result.result:
                 response_data["result"] = task_result.result
-        elif task_result.status == "FAILURE":
+        elif task_status == "FAILURE":
             response_data["message"] = "Task failed"
             if task_result.info:
                 response_data["error"] = task_result.info
-        elif task_result.status == "RETRY":
+        elif task_status == "RETRY":
             response_data["message"] = "Task is being retried"
             if task_result.info:
                 response_data["retry_info"] = task_result.info

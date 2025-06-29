@@ -1,8 +1,6 @@
 #!/bin/bash
-"""
-Script to run minimal Celery test with proper setup and cleanup.
-This helps isolate serialization issues from the main project.
-"""
+# Script to run minimal Celery test with proper setup and cleanup.
+# This helps isolate serialization issues from the main project.
 
 set -e
 

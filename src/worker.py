@@ -11,8 +11,8 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 # Get configuration from environment variables
-broker_url = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
-result_backend_url = os.environ.get("CELERY_RESULT_BACKEND_URL", "redis://localhost:6379/0")
+broker_url = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")  # Back to Redis
+result_backend_url = os.environ.get("CELERY_RESULT_BACKEND_URL", "redis://localhost:6379/0")  # Back to Redis
 
 # Create Celery application
 celery_app = Celery(
@@ -27,9 +27,9 @@ celery_app = Celery(
 
 # Celery configuration
 celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
+    task_serializer="pickle",
+    accept_content=["pickle", "json"],
+    result_serializer="pickle",
     timezone="Europe/Warsaw",
     enable_utc=True,
     task_track_started=True,
@@ -41,9 +41,18 @@ celery_app.conf.update(
     task_always_eager=False,  # Set to True for testing
     task_eager_propagates=True,
     result_expires=3600,  # 1 hour
-    result_persistent=True,
+    result_persistent=False,  # Changed from True to False to prevent serialization issues
     task_ignore_result=False,
     task_store_errors_even_if_ignored=True,
+    # Fix for Redis result backend issues
+    result_backend_transport_options={
+        'retry_on_timeout': True,
+        'max_connections': 20,
+    },
+    # Additional settings for better exception handling
+    task_remote_tracebacks=True,
+    worker_redirect_stdouts=False,
+    worker_redirect_stdouts_level='WARNING',
     task_annotations={
         "src.tasks.receipt_tasks.process_receipt_task": {
             "rate_limit": "10/m",  # Max 10 tasks per minute
@@ -52,10 +61,6 @@ celery_app.conf.update(
         }
     }
 )
-
-# Optional: Configure result backend for better task monitoring
-if result_backend_url:
-    celery_app.conf.result_backend = result_backend_url
 
 # Task routing (optional - for more complex setups)
 celery_app.conf.task_routes = {

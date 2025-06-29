@@ -46,6 +46,8 @@ FROM dependencies as application
 
 # Copy the entire application source code
 COPY . .
+# Kopiuj katalog z testami z katalogu głównego repozytorium
+COPY ../../tests /app/tests
 
 # Pre-download AI models during build to avoid downloading at runtime
 COPY scripts/preload_models.py /app/scripts/
