@@ -84,7 +84,7 @@ SAMPLE_PANTRY_ITEMS = [
     }
 ]
 
-@router.get("/pantry/products", response_model=List[Dict])
+@router.get("/products", response_model=List[Dict])
 async def get_pantry_products(
     db: AsyncSession = Depends(get_db)
 ) -> List[Dict]:
@@ -105,7 +105,7 @@ async def get_pantry_products(
             }
         )
 
-@router.post("/pantry/add", response_model=Dict)
+@router.post("/add", response_model=Dict)
 async def add_pantry_item(
     item: PantryItemCreate,
     db: AsyncSession = Depends(get_db)
@@ -143,7 +143,7 @@ async def add_pantry_item(
             }
         )
 
-@router.put("/pantry/update/{item_id}", response_model=Dict)
+@router.put("/update/{item_id}", response_model=Dict)
 async def update_pantry_item(
     item_id: str,
     item_update: PantryItemUpdate,
@@ -197,7 +197,7 @@ async def update_pantry_item(
             }
         )
 
-@router.delete("/pantry/delete/{item_id}", response_model=Dict)
+@router.delete("/delete/{item_id}", response_model=Dict)
 async def delete_pantry_item(
     item_id: str,
     db: AsyncSession = Depends(get_db)
@@ -241,7 +241,7 @@ async def delete_pantry_item(
             }
         )
 
-@router.get("/pantry/expiring-soon", response_model=List[Dict])
+@router.get("/expiring-soon", response_model=List[Dict])
 async def get_expiring_items(
     days: int = 7,
     db: AsyncSession = Depends(get_db)
@@ -274,7 +274,7 @@ async def get_expiring_items(
             }
         )
 
-@router.get("/pantry/expired", response_model=List[Dict])
+@router.get("/expired", response_model=List[Dict])
 async def get_expired_items(
     db: AsyncSession = Depends(get_db)
 ) -> List[Dict]:
@@ -305,7 +305,7 @@ async def get_expired_items(
             }
         )
 
-@router.get("/pantry/categories", response_model=List[str])
+@router.get("/categories", response_model=List[str])
 async def get_pantry_categories(
     db: AsyncSession = Depends(get_db)
 ) -> List[str]:
@@ -324,7 +324,7 @@ async def get_pantry_categories(
             }
         )
 
-@router.get("/pantry/statistics", response_model=Dict)
+@router.get("/statistics", response_model=Dict)
 async def get_pantry_statistics(
     db: AsyncSession = Depends(get_db)
 ) -> Dict:
