@@ -20,13 +20,16 @@ import { useChatStore } from '@/stores/chatStore';
 import { TypewriterText } from '../chat/TypewriterText';
 import { QuickCommands } from './QuickCommands';
 import { chatAPI } from '@/lib/api';
+import { receiptAPI } from '@/lib/api';
 
 export function Dashboard() {
   const theme = useTheme();
   const { messages, addMessage, clearMessages, updateMessage } = useChatStore();
   const [inputValue, setInputValue] = React.useState('');
   const [isTyping, setIsTyping] = React.useState(false);
+  const [showReceiptProcessor, setShowReceiptProcessor] = React.useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Automatyczne scrollowanie do najnowszej wiadomości
   const scrollToBottom = () => {
@@ -74,7 +77,7 @@ export function Dashboard() {
 
       // Zaktualizuj wiadomość asystenta
       updateMessage(tempAssistantMessage.id, {
-        content: response.data.data?.reply || 'Przepraszam, nie udało się przetworzyć Twojego zapytania.',
+        content: response.data.text || response.data.data?.reply || 'Przepraszam, nie udało się przetworzyć Twojego zapytania.',
         isStreaming: false,
         agentType: response.data.data?.agent_type,
       });
@@ -93,6 +96,82 @@ export function Dashboard() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Sprawdź czy to paragon (obrazek lub PDF)
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        // Dodaj wiadomość o rozpoczęciu przetwarzania paragonu
+        addMessage({
+          id: Date.now().toString(),
+          content: `📄 Rozpoczynam przetwarzanie paragonu: ${file.name}`,
+          role: 'assistant',
+          timestamp: new Date(),
+        });
+
+        try {
+          // Przetwórz paragon
+          const receiptResult = await receiptAPI.processReceipt(file);
+          
+          // Sprawdź czy odpowiedź ma poprawną strukturę
+          if (receiptResult.data && receiptResult.data.analysis) {
+            const analysis = receiptResult.data.analysis;
+            
+            // Dodaj wiadomość o pomyślnym przetworzeniu
+            addMessage({
+              id: (Date.now() + 1).toString(),
+              content: `✅ Paragon został pomyślnie przetworzony!\n\n🏪 **Sklep:** ${analysis.store_name || 'Nieznany'}\n📅 **Data:** ${analysis.date || 'Nieznana'}\n💰 **Suma:** ${analysis.total_amount?.toFixed(2) || '0.00'} zł\n📦 **Produktów:** ${analysis.items?.length || 0}`,
+              role: 'assistant',
+              timestamp: new Date(),
+            });
+
+            // Dodaj pytanie "byłeś na zakupach?"
+            setTimeout(() => {
+              addMessage({
+                id: (Date.now() + 2).toString(),
+                content: 'Byłeś na zakupach? 🛒',
+                role: 'assistant',
+                timestamp: new Date(),
+              });
+            }, 1000);
+          } else {
+            // Fallback dla nieoczekiwanej struktury odpowiedzi
+            addMessage({
+              id: (Date.now() + 1).toString(),
+              content: `✅ Paragon został przetworzony, ale struktura odpowiedzi jest nieoczekiwana.`,
+              role: 'assistant',
+              timestamp: new Date(),
+            });
+          }
+
+        } catch (error) {
+          console.error('Błąd przetwarzania paragonu:', error);
+          addMessage({
+            id: (Date.now() + 1).toString(),
+            content: `❌ Błąd przetwarzania paragonu: ${error instanceof Error ? error.message : 'Nieznany błąd'}`,
+            role: 'assistant',
+            timestamp: new Date(),
+          });
+        }
+      } else {
+        // Inne typy plików - dodaj jako zwykłą wiadomość
+        addMessage({
+          id: Date.now().toString(),
+          content: `📎 Załączono plik: ${file.name}`,
+          role: 'user',
+          timestamp: new Date(),
+        });
+      }
+    }
+    
+    // Wyczyść input file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -316,7 +395,19 @@ export function Dashboard() {
                     outline: 'none',
                   }}
                 />
+                
+                {/* Ukryty input file */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                />
+                
                 <IconButton
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isTyping}
                   sx={{
                     color: 'text.primary',
                     '&:hover': { background: 'rgba(255, 255, 255, 0.1)' },

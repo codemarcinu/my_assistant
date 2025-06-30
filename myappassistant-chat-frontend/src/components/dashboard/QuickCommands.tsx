@@ -92,7 +92,7 @@ export function QuickCommands() {
             useBielik: true,
             agent_states: {},
           });
-          responseMessage = chatResponse.data.data?.reply || 'Brak odpowiedzi od AI.';
+          responseMessage = chatResponse.data.text || chatResponse.data.data?.reply || 'Brak odpowiedzi od AI.';
           agentType = chatResponse.data.data?.agent_type || agentType;
           break;
         }
