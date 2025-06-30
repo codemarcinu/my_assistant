@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use chrono::{DateTime, Utc};
+use tauri::{command, async_runtime};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReceiptData {
@@ -112,6 +113,38 @@ pub async fn make_api_request(url: String, method: String, body: Option<String>)
         .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
     Ok(response_text)
+}
+
+/// Uruchamia sidecar scraper i zwraca wyniki
+pub async fn run_scraper_sidecar(stores: Vec<String>) -> Result<String, String> {
+    let _args: Vec<String> = stores.iter().map(|s| format!("--{}", s)).collect();
+    
+    // In Tauri v2, we need to use a different approach for sidecars
+    // For now, let's return a placeholder until we implement proper sidecar handling
+    Ok(format!("Scraper would run with stores: {:?}", stores))
+}
+
+/// Uruchamia sidecar AI agent i analizuje dane
+pub async fn run_ai_analysis_sidecar(data: String) -> Result<String, String> {
+    // In Tauri v2, we need to use a different approach for sidecars
+    // For now, let's return a placeholder until we implement proper sidecar handling
+    Ok(format!("AI analysis would process data: {}", data))
+}
+
+/// Monitoruje promocje w sklepach
+pub async fn monitor_promotions(store: Option<String>) -> Result<String, String> {
+    let stores = match store {
+        Some(s) => vec![s],
+        None => vec!["lidl".to_string(), "biedronka".to_string()]
+    };
+    
+    // Uruchom scraper
+    let scraped_data = run_scraper_sidecar(stores).await?;
+    
+    // Analizuj przez AI
+    let analysis = run_ai_analysis_sidecar(scraped_data).await?;
+    
+    Ok(analysis)
 }
 
 #[cfg(test)]

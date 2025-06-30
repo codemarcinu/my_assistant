@@ -6,6 +6,8 @@
     "ocr_desc": "OCR paragonów",
     "pantry": "Spiżarnia",
     "pantry_desc": "Zarządzanie spiżarnią",
+    "promotions": "Promocje",
+    "promotions_desc": "Monitor promocji",
     "analytics": "Analityka",
     "analytics_desc": "Analityka wydatków",
     "rag": "Baza wiedzy",
@@ -17,6 +19,7 @@
     "dashboard": "Główna",
     "ocr": "Analiza paragonów",
     "pantry": "Zarządzanie spiżarnią",
+    "promotions": "Promocje",
     "analytics": "Analityka wydatków",
     "rag": "Baza wiedzy",
     "settings": "Ustawienia systemowe"

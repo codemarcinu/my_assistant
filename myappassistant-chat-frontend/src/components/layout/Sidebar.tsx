@@ -20,6 +20,7 @@ import {
   Analytics,
   LibraryBooks,
   Settings,
+  ShoppingCart,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useRouter, usePathname } from 'next/navigation';
@@ -54,6 +55,13 @@ export function Sidebar() {
       label: t('sidebar.pantry'),
       icon: Kitchen,
       description: t('sidebar.pantry_desc'),
+    },
+    {
+      id: 'promotions',
+      path: '/promotions',
+      label: t('sidebar.promotions'),
+      icon: ShoppingCart,
+      description: t('sidebar.promotions_desc'),
     },
     {
       id: 'analytics',

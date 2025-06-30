@@ -199,7 +199,7 @@ check_environment() {
   print_subheader "Sprawdzam pliki konfiguracyjne..."
   echo ""
   
-  local config_files=("docker-compose.yml" "docker-compose.dev.yml" "myappassistant-chat-frontend/package.json")
+  local config_files=("docker-compose.yml" "docker-compose.dev.yaml" "myappassistant-chat-frontend/package.json")
   for file in "${config_files[@]}"; do
     if [ -f "$file" ]; then
       print_success "✅ $file istnieje"

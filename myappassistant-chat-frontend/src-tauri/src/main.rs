@@ -39,6 +39,21 @@ async fn make_api_request(url: String, method: String, body: Option<String>) -> 
     lib::make_api_request(url, method, body).await
 }
 
+#[tauri::command]
+async fn run_scraper_sidecar(stores: Vec<String>) -> Result<String, String> {
+    lib::run_scraper_sidecar(stores).await
+}
+
+#[tauri::command]
+async fn run_ai_analysis_sidecar(data: String) -> Result<String, String> {
+    lib::run_ai_analysis_sidecar(data).await
+}
+
+#[tauri::command]
+async fn monitor_promotions(store: Option<String>) -> Result<String, String> {
+    lib::monitor_promotions(store).await
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -48,7 +63,10 @@ fn main() {
             show_custom_notification,
             save_receipt_data,
             get_app_data_dir,
-            make_api_request
+            make_api_request,
+            run_scraper_sidecar,
+            run_ai_analysis_sidecar,
+            monitor_promotions
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

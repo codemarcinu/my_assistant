@@ -11,6 +11,7 @@ from backend.agents.categorization_agent import CategorizationAgent
 from backend.agents.general_conversation_agent import GeneralConversationAgent
 from backend.agents.meal_planner_agent import MealPlannerAgent
 from backend.agents.ocr_agent import OCRAgent
+from backend.agents.promo_scraping_agent import PromoScrapingAgent
 from backend.agents.rag_agent import RAGAgent
 from backend.agents.search_agent import SearchAgent
 from backend.agents.weather_agent import WeatherAgent
@@ -81,6 +82,8 @@ class AgentFactory:
         "OCR": OCRAgent,  # Alias z wielką literą
         "analytics": AnalyticsAgent,
         "Analytics": AnalyticsAgent,  # Alias z wielką literą
+        "promo_scraping": PromoScrapingAgent,
+        "PromoScraping": PromoScrapingAgent,  # Alias z wielką literą
         # ✅ ALWAYS include fallback
         "default": GeneralConversationAgent,
     }

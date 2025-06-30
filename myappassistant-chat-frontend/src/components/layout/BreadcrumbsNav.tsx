@@ -13,6 +13,7 @@ const PATH_LABELS: Record<string, string> = {
   settings: "Ustawienia",
   ocr: "OCR",
   pantry: "Spiżarnia",
+  promotions: "Promocje",
   analytics: "Analityka",
   rag: "RAG",
 };

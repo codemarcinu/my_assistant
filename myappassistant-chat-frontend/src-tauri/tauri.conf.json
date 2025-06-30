@@ -44,7 +44,10 @@
       "icons/icon.ico"
     ],
     "resources": [],
-    "externalBin": [],
+    "externalBin": [
+      "binaries/scraper-node",
+      "binaries/ai-agent"
+    ],
     "copyright": "",
     "category": "Utility",
     "shortDescription": "Personal AI Assistant for Food Management",
@@ -64,6 +67,13 @@
         "https://api.foodsave.ai/**"
       ]
     },
-    "dialog": {}
+    "dialog": {},
+    "shell": {
+      "sidecar": true,
+      "scope": [
+        { "name": "binaries/scraper-node", "sidecar": true },
+        { "name": "binaries/ai-agent", "sidecar": true }
+      ]
+    }
   }
 } 
