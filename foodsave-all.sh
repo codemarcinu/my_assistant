@@ -37,15 +37,59 @@ start_backend() {
   fi
 }
 
+# Funkcja do zabijania procesu na porcie 3000
+kill_port_3000() {
+  local pid=$(lsof -ti:3000)
+  if [ ! -z "$pid" ]; then
+    print_warn "Znaleziono proces na porcie 3000 (PID: $pid). Zatrzymuję..."
+    kill -9 $pid 2>/dev/null || true
+    sleep 2
+    # Sprawdź czy port jest teraz wolny
+    if lsof -ti:3000 >/dev/null 2>&1; then
+      print_error "Nie udało się zwolnić portu 3000"
+      return 1
+    else
+      print_success "Port 3000 zwolniony"
+      return 0
+    fi
+  fi
+  
+  # Dodatkowo zabij wszystkie procesy Next.js i Node.js związane z frontendem
+  local next_pids=$(pgrep -f "next dev" || true)
+  local node_pids=$(pgrep -f "node.*next" || true)
+  
+  if [ ! -z "$next_pids" ] || [ ! -z "$node_pids" ]; then
+    print_warn "Znaleziono procesy Next.js/Node.js. Zatrzymuję..."
+    kill -9 $next_pids $node_pids 2>/dev/null || true
+    sleep 2
+  fi
+  
+  return 0
+}
+
 start_frontend_dev() {
   print_status "Uruchamianie frontendu (tryb deweloperski)..."
   cd myappassistant-chat-frontend
-  npm run dev &
+
+  # Sprawdź czy port 3000 jest wolny
+  if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null; then
+    print_warn "Port 3000 jest zajęty. Próbuję zwolnić..."
+    if kill_port_3000; then
+      print_status "Port 3000 zwolniony, uruchamiam frontend..."
+    else
+      print_error "Nie udało się zwolnić portu 3000. Frontend nie zostanie uruchomiony."
+      cd ..
+      return 1
+    fi
+  fi
+
+  # Wymuś PORT=3000 i loguj do pliku
+  PORT=3000 npm run dev > ../frontend.log 2>&1 &
   sleep 3
   if curl -s http://localhost:$FRONTEND_PORT > /dev/null; then
     print_success "Frontend uruchomiony na porcie $FRONTEND_PORT"
   else
-    print_warn "Frontend może się jeszcze uruchamiać"
+    print_warn "Frontend może się jeszcze uruchamiać lub wystąpił błąd. Sprawdź frontend.log."
   fi
   cd ..
 }
