@@ -187,6 +187,53 @@ Jeśli masz pytania lub problemy:
 - [ ] Tryb offline
 - [ ] Progressive Web App (PWA)
 
+## Nowości i kluczowe funkcje (2024)
+
+### 1. Dynamiczny Dashboard (CommandCenter)
+- **WebSocket monitoring**: dashboard i zakładki korzystają z połączenia WebSocket do backendu, aby w czasie rzeczywistym wyświetlać status agentów, metryki systemowe i powiadomienia.
+- **Zakładki**: czat, status agentów, monitoring systemu, RAG (baza wiedzy), ustawienia, konsola deweloperska (tryb dev).
+- **Lazy loading**: komponenty zakładek ładowane są tylko po aktywacji, co poprawia wydajność UI.
+
+### 2. Okno Czatowe
+- **Metadane agentów**: każda odpowiedź asystenta zawiera badge z typem agenta, confidence, źródłami wiedzy (RAG), czasem odpowiedzi.
+- **Zintegrowany RAG**: przed wysłaniem zapytania do LLM automatycznie pobierane są dokumenty z bazy wiedzy (RAG), a pasek postępu pokazuje status wyszukiwania.
+- **Cytowania i źródła**: odpowiedzi mogą zawierać cytowania do dokumentów, a użytkownik może podejrzeć źródła.
+- **Obsługa błędów**: globalny ErrorBanner wyświetla komunikaty o błędach sieci, OCR, RAG itp.
+- **Edytowalność**: ostatnia wiadomość użytkownika może być edytowana w przypadku błędów parsowania.
+
+### 3. Moduł RAG
+- **Panel zarządzania dokumentami**: upload, przeglądanie, wyszukiwanie i podgląd dokumentów bazy wiedzy.
+- **Wyniki wyszukiwania**: wyświetlane z procentową oceną trafności (similarity).
+
+### 4. Monitoring i Ustawienia
+- **SystemMonitor**: wizualizacja CPU, RAM, dysku, sieci, liczby połączeń.
+- **Panel ustawień**: centralna konfiguracja agentów, szybkie komendy, wygląd, baza wiedzy.
+
+### 5. Konsola Deweloperska
+- **Wysyłanie komend do backendu**: logi, szybkie komendy, debugowanie.
+
+## Architektura
+- **React + Zustand** do zarządzania stanem czatu.
+- **WebSocket** do real-time eventów.
+- **TypeScript**: typowanie metadanych, wiadomości, agentów.
+- **Material-UI**: nowoczesny, responsywny interfejs.
+
+## Jak uruchomić
+1. `npm install`
+2. `npm run dev`
+
+## Testowanie
+- Testy e2e: Playwright (`npm run test:e2e`)
+- Testy integracyjne: `tests/integration/`
+
+## Zmiany 2024-06
+- Integracja RAG z czatem i dashboardem
+- WebSocket monitoring
+- Metadane agentów i źródeł w czacie
+- ErrorBanner i lepsza obsługa błędów
+- Lazy loading zakładek
+- Nowe panele: SystemMonitor, RAGModule, DeveloperConsole
+
 ---
 
 Built with ❤️ using Next.js 15 and modern web technologies.

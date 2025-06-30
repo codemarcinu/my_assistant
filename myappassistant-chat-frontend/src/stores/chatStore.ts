@@ -8,6 +8,15 @@ export interface Message {
   agentType?: string;
   isStreaming?: boolean;
   attachments?: File[];
+  responseTime?: number;
+  confidence?: number;
+  sources?: Array<{
+    id: string;
+    title: string;
+    similarity: number;
+  }>;
+  usedRAG?: boolean;
+  usedInternet?: boolean;
 }
 
 export interface ChatState {

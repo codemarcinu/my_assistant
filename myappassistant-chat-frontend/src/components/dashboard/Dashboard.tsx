@@ -19,6 +19,11 @@ import {
 import { useChatStore } from '@/stores/chatStore';
 import { TypewriterText } from '../chat/TypewriterText';
 import { QuickCommands } from './QuickCommands';
+import { ErrorBanner } from '../chat/ErrorBanner';
+import { RAGProgressIndicator } from '../chat/RAGProgressIndicator';
+import { AgentMetadata } from '../chat/AgentMetadata';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { useRAG } from '@/hooks/useRAG';
 import { chatAPI } from '@/lib/api';
 import { receiptAPI } from '@/lib/api';
 
@@ -28,8 +33,21 @@ export function Dashboard() {
   const [inputValue, setInputValue] = React.useState('');
   const [isTyping, setIsTyping] = React.useState(false);
   const [showReceiptProcessor, setShowReceiptProcessor] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // WebSocket for real-time dashboard updates
+  const { isConnected: wsConnected, agents: wsAgents, systemMetrics } = useWebSocket();
+  
+  // RAG integration
+  const { 
+    getRelevantDocuments, 
+    searchResults, 
+    progress: ragProgress, 
+    error: ragError,
+    clearResults: clearRAGResults 
+  } = useRAG();
 
   // Automatyczne scrollowanie do najnowszej wiadomości
   const scrollToBottom = () => {
@@ -53,6 +71,7 @@ export function Dashboard() {
     addMessage(userMessage);
     setInputValue('');
     setIsTyping(true);
+    setError(null);
 
     // Dodaj tymczasową wiadomość asystenta
     const tempAssistantMessage = {
@@ -66,29 +85,54 @@ export function Dashboard() {
     addMessage(tempAssistantMessage);
 
     try {
-      // Wyślij wiadomość do prawdziwego API
+      // Automatyczne wyszukiwanie RAG przed wysłaniem do API
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+      
+      const ragResults = await getRelevantDocuments(inputValue, conversationHistory);
+      
+      // Wyślij wiadomość do prawdziwego API z kontekstem RAG
       const response = await chatAPI.sendMessage({
         message: inputValue,
         session_id: 'default',
         usePerplexity: false,
         useBielik: true,
         agent_states: {},
+        context_docs: ragResults?.documents || [], // Dodaj dokumenty RAG jako kontekst
       });
 
-      // Zaktualizuj wiadomość asystenta
+      // Przygotuj źródła dla metadanych
+      const sources = ragResults?.documents.map(doc => ({
+        id: doc.id,
+        title: doc.title,
+        similarity: doc.similarity,
+      })) || [];
+
+      // Zaktualizuj wiadomość asystenta z metadanymi
       updateMessage(tempAssistantMessage.id, {
         content: response.data.text || response.data.data?.reply || 'Przepraszam, nie udało się przetworzyć Twojego zapytania.',
         isStreaming: false,
         agentType: response.data.data?.agent_type,
+        responseTime: response.data.data?.response_time,
+        confidence: response.data.data?.rag_confidence,
+        usedRAG: response.data.data?.used_rag || (ragResults?.documents?.length || 0) > 0,
+        usedInternet: response.data.data?.used_internet,
+        sources,
       });
     } catch (error) {
       console.error('Błąd wysyłania wiadomości:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Nieznany błąd';
+      setError(`Błąd komunikacji z serwerem: ${errorMessage}`);
       updateMessage(tempAssistantMessage.id, {
         content: 'Przepraszam, wystąpił błąd podczas przetwarzania Twojego zapytania. Spróbuj ponownie.',
         isStreaming: false,
       });
     } finally {
       setIsTyping(false);
+      // Wyczyść wyniki RAG po zakończeniu
+      setTimeout(() => clearRAGResults(), 3000);
     }
   };
 
@@ -112,6 +156,7 @@ export function Dashboard() {
           content: `📄 Rozpoczynam przetwarzanie paragonu: ${file.name}`,
           role: 'assistant',
           timestamp: new Date(),
+          agentType: 'ocr',
         });
 
         try {
@@ -128,6 +173,8 @@ export function Dashboard() {
               content: `✅ Paragon został pomyślnie przetworzony!\n\n🏪 **Sklep:** ${analysis.store_name || 'Nieznany'}\n📅 **Data:** ${analysis.date || 'Nieznana'}\n💰 **Suma:** ${analysis.total_amount?.toFixed(2) || '0.00'} zł\n📦 **Produktów:** ${analysis.items?.length || 0}`,
               role: 'assistant',
               timestamp: new Date(),
+              agentType: 'receipt_analysis',
+              confidence: receiptResult.data.confidence,
             });
 
             // Dodaj pytanie "byłeś na zakupach?"
@@ -137,6 +184,7 @@ export function Dashboard() {
                 content: 'Byłeś na zakupach? 🛒',
                 role: 'assistant',
                 timestamp: new Date(),
+                agentType: 'default',
               });
             }, 1000);
           } else {
@@ -146,16 +194,20 @@ export function Dashboard() {
               content: `✅ Paragon został przetworzony, ale struktura odpowiedzi jest nieoczekiwana.`,
               role: 'assistant',
               timestamp: new Date(),
+              agentType: 'receipt_analysis',
             });
           }
 
         } catch (error) {
           console.error('Błąd przetwarzania paragonu:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Nieznany błąd';
+          setError(`Błąd przetwarzania paragonu: ${errorMessage}`);
           addMessage({
             id: (Date.now() + 1).toString(),
-            content: `❌ Błąd przetwarzania paragonu: ${error instanceof Error ? error.message : 'Nieznany błąd'}`,
+            content: `❌ Błąd przetwarzania paragonu: ${errorMessage}`,
             role: 'assistant',
             timestamp: new Date(),
+            agentType: 'ocr',
           });
         }
       } else {
@@ -175,15 +227,31 @@ export function Dashboard() {
     }
   };
 
+  const handleRetry = () => {
+    setError(null);
+    // Można dodać logikę ponowienia ostatniej operacji
+  };
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Error Banner */}
+      <ErrorBanner
+        error={error || ragError}
+        onRetry={handleRetry}
+        onDismiss={() => setError(null)}
+        severity="error"
+        title="Błąd komunikacji"
+        showRetry={true}
+        autoHide={false}
+      />
+
       {/* Dashboard Grid Layout */}
       <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', lg: '1fr 320px' },
           gap: 3,
-          height: 'calc(100vh - 80px)', // Przesunięte jeszcze wyżej
+          height: 'calc(100vh - 80px)',
           minHeight: 400,
           maxHeight: 'calc(100vh - 80px)',
         }}
@@ -212,9 +280,26 @@ export function Dashboard() {
               background: 'rgba(59, 130, 246, 0.05)',
             }}
           >
-            <Typography variant="h5" sx={{ fontWeight: 600, m: 0 }}>
-              Czat z Asystentem
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, m: 0 }}>
+                Czat z Asystentem
+              </Typography>
+              {/* WebSocket status indicator */}
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: wsConnected ? '#4CAF50' : '#f44336',
+                  animation: wsConnected ? 'pulse 2s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%': { opacity: 1 },
+                    '50%': { opacity: 0.5 },
+                    '100%': { opacity: 1 },
+                  },
+                }}
+              />
+            </Box>
             <IconButton
               onClick={clearMessages}
               sx={{
@@ -289,31 +374,46 @@ export function Dashboard() {
                     </Avatar>
                   )}
                   
-                  <Paper
-                    sx={{
-                      p: 1.5,
-                      maxWidth: '70%',
-                      background: message.role === 'user' 
-                        ? 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)'
-                        : 'rgba(255, 255, 255, 0.05)',
-                      border: message.role === 'user' 
-                        ? 'none'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                    }}
-                  >
-                    {message.role === 'assistant' ? (
-                      <TypewriterText 
-                        text={message.content} 
-                        speed={30}
-                        variant="body2"
-                        color="text.primary"
+                  <Box sx={{ maxWidth: '70%', display: 'flex', flexDirection: 'column' }}>
+                    <Paper
+                      sx={{
+                        p: 1.5,
+                        background: message.role === 'user' 
+                          ? 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)'
+                          : 'rgba(255, 255, 255, 0.05)',
+                        border: message.role === 'user' 
+                          ? 'none'
+                          : '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      {message.role === 'assistant' ? (
+                        <TypewriterText 
+                          text={message.content} 
+                          speed={30}
+                          variant="body2"
+                          color="text.primary"
+                        />
+                      ) : (
+                        <Typography variant="body2" sx={{ color: 'white' }}>
+                          {message.content}
+                        </Typography>
+                      )}
+                    </Paper>
+                    
+                    {/* Agent Metadata for assistant messages */}
+                    {message.role === 'assistant' && (
+                      <AgentMetadata
+                        agentType={message.agentType}
+                        responseTime={message.responseTime}
+                        confidence={message.confidence}
+                        sources={message.sources}
+                        usedRAG={message.usedRAG}
+                        usedInternet={message.usedInternet}
+                        timestamp={message.timestamp.toISOString()}
+                        compact={true}
                       />
-                    ) : (
-                      <Typography variant="body2" sx={{ color: 'white' }}>
-                        {message.content}
-                      </Typography>
                     )}
-                  </Paper>
+                  </Box>
 
                   {message.role === 'user' && (
                     <Avatar
@@ -329,6 +429,9 @@ export function Dashboard() {
                 </Box>
               ))
             )}
+            
+            {/* RAG Progress Indicator */}
+            <RAGProgressIndicator progress={ragProgress} compact={true} />
             
             {isTyping && (
               <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-start' }}>

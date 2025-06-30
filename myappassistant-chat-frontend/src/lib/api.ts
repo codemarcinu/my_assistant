@@ -6,6 +6,13 @@ interface ChatRequest {
   usePerplexity: boolean;
   useBielik: boolean;
   agent_states: Record<string, boolean>;
+  context_docs?: Array<{
+    id: string;
+    title: string;
+    content: string;
+    source: string;
+    similarity: number;
+  }>;
 }
 
 interface ChatResponse {
@@ -22,6 +29,7 @@ interface ChatResponse {
     rag_confidence?: number;
     use_perplexity?: boolean;
     use_bielik?: boolean;
+    response_time?: number;
   };
   status?: string;
   timestamp?: string;
