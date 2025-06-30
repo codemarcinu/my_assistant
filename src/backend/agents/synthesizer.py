@@ -6,7 +6,7 @@ Zgodnie z planem ewolucji - Faza 2: Rdzeń Inteligencji
 import logging
 from typing import Any, Dict, List, Optional
 
-from backend.core.llm_client import llm_client
+from backend.core.hybrid_llm_client import hybrid_llm_client, ModelComplexity
 from backend.settings import settings
 from backend.agents.executor import ExecutionResult, StepResult
 from backend.agents.interfaces import AgentResponse
@@ -114,18 +114,21 @@ class Synthesizer:
         user_prompt = self._create_synthesis_user_prompt(original_query, synthesis_data)
         
         try:
-            response = await llm_client.chat(
-                model=settings.DEFAULT_MODEL,
+            response = await hybrid_llm_client.chat(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
+                model=settings.DEFAULT_MODEL,
+                force_complexity=ModelComplexity.STANDARD,
                 stream=False,
-                options={"temperature": 0.3}  # Średnia temperatura dla kreatywności
             )
             
             if isinstance(response, dict) and response.get("message"):
-                return response["message"]["content"]
+                raw_response = response["message"]["content"]
+                # Clean up the response to remove metadata and formatting
+                cleaned_response = self._clean_synthesis_response(raw_response)
+                return cleaned_response
             else:
                 logger.warning("Invalid response from LLM for synthesis")
                 return self._create_fallback_synthesis(original_query, synthesis_data)
@@ -134,12 +137,83 @@ class Synthesizer:
             logger.error(f"Error in LLM synthesis: {e}")
             return self._create_fallback_synthesis(original_query, synthesis_data)
     
+    def _clean_synthesis_response(self, response: str) -> str:
+        """Clean up the synthesis response to remove metadata and formatting"""
+        import re
+        
+        # Remove common metadata patterns
+        patterns_to_remove = [
+            r'Original user query:.*?\n',
+            r'---\s*\n',
+            r'✅\s*Step \d+:.*?\n',
+            r'✗\s*Step \d+:.*?\n',
+            r'Response:\s*["\']?',
+            r'["\']?\s*$',
+            r'\*\*.*?\*\*',  # Remove bold formatting
+            r'#+\s*.*?\n',   # Remove markdown headers
+            r'^\s*[-*+]\s*', # Remove list markers at start
+            r'^\s*\d+\.\s*', # Remove numbered lists at start
+            r'😊|🍽️|☕|✅|✗|🎯|📝|💡|🔍|📊|🎉|👍|👎|❤️|💔|😀|😃|😄|😁|😆|😅|😂|🤣|😊|😇|🙂|🙃|😉|😌|😍|🥰|😘|😗|😙|😚|😋|😛|😝|😜|🤪|🤨|🧐|🤓|😎|🤩|🥳|😏|😒|😞|😔|😟|😕|🙁|☹️|😣|😖|😫|😩|🥺|😢|😭|😤|😠|😡|🤬|🤯|😳|🥵|🥶|😱|😨|😰|😥|😓|🤗|🤔|🤭|🤫|🤥|😶|😐|😑|😯|😦|😧|😮|😲|🥱|😴|🤤|😪|😵|🤐|🥴|🤢|🤮|🤧|😷|🤒|🤕|🤑|🤠|💩|👻|💀|☠️|👽|👾|🤖|😺|😸|😹|😻|😼|😽|🙀|😿|😾|🙈|🙉|🙊|👶|👧|🧒|👦|👩|🧑|👨|👵|🧓|👴|👮‍♀️|👮|👮‍♂️|🕵️‍♀️|🕵️|🕵️‍♂️|💂‍♀️|💂|💂‍♂️|👷‍♀️|👷|👷‍♂️|🤴|👸|👳‍♀️|👳|👳‍♂️|👲|🧕‍♀️|🧕|🧕‍♂️|🤵‍♀️|🤵|🤵‍♂️|👰‍♀️|👰|👰‍♂️|🤰‍♀️|🤰|🤰‍♂️|🤱‍♀️|🤱|🤱‍♂️|👼|🎅|🤶|🧙‍♀️|🧙|🧙‍♂️|🧝‍♀️|🧝|🧝‍♂️|🧛‍♀️|🧛|🧛‍♂️|🧟‍♀️|🧟|🧟‍♂️|🧞‍♀️|🧞|🧞‍♂️|🧜‍♀️|🧜|🧜‍♂️|🧚‍♀️|🧚|🧚‍♂️',  # Remove emojis
+            r'\[.*?\]',  # Remove square brackets content
+            r'^\s*["\']',  # Remove quotes at start
+            r'["\']\s*$',  # Remove quotes at end
+            r'^\s*Odpowiedź:\s*',  # Remove "Odpowiedź:" prefix
+            r'^\s*Response:\s*',  # Remove "Response:" prefix
+            r'^\s*Result:\s*',  # Remove "Result:" prefix
+            r'Oto moja odpowiedź oparta na.*?\n',  # Remove Polish metadata
+            r'Pamiętaj:.*?\n',  # Remove reminder text
+        ]
+        
+        cleaned = response.strip()
+        
+        for pattern in patterns_to_remove:
+            cleaned = re.sub(pattern, '', cleaned, flags=re.MULTILINE | re.DOTALL)
+        
+        # Remove extra whitespace and normalize
+        cleaned = re.sub(r'\n\s*\n', '\n', cleaned)  # Remove multiple newlines
+        cleaned = re.sub(r'^\s+', '', cleaned, flags=re.MULTILINE)  # Remove leading whitespace
+        cleaned = re.sub(r'\s+$', '', cleaned, flags=re.MULTILINE)  # Remove trailing whitespace
+        cleaned = cleaned.strip()
+        
+        # If the response is empty or too short after cleaning, use fallback
+        if len(cleaned) < 10:
+            logger.warning("Response too short after cleaning, using fallback")
+            return "Przepraszam, wystąpił problem z generowaniem odpowiedzi."
+        
+        # Try to extract the actual response content from metadata-heavy responses
+        if any(phrase in cleaned.lower() for phrase in ["oryginalne zapytanie", "w odpowiedzi", "original user query", "in response"]):
+            # Look for quoted content that might be the actual response
+            quote_match = re.search(r'["\']([^"\']+)["\']', cleaned)
+            if quote_match:
+                cleaned = quote_match.group(1)
+            else:
+                # Try to find the last sentence that might be the actual response
+                sentences = cleaned.split('.')
+                for sentence in reversed(sentences):
+                    sentence = sentence.strip()
+                    if sentence and len(sentence) > 10 and not any(phrase in sentence.lower() for phrase in ["oryginalne", "original", "w odpowiedzi", "in response"]):
+                        cleaned = sentence
+                        break
+        
+        return cleaned
+    
     def _create_synthesizer_prompt(self) -> str:
         """Twórz prompt systemowy dla syntezatora"""
         return """
 Jesteś ekspertem w syntetyzowaniu informacji i tworzeniu spójnych, naturalnych odpowiedzi.
 
 Twoim zadaniem jest połączenie wyników z różnych kroków wykonania w jedną, płynną odpowiedź dla użytkownika.
+
+**ABSOLUTNIE KRYTYCZNE ZASADY:**
+- ZAWSZE generuj TYLKO naturalną, płynną odpowiedź
+- NIE dodawaj nagłówków, list, numeracji ani formatowania
+- NIE używaj markdown, emoji ani specjalnych znaków
+- NIE dodawaj metadanych, opisów kroków ani informacji technicznych
+- NIE zaczynaj od "Oryginalne zapytanie" ani podobnych prefiksów
+- NIE dodawaj informacji o krokach wykonania
+- NIE używaj emoji, symboli ani specjalnych znaków
+- NIE dodawaj nawiasów kwadratowych ani okrągłych z metadanymi
+- Odpowiedź powinna brzmieć jak naturalna konwersacja
 
 Zasady syntezy:
 1. Odpowiedź powinna być naturalna i płynna, jakby była napisana przez człowieka
@@ -150,9 +224,12 @@ Zasady syntezy:
 6. Jeśli zapytanie wymagało kilku kroków, wyjaśnij logicznie połączenie między nimi
 7. Bądź pomocny i przyjazny
 
-Przykład:
-- Jeśli użytkownik pytał o przepis na kurczaka biorąc pod uwagę pogodę, połącz informacje o pogodzie z sugestiami przepisów
-- Jeśli niektóre kroki się nie powiodły, wyjaśnij co udało się zrobić i co poszło nie tak
+Przykłady:
+- Zapytanie: "Jaka jest pogoda?" → "Dzisiaj jest słonecznie, temperatura 22°C"
+- Zapytanie: "Przepis na kurczaka" → "Oto prosty przepis na kurczaka: potrzebujesz..."
+- Zapytanie: "Hello, how are you?" → "Cześć! Mam się dobrze, dziękuję za pytanie. A Ty?"
+
+**PAMIĘTAJ: Zwróć TYLKO naturalną odpowiedź, bez żadnych dodatkowych informacji, metadanych, emoji ani formatowania!**
 """
     
     def _create_synthesis_user_prompt(

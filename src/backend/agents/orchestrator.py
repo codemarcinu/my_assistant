@@ -112,7 +112,7 @@ class Orchestrator:
         memory_manager: Optional["MemoryManager"] = None,
         response_generator: Optional["ResponseGenerator"] = None,
         orchestrator_id: Optional[str] = None,
-        use_planner_executor: bool = True,  # Nowy parametr do włączania nowej architektury
+        use_planner_executor: bool = False,  # Tymczasowo wyłączone
     ) -> None:
         self.db = db_session
         self.profile_manager = profile_manager

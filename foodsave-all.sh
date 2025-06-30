@@ -127,6 +127,59 @@ check_ollama() {
   fi
 }
 
+build_tauri() {
+  print_status "Budowanie aplikacji Tauri..."
+  cd myappassistant-chat-frontend
+  
+  # Sprawdź czy node_modules istnieje
+  if [ ! -d "node_modules" ]; then
+    print_warn "node_modules nie istnieje. Instaluję zależności..."
+    npm install
+  fi
+  
+  # Sprawdź czy src-tauri istnieje
+  if [ ! -d "src-tauri" ]; then
+    print_error "Katalog src-tauri nie istnieje!"
+    cd ..
+    return 1
+  fi
+  
+  # Buduj frontend dla Tauri
+  print_status "Budowanie frontendu dla Tauri..."
+  npm run build
+  
+  # Buduj aplikację Tauri
+  print_status "Budowanie aplikacji Tauri..."
+  npm run tauri:build
+  
+  # Sprawdź czy budowanie się powiodło - używamy ścieżki względnej do katalogu myappassistant-chat-frontend
+  local tauri_app_path="src-tauri/target/release/bundle/appimage/FoodSave AI_1.0.0_amd64.AppImage"
+  if [ -f "$tauri_app_path" ]; then
+    print_success "Aplikacja Tauri została zbudowana pomyślnie!"
+    print_status "Lokalizacja: $tauri_app_path"
+    
+    # Pokaż informacje o pliku
+    local file_size=$(du -h "$tauri_app_path" | cut -f1)
+    print_status "Rozmiar pliku: $file_size"
+    
+    # Sprawdź czy można uruchomić
+    if [ -x "$tauri_app_path" ]; then
+      print_success "Aplikacja jest gotowa do uruchomienia"
+    else
+      print_warn "Aplikacja nie ma uprawnień do wykonania. Dodaję uprawnienia..."
+      chmod +x "$tauri_app_path"
+    fi
+  else
+    print_error "Budowanie aplikacji Tauri nie powiodło się!"
+    print_status "Sprawdź logi w katalogu myappassistant-chat-frontend/"
+    cd ..
+    return 1
+  fi
+  
+  cd ..
+  return 0
+}
+
 stop_all() {
   print_status "Zatrzymywanie wszystkich usług..."
   docker compose -f docker-compose.dev.yaml down
@@ -186,6 +239,7 @@ show_help() {
   echo "  dev     - Uruchom tryb deweloperski (backend + frontend dev)"
   echo "  prod    - Uruchom tryb produkcyjny (backend + frontend statyczny)"
   echo "  tauri   - Uruchom backend + aplikację Tauri"
+  echo "  build   - Zbuduj aktualną aplikację Tauri"
   echo "  stop    - Zatrzymaj wszystkie usługi"
   echo "  status  - Pokaż status systemu"
   echo "  logs    - Pokaż logi backendu"
@@ -193,6 +247,7 @@ show_help() {
   echo ""
   echo "Przykłady:"
   echo "  food dev      # Uruchom tryb deweloperski"
+  echo "  food build    # Zbuduj aplikację Tauri"
   echo "  food status   # Sprawdź status"
   echo "  food stop     # Zatrzymaj wszystko"
 }
@@ -221,6 +276,9 @@ case "${1:-help}" in
     check_ollama
     show_status
     print_success "Backend + Tauri uruchomione!"
+    ;;
+  build)
+    build_tauri
     ;;
   stop)
     stop_all

@@ -19,10 +19,11 @@ import {
 import { useChatStore } from '@/stores/chatStore';
 import { TypewriterText } from '../chat/TypewriterText';
 import { QuickCommands } from './QuickCommands';
+import { chatAPI } from '@/lib/api';
 
 export function Dashboard() {
   const theme = useTheme();
-  const { messages, addMessage, clearMessages } = useChatStore();
+  const { messages, addMessage, clearMessages, updateMessage } = useChatStore();
   const [inputValue, setInputValue] = React.useState('');
   const [isTyping, setIsTyping] = React.useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -50,55 +51,41 @@ export function Dashboard() {
     setInputValue('');
     setIsTyping(true);
 
-    // Symulacja odpowiedzi AI
-    setTimeout(() => {
-      setIsTyping(false);
-      const response = generateResponse(inputValue);
-      addMessage({
-        id: (Date.now() + 1).toString(),
-        content: response,
-        role: 'assistant' as const,
-        timestamp: new Date(),
+    // Dodaj tymczasową wiadomość asystenta
+    const tempAssistantMessage = {
+      id: (Date.now() + 1).toString(),
+      content: '',
+      role: 'assistant' as const,
+      timestamp: new Date(),
+      isStreaming: true,
+    };
+
+    addMessage(tempAssistantMessage);
+
+    try {
+      // Wyślij wiadomość do prawdziwego API
+      const response = await chatAPI.sendMessage({
+        message: inputValue,
+        session_id: 'default',
+        usePerplexity: false,
+        useBielik: true,
+        agent_states: {},
       });
-    }, 1000 + Math.random() * 2000);
-  };
 
-  const generateResponse = (message: string) => {
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('pogoda') || lowerMessage.includes('weather')) {
-      return `🌤️ **Prognoza pogody na 3 dni:**
-
-**Dziś (Niedziela):**
-• Ząbki: 22°C, pochmurnie z przejaśnieniami
-• Warszawa: 23°C, słonecznie
-
-**Jutro (Poniedziałek):**
-• Ząbki: 19°C, deszcz po południu
-• Warszawa: 20°C, lekkie opady
-
-**Pojutrze (Wtorek):**
-• Ząbki: 25°C, słonecznie
-• Warszawa: 26°C, bezchmurnie
-
-Pamiętajcie o parasolu w poniedziałek! ☂️`;
-    } else if (lowerMessage.includes('śniadanie') || lowerMessage.includes('breakfast')) {
-      return `🍳 **Propozycje śniadania na podstawie waszej spiżarni:**
-
-**Opcja 1: Omlet z warzywami**
-• Jajka (2-3 sztuki)
-• Brokuły (100g)
-• Marchew (1 średnia, starta)
-• Przyprawy według gustu
-
-**Opcja 2: Jajecznica z ryżem**
-• Jajka (2-3 sztuki)
-• Ryż basmati (½ szklanki ugotowanego)
-• Warzywa na patelni
-
-Oba śniadania są pożywne i wykorzystują składniki, które macie w domu! 😊`;
-    } else {
-      return "Rozumiem! Czy mogę w czymś jeszcze pomóc? Jestem tutaj, aby pomóc z gotowaniem, zarządzaniem spiżarnią, pogodą i wieloma innymi rzeczami.";
+      // Zaktualizuj wiadomość asystenta
+      updateMessage(tempAssistantMessage.id, {
+        content: response.data.data?.reply || 'Przepraszam, nie udało się przetworzyć Twojego zapytania.',
+        isStreaming: false,
+        agentType: response.data.data?.agent_type,
+      });
+    } catch (error) {
+      console.error('Błąd wysyłania wiadomości:', error);
+      updateMessage(tempAssistantMessage.id, {
+        content: 'Przepraszam, wystąpił błąd podczas przetwarzania Twojego zapytania. Spróbuj ponownie.',
+        isStreaming: false,
+      });
+    } finally {
+      setIsTyping(false);
     }
   };
 

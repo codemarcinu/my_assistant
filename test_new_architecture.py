@@ -21,6 +21,9 @@ from backend.agents.intent_detector import SimpleIntentDetector
 from backend.agents.agent_router import AgentRouter
 from backend.agents.tools.registry import initialize_tool_registry
 from backend.core.profile_manager import ProfileManager
+from backend.agents.planner import Planner
+from backend.agents.executor import Executor
+from backend.agents.synthesizer import Synthesizer
 
 # Konfiguracja logowania
 logging.basicConfig(
@@ -108,8 +111,6 @@ async def test_planner():
     """Test planisty"""
     logger.info("Testing planner...")
     try:
-        from backend.agents.planner import Planner
-        
         planner = Planner()
         await planner.initialize()
         
@@ -151,13 +152,8 @@ async def test_executor():
     """Test egzekutora"""
     logger.info("Testing executor...")
     try:
-        from backend.agents.executor import Executor
-        from backend.agents.planner import Planner
-        
         executor = Executor()
-        planner = Planner()
         await executor.initialize()
-        await planner.initialize()
         
         # Utwórz prosty plan
         query = "Test query"
@@ -185,10 +181,6 @@ async def test_synthesizer():
     """Test syntezatora"""
     logger.info("Testing synthesizer...")
     try:
-        from backend.agents.synthesizer import Synthesizer
-        from backend.agents.executor import Executor, ExecutionResult, StepResult
-        from backend.agents.planner import Planner, ExecutionPlan, PlanStep
-        
         synthesizer = Synthesizer()
         await synthesizer.initialize()
         
@@ -303,6 +295,99 @@ async def test_full_orchestrator():
         return False
 
 
+async def test_new_architecture():
+    """Test nowej architektury planner-executor-synthesizer"""
+    logger.info("=== TEST NOWEJ ARCHITEKTURY ===")
+    
+    try:
+        # 1. Inicjalizuj rejestr narzędzi
+        logger.info("1. Inicjalizacja rejestru narzędzi...")
+        tool_registry = initialize_tool_registry()
+        tools = tool_registry.get_all_tools()
+        logger.info(f"✓ Zarejestrowano {len(tools)} narzędzi")
+        
+        # 2. Inicjalizuj komponenty
+        logger.info("2. Inicjalizacja komponentów...")
+        planner = Planner()
+        executor = Executor()
+        synthesizer = Synthesizer()
+        
+        await planner.initialize()
+        await executor.initialize()
+        await synthesizer.initialize()
+        logger.info("✓ Wszystkie komponenty zainicjalizowane")
+        
+        # 3. Test planisty
+        logger.info("3. Test planisty...")
+        test_query = "Jaka jest pogoda w Warszawie?"
+        plan = await planner.create_plan(test_query)
+        
+        if not plan or not plan.steps:
+            logger.error("❌ Planista nie utworzył planu")
+            return False
+        
+        logger.info(f"✓ Planista utworzył plan z {len(plan.steps)} krokami")
+        logger.info(f"   Złożoność: {plan.estimated_complexity}")
+        
+        # 4. Test egzekutora
+        logger.info("4. Test egzekutora...")
+        execution_result = await executor.execute_plan(plan)
+        
+        if not execution_result:
+            logger.error("❌ Egzekutor nie wykonał planu")
+            return False
+        
+        logger.info(f"✓ Egzekutor wykonał plan w {execution_result.total_execution_time:.2f}s")
+        logger.info(f"   Udało się: {len([r for r in execution_result.step_results if r.success])}/{len(execution_result.step_results)} kroków")
+        
+        # 5. Test syntezatora
+        logger.info("5. Test syntezatora...")
+        response = await synthesizer.generate_response(
+            execution_result, 
+            test_query
+        )
+        
+        if not response or not response.success:
+            logger.error("❌ Syntezator nie wygenerował odpowiedzi")
+            return False
+        
+        logger.info("✓ Syntezator wygenerował odpowiedź")
+        logger.info(f"   Odpowiedź: {response.text[:100]}...")
+        
+        # 6. Test złożonego zapytania
+        logger.info("6. Test złożonego zapytania...")
+        complex_query = "Znajdź przepis na kurczaka i sprawdź pogodę w Krakowie"
+        complex_plan = await planner.create_plan(complex_query)
+        
+        if complex_plan and len(complex_plan.steps) > 1:
+            logger.info(f"✓ Planista utworzył złożony plan z {len(complex_plan.steps)} krokami")
+            
+            complex_result = await executor.execute_plan(complex_plan)
+            if complex_result:
+                complex_response = await synthesizer.generate_response(
+                    complex_result, 
+                    complex_query
+                )
+                if complex_response and complex_response.success:
+                    logger.info("✓ Złożone zapytanie przetworzone pomyślnie")
+                    logger.info(f"   Odpowiedź: {complex_response.text[:100]}...")
+                else:
+                    logger.warning("⚠️ Złożone zapytanie nie powiodło się w syntezatorze")
+            else:
+                logger.warning("⚠️ Złożone zapytanie nie powiodło się w egzekutorze")
+        else:
+            logger.warning("⚠️ Planista nie utworzył złożonego planu")
+        
+        logger.info("=== TEST ZAKOŃCZONY POMYŚLNIE ===")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Test nie powiódł się: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 async def run_all_tests():
     """Uruchom wszystkie testy"""
     logger.info("🚀 Starting comprehensive architecture tests...")
@@ -315,6 +400,7 @@ async def run_all_tests():
         ("Executor", test_executor),
         ("Synthesizer", test_synthesizer),
         ("Full Orchestrator", test_full_orchestrator),
+        ("New Architecture", test_new_architecture),
     ]
     
     results = []

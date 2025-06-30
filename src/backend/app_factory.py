@@ -18,6 +18,7 @@ from backend.logger import configure_root_logger, setup_logger
 from backend.api import agents, chat, food, monitoring, pantry
 from backend.api import settings as settings_router
 from backend.api import upload
+from backend.api import analytics
 from backend.api.v1.endpoints import receipts
 from backend.api.v2.api import api_router as api_v2_router
 from backend.api.v2.exceptions import APIErrorDetail, APIException
@@ -221,6 +222,7 @@ def create_app() -> FastAPI:
     api_router.include_router(food.router, prefix="/food", tags=["Food"])
     api_router.include_router(pantry.router, prefix="/pantry", tags=["Pantry"])
     api_router.include_router(agents.router, prefix="/agents", tags=["Agents"])
+    api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
     api_router.include_router(
         settings_router.router, prefix="/settings", tags=["Settings"]
     )

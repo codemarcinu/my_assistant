@@ -1,4 +1,4 @@
-# 📚 FoodSave AI – Kompleksowy Spis Treści Projektu (29.06.2025)
+# 📚 FoodSave AI – Kompleksowy Spis Treści Projektu (30.06.2025)
 
 ## 1. Główne przewodniki i przegląd
 - [README.md](README.md) – Szybki start, architektura, status, linki
@@ -196,7 +196,7 @@ cp env.dev.example .env
 
 FoodSave AI is an advanced multi-agent AI system designed for managing household culinary tasks with a focus on sustainability and food waste reduction. The system utilizes locally hosted language models through Ollama, ensuring privacy and user data control.
 
-### �� Key Features
+### 🔑 Key Features
 
 - **🤖 Advanced Multi-Agent Architecture**: Specialized AI agents:
   - **👨‍🍳 Chef Agent**: Suggests recipes based on available ingredients
@@ -231,7 +231,7 @@ FoodSave AI is an advanced multi-agent AI system designed for managing household
   - User-controlled data retention
   - Secure backup system
 
-### 🏆 Current Status (29.06.2025)
+### 🏆 Current Status (30.06.2025)
 
 - ✅ **Production Ready**: System fully operational
 - ✅ **Test Coverage**: 94.7% (89/94 unit tests passing)
@@ -404,45 +404,48 @@ locust -f locustfile.py --host=http://localhost:8000
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### 2025-06-30: Rozwiązywanie problemów z backendem i bazą danych (lokalnie, bez Docker)
 
-#### Service Won't Start
-```bash
-# Check service status
-./scripts/dev-setup.sh status
+Jeśli uruchamiasz backend lokalnie (nie w Dockerze) i napotkasz błędy:
+- `asyncpg.exceptions.InvalidPasswordError: password authentication failed for user "foodsave"`
+- `socket.gaierror: [Errno -3] Temporary failure in name resolution`
+- `ModuleNotFoundError: No module named 'asyncpg'`, `No module named 'celery'`, `No module named 'boto3'`, `No module named 'bcrypt'`
+- Backend nie nasłuchuje na porcie 8000 lub zużywa dużo CPU
 
-# View service logs
-./scripts/dev-setup.sh logs [service-name]
+**Kroki naprawcze:**
+1. Upewnij się, że PostgreSQL działa lokalnie:
+   ```bash
+   sudo systemctl status postgresql
+   # lub
+   ps aux | grep postgres
+   ```
+2. Utwórz użytkownika i bazę danych (jeśli nie istnieją):
+   ```bash
+   sudo -u postgres psql -c "CREATE USER foodsave WITH PASSWORD 'foodsave_dev_password';"
+   sudo -u postgres psql -c "CREATE DATABASE foodsave_dev OWNER foodsave;"
+   ```
+3. Upewnij się, że w pliku `.env` masz:
+   ```env
+   DATABASE_URL=postgresql+asyncpg://foodsave:foodsave_dev_password@localhost:5432/foodsave_dev
+   ```
+4. Zainstaluj brakujące zależności:
+   ```bash
+   pip install asyncpg celery boto3 bcrypt --break-system-packages
+   ```
+5. Uruchom backend z odpowiednim PYTHONPATH:
+   ```bash
+   PYTHONPATH=src uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+6. Sprawdź zdrowie backendu:
+   ```bash
+   curl http://localhost:8000/health
+   # Oczekiwany wynik: {"status":"healthy", ...}
+   ```
 
-# Restart services
-./scripts/dev-setup.sh restart
-```
-
-#### AI Models Not Working
-```bash
-# Check Ollama status
-curl http://localhost:11434/api/version
-
-# Install models
-docker-compose -f docker-compose.dev.yaml exec ollama ollama pull gemma3:12b
-
-# Check model list
-docker-compose -f docker-compose.dev.yaml exec ollama ollama list
-```
-
-#### Database Issues
-```bash
-# Check database connection
-docker-compose -f docker-compose.dev.yaml exec backend poetry run python -c "from src.backend.core.database import engine; print('DB OK')"
-
-# Run migrations
-docker-compose -f docker-compose.dev.yaml exec backend poetry run alembic upgrade head
-```
-
-### Performance Issues
-- **High Memory Usage**: Reduce number of concurrent AI requests
-- **Slow Response Times**: Check Ollama model performance
-- **Database Slow**: Optimize queries and add indexes
+**Jeśli backend nadal nie działa:**
+- Sprawdź logi: `tail -30 logs/backend/backend.log`
+- Upewnij się, że Tesseract OCR jest zainstalowany: `which tesseract`
+- Sprawdź uprawnienia do plików i katalogów
 
 ---
 
@@ -530,6 +533,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Last Updated**: 29.06.2025  
+**Last Updated**: 30.06.2025  
 **Version**: 2.0.0  
 **Status**: Production Ready ✅

@@ -77,14 +77,14 @@ export function DatePicker({ date, onDateChange, placeholder = "Wybierz datę" }
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <Button
           variant="outline"
           size="sm"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 min-w-[140px] justify-start"
+          className="flex items-center gap-1 min-w-[100px] justify-start h-6 text-xs"
         >
-          <Calendar className="w-4 h-4" />
+          <Calendar className="w-3 h-3" />
           {selectedDate ? formatDate(selectedDate) : placeholder}
         </Button>
         {selectedDate && (
@@ -92,7 +92,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Wybierz datę" }
             variant="ghost"
             size="sm"
             onClick={handleClear}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 p-1"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 p-1 h-6 w-6"
           >
             <X className="w-3 h-3" />
           </Button>
@@ -100,11 +100,11 @@ export function DatePicker({ date, onDateChange, placeholder = "Wybierz datę" }
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 p-4 min-w-[280px]">
-          <div className="space-y-4">
+        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 p-3 min-w-[260px]">
+          <div className="space-y-3">
             {/* Bieżący miesiąc */}
             <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">
                 {new Date().toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })}
               </h3>
               <div className="grid grid-cols-7 gap-1">
@@ -121,7 +121,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Wybierz datę" }
                     onClick={() => handleDateSelect(date.toISOString().split('T')[0])}
                     disabled={isPast(date)}
                     className={`
-                      h-8 w-8 p-0 text-xs
+                      h-6 w-6 p-0 text-xs
                       ${isToday(date) ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : ''}
                       ${isSelected(date) ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ''}
                       ${isPast(date) ? 'text-gray-400 dark:text-gray-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}
@@ -135,7 +135,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Wybierz datę" }
 
             {/* Następny miesiąc */}
             <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <h3 className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">
                 {new Date(new Date().getFullYear(), new Date().getMonth() + 1).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })}
               </h3>
               <div className="grid grid-cols-7 gap-1">
@@ -151,7 +151,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Wybierz datę" }
                     size="sm"
                     onClick={() => handleDateSelect(date.toISOString().split('T')[0])}
                     className={`
-                      h-8 w-8 p-0 text-xs
+                      h-6 w-6 p-0 text-xs
                       ${isSelected(date) ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ''}
                       hover:bg-gray-100 dark:hover:bg-gray-700
                     `}
@@ -173,7 +173,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Wybierz datę" }
                     tomorrow.setDate(tomorrow.getDate() + 1);
                     handleDateSelect(tomorrow.toISOString().split('T')[0]);
                   }}
-                  className="text-xs"
+                  className="text-xs h-6"
                 >
                   Jutro
                 </Button>
@@ -185,7 +185,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Wybierz datę" }
                     nextWeek.setDate(nextWeek.getDate() + 7);
                     handleDateSelect(nextWeek.toISOString().split('T')[0]);
                   }}
-                  className="text-xs"
+                  className="text-xs h-6"
                 >
                   Za tydzień
                 </Button>

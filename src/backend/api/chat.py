@@ -285,6 +285,35 @@ async def memory_chat_generator(
             # If no chunks were collected, use the response
             if not chunks and response:
                 response_text = response.text or ""
+                
+                # Jeśli orchestrator nie wygenerował odpowiedzi, użyj fallback
+                if not response_text.strip():
+                    logger.warning("Orchestrator returned empty response, using fallback to direct LLM")
+                    try:
+                        # Fallback do bezpośredniego wywołania LLM
+                        fallback_response = await llm_client.generate_stream_from_prompt_async(
+                            model=get_selected_model(),
+                            prompt=request.message,
+                            system_prompt="Jesteś pomocnym asystentem AI. Odpowiadaj w języku polskim."
+                        )
+                        
+                        fallback_text = ""
+                        async for chunk in fallback_response:
+                            if hasattr(chunk, 'response') and chunk.response:
+                                fallback_text += chunk.response
+                            elif isinstance(chunk, dict) and 'response' in chunk:
+                                fallback_text += chunk['response']
+                        
+                        if fallback_text.strip():
+                            response_text = fallback_text
+                            logger.info("Fallback LLM response successful")
+                        else:
+                            response_text = "Przepraszam, nie udało się wygenerować odpowiedzi. Spróbuj ponownie."
+                            logger.error("Fallback LLM also failed")
+                    except Exception as fallback_error:
+                        logger.error(f"Fallback LLM error: {fallback_error}")
+                        response_text = "Przepraszam, wystąpił błąd techniczny. Spróbuj ponownie za chwilę."
+                
                 logger.info(
                     "Chat response completed",
                     extra={

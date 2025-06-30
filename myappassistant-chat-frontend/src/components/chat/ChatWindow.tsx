@@ -21,11 +21,13 @@ import { useChatStore, Message } from '@/stores/chatStore';
 import { chatAPI } from '@/lib/api';
 import { useFontSize } from '../providers';
 import { TypewriterText } from './TypewriterText';
+import { ChatReceiptProcessor } from './ChatReceiptProcessor';
 
 export function ChatWindow() {
   const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showReceiptProcessor, setShowReceiptProcessor] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -104,9 +106,63 @@ export function ChatWindow() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      // Tutaj będzie logika przetwarzania plików
-      console.log('Files selected:', files);
+      // Sprawdź czy to paragon (obrazek lub PDF)
+      const file = files[0];
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        setShowReceiptProcessor(true);
+        // Dodaj wiadomość o rozpoczęciu przetwarzania paragonu
+        addMessage({
+          id: Date.now().toString(),
+          content: `📄 Rozpoczynam przetwarzanie paragonu: ${file.name}`,
+          role: 'assistant',
+          timestamp: new Date(),
+        });
+      } else {
+        // Inne typy plików - dodaj jako zwykłą wiadomość
+        addMessage({
+          id: Date.now().toString(),
+          content: `📎 Załączono plik: ${file.name}`,
+          role: 'user',
+          timestamp: new Date(),
+        });
+      }
     }
+  };
+
+  const handleReceiptComplete = (receiptData: any) => {
+    setShowReceiptProcessor(false);
+    
+    // Dodaj wiadomość o pomyślnym przetworzeniu
+    addMessage({
+      id: Date.now().toString(),
+      content: `✅ Paragon został pomyślnie przetworzony i zapisany!\n\n🏪 **Sklep:** ${receiptData.store_name}\n📅 **Data:** ${receiptData.date}\n💰 **Suma:** ${receiptData.total_amount.toFixed(2)} zł\n📦 **Produktów:** ${receiptData.items.length}`,
+      role: 'assistant',
+      timestamp: new Date(),
+    });
+  };
+
+  const handleReceiptCancel = () => {
+    setShowReceiptProcessor(false);
+    
+    // Dodaj wiadomość o anulowaniu
+    addMessage({
+      id: Date.now().toString(),
+      content: '❌ Przetwarzanie paragonu zostało anulowane.',
+      role: 'assistant',
+      timestamp: new Date(),
+    });
+  };
+
+  const handleReceiptError = (error: string) => {
+    setShowReceiptProcessor(false);
+    
+    // Dodaj wiadomość o błędzie
+    addMessage({
+      id: Date.now().toString(),
+      content: `❌ Błąd przetwarzania paragonu: ${error}`,
+      role: 'assistant',
+      timestamp: new Date(),
+    });
   };
 
   return (
@@ -234,6 +290,41 @@ export function ChatWindow() {
             </Box>
           ))
         )}
+
+        {/* Procesor paragonów */}
+        {showReceiptProcessor && (
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 2,
+              justifyContent: 'flex-start',
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
+              }}
+            >
+              <SmartToy sx={{ fontSize: 16 }} />
+            </Avatar>
+            <Paper
+              sx={{
+                p: 2,
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                maxWidth: '80%',
+              }}
+            >
+              <ChatReceiptProcessor
+                onComplete={handleReceiptComplete}
+                onCancel={handleReceiptCancel}
+                onError={handleReceiptError}
+              />
+            </Paper>
+          </Box>
+        )}
         
         {isTyping && (
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-start' }}>
@@ -284,7 +375,7 @@ export function ChatWindow() {
             placeholder="Napisz wiadomość..."
             variant="outlined"
             size="small"
-            disabled={isTyping}
+            disabled={isTyping || showReceiptProcessor}
             sx={{
               '& .MuiOutlinedInput-root': {
                 background: 'rgba(255, 255, 255, 0.05)',
@@ -311,7 +402,7 @@ export function ChatWindow() {
           <IconButton
             data-testid="attach-file-button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isTyping}
+            disabled={isTyping || showReceiptProcessor}
             sx={{
               color: 'text.primary',
               '&:hover': {
@@ -325,7 +416,7 @@ export function ChatWindow() {
           <IconButton
             data-testid="send-message-button"
             onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isTyping}
+            disabled={!inputValue.trim() || isTyping || showReceiptProcessor}
             sx={{
               color: 'white',
               background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
