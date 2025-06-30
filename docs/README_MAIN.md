@@ -302,6 +302,14 @@ FoodSave AI is an advanced multi-agent AI system designed for managing household
   - Dynamic response length control
   - Context-aware summarization
 
+- **🛒 Promotion Monitoring System**:
+  - Real-time promotion tracking from major retailers
+  - Automated web scraping for price comparisons
+  - AI-powered deal analysis and recommendations
+  - Desktop application integration via Tauri
+  - Polish language support for local market
+  - Sidecar services for scalable data processing
+
 - **🔒 Privacy-First Design**:
   - Local AI models via Ollama
   - No data sent to external services

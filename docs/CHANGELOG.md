@@ -2,6 +2,15 @@
 
 ## [Unreleased] - 2025-06-30
 
+### Added
+- **Promotion Monitoring System**: Complete implementation of automated promotion tracking
+  - New PromotionsMonitor component with real-time dashboard
+  - Automated promotion scraping agent for data collection
+  - Sidecar services for AI processing and web scraping
+  - Tauri integration for desktop application features
+  - Polish language support for promotion monitoring UI
+  - Client-side rendering with React hooks compatibility
+
 ### Fixed
 - **Docker Setup**: Resolved multiple container startup issues
   - Fixed container name conflicts by removing stale containers
@@ -10,6 +19,7 @@
   - Resolved backend uvicorn and celery missing executables with fallback installations
   - Fixed Docker network configuration conflicts
   - Resolved port conflicts with local PostgreSQL service
+- **Frontend**: Fixed client component directive for React hooks in PromotionsMonitor
 
 ### Changed
 - **Frontend**: Updated Dockerfile.prod to use `--legacy-peer-deps` for npm install
