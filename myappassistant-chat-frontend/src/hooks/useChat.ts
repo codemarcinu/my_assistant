@@ -55,7 +55,7 @@ export function useChat() {
         msg.id === tempAssistantMessage.id 
           ? {
               ...msg,
-              content: response.data.data?.reply || "Przepraszam, nie udało się przetworzyć Twojego zapytania.",
+              content: response.data.text || response.data.data?.reply || "Przepraszam, nie udało się przetworzyć Twojego zapytania.",
               isStreaming: false,
               agentType: response.data.data?.agent_type
             }

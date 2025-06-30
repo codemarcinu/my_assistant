@@ -9,13 +9,22 @@ interface ChatRequest {
 }
 
 interface ChatResponse {
-  data: {
-    reply: string;
+  text?: string;
+  success?: boolean;
+  session_id?: string;
+  data?: {
+    reply?: string;
     agent_type?: string;
     history_length?: number;
+    query?: string;
+    used_rag?: boolean;
+    used_internet?: boolean;
+    rag_confidence?: number;
+    use_perplexity?: boolean;
+    use_bielik?: boolean;
   };
-  status: string;
-  timestamp: string;
+  status?: string;
+  timestamp?: string;
 }
 
 interface ApiResponse<T> {
