@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { FontSizeProvider, FontSizeWrapper } from "@/components/providers";
 import { EmotionRegistry } from "@/components/EmotionRegistry";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
               <FontSizeWrapper>
                 {children}
               </FontSizeWrapper>
+              <Toaster position="top-right" richColors />
             </body>
           </Providers>
         </EmotionRegistry>

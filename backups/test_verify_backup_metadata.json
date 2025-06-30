@@ -1,0 +1,26 @@
+{
+  "backup_id": "test_verify_backup",
+  "timestamp": "2025-06-30T01:17:57.252777",
+  "version": "2.0",
+  "components": {
+    "config": {
+      "status": "success",
+      "path": "backups/config/test_verify_backup_config.json",
+      "size": 1031,
+      "checksum": "5dfa0bebaa48ffd24af9e08dbd333a8b402808b67bf64a7b8ba6f09df9eca750",
+      "type": "configuration"
+    }
+  },
+  "total_size": 20480,
+  "checksums": {
+    "config": "5dfa0bebaa48ffd24af9e08dbd333a8b402808b67bf64a7b8ba6f09df9eca750"
+  },
+  "encryption_info": {
+    "encrypted": true,
+    "original_size": 20480,
+    "encrypted_size": 27404
+  },
+  "cloud_locations": [],
+  "verification_status": "failed",
+  "retention_policy": "daily"
+}

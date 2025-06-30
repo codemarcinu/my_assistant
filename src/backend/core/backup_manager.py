@@ -65,12 +65,9 @@ class BackupManager:
 
     def __init__(self) -> None:
         # Use absolute path for backup directory
-        self.backup_dir = Path("/app/backups")
+        self.backup_dir = Path(os.getenv("BACKUP_LOCAL_DIR", "./backups"))
+        self.backup_dir.mkdir(parents=True, exist_ok=True)
         
-        # Only create backup directory if it doesn't exist
-        if not self.backup_dir.exists():
-            self.backup_dir.mkdir(exist_ok=True)
-
         # Create backup subdirectories
         self.db_backup_dir = self.backup_dir / "database"
         self.files_backup_dir = self.backup_dir / "files"

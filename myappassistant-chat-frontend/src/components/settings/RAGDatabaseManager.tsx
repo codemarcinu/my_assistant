@@ -41,8 +41,10 @@ import {
   Description,
   Refresh,
   Dataset,
+  Warning,
 } from '@mui/icons-material';
 import { useTauriAPI } from '@/hooks/useTauriAPI';
+import { useTauriContext } from '@/hooks/useTauriContext';
 
 interface RAGDocument {
   document_id: string;
@@ -66,6 +68,7 @@ interface RAGStats {
 
 export function RAGDatabaseManager() {
   const { makeApiRequest } = useTauriAPI();
+  const tauriContext = useTauriContext();
   const [stats, setStats] = useState<RAGStats | null>(null);
   const [documents, setDocuments] = useState<RAGDocument[]>([]);
   const [directories, setDirectories] = useState<string[]>([]);
@@ -84,12 +87,22 @@ export function RAGDatabaseManager() {
   const [newDirectoryPath, setNewDirectoryPath] = useState('');
 
   useEffect(() => {
-    loadRAGData();
-  }, []);
+    if (tauriContext.isInitialized) {
+      loadRAGData();
+    }
+  }, [tauriContext.isInitialized]);
 
   const loadRAGData = async () => {
     setLoading(true);
     setError(null);
+    
+    // Check if Tauri is available
+    if (!tauriContext.isAvailable) {
+      setError('Tauri API nie jest dostępny w tej przeglądarce. Niektóre funkcje mogą być ograniczone.');
+      setLoading(false);
+      return;
+    }
+    
     try {
       const [statsData, documentsData, directoriesData] = await Promise.all([
         makeApiRequest('GET', '/api/v2/rag/stats'),
@@ -119,6 +132,11 @@ export function RAGDatabaseManager() {
   };
 
   const handleSyncDatabase = async () => {
+    if (!tauriContext.isAvailable) {
+      setError('Funkcja synchronizacji wymaga aplikacji desktopowej.');
+      return;
+    }
+    
     setSyncLoading(true);
     setError(null);
     setSuccess(null);
@@ -145,6 +163,11 @@ export function RAGDatabaseManager() {
   const handleSearchDocuments = async () => {
     if (!searchQuery.trim()) return;
     
+    if (!tauriContext.isAvailable) {
+      setError('Funkcja wyszukiwania wymaga aplikacji desktopowej.');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -167,6 +190,11 @@ export function RAGDatabaseManager() {
 
   const handleCreateDirectory = async () => {
     if (!newDirectoryPath.trim()) return;
+    
+    if (!tauriContext.isAvailable) {
+      setError('Funkcja tworzenia katalogów wymaga aplikacji desktopowej.');
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -194,6 +222,11 @@ export function RAGDatabaseManager() {
   const handleDeleteDocument = async (documentId: string) => {
     if (!confirm('Czy na pewno chcesz usunąć ten dokument?')) return;
     
+    if (!tauriContext.isAvailable) {
+      setError('Funkcja usuwania dokumentów wymaga aplikacji desktopowej.');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -217,6 +250,11 @@ export function RAGDatabaseManager() {
 
   const handleDeleteDirectory = async (directoryPath: string) => {
     if (!confirm(`Czy na pewno chcesz usunąć katalog "${directoryPath}" i wszystkie jego dokumenty?`)) return;
+    
+    if (!tauriContext.isAvailable) {
+      setError('Funkcja usuwania katalogów wymaga aplikacji desktopowej.');
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -267,6 +305,12 @@ export function RAGDatabaseManager() {
       {success && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
           {success}
+        </Alert>
+      )}
+      {tauriContext.isInitialized && !tauriContext.isAvailable && (
+        <Alert severity="warning" sx={{ mb: 2 }} icon={<Warning />}>
+          Aplikacja działa w trybie przeglądarki. Niektóre funkcje mogą być ograniczone. 
+          Aby uzyskać pełną funkcjonalność, uruchom aplikację jako aplikację desktopową.
         </Alert>
       )}
 
@@ -338,7 +382,7 @@ export function RAGDatabaseManager() {
             variant="contained"
             startIcon={<Sync />}
             onClick={() => setSyncDialogOpen(true)}
-            disabled={syncLoading}
+            disabled={syncLoading || !tauriContext.isAvailable}
           >
             {syncLoading ? <CircularProgress size={20} /> : 'Synchronizuj Bazę'}
           </Button>
@@ -348,6 +392,7 @@ export function RAGDatabaseManager() {
             variant="outlined"
             startIcon={<Search />}
             onClick={() => setSearchDialogOpen(true)}
+            disabled={!tauriContext.isAvailable}
           >
             Wyszukaj Dokumenty
           </Button>
@@ -357,6 +402,7 @@ export function RAGDatabaseManager() {
             variant="outlined"
             startIcon={<Add />}
             onClick={() => setDirectoryDialogOpen(true)}
+            disabled={!tauriContext.isAvailable}
           >
             Utwórz Katalog
           </Button>
@@ -366,7 +412,7 @@ export function RAGDatabaseManager() {
             variant="outlined"
             startIcon={<Refresh />}
             onClick={loadRAGData}
-            disabled={loading}
+            disabled={loading || !tauriContext.isAvailable}
           >
             Odśwież
           </Button>
@@ -428,6 +474,7 @@ export function RAGDatabaseManager() {
                                 size="small"
                                 color="error"
                                 onClick={() => handleDeleteDocument(doc.document_id)}
+                                disabled={!tauriContext.isAvailable}
                               >
                                 <Delete />
                               </IconButton>
@@ -468,6 +515,7 @@ export function RAGDatabaseManager() {
                         size="small"
                         color="error"
                         onClick={() => handleDeleteDirectory(directory)}
+                        disabled={!tauriContext.isAvailable}
                       >
                         <Delete />
                       </IconButton>
@@ -513,7 +561,7 @@ export function RAGDatabaseManager() {
           <Button
             onClick={handleSyncDatabase}
             variant="contained"
-            disabled={syncLoading}
+            disabled={syncLoading || !tauriContext.isAvailable}
           >
             {syncLoading ? <CircularProgress size={20} /> : 'Synchronizuj'}
           </Button>
@@ -535,7 +583,7 @@ export function RAGDatabaseManager() {
             <Button
               variant="contained"
               onClick={handleSearchDocuments}
-              disabled={loading || !searchQuery.trim()}
+              disabled={loading || !searchQuery.trim() || !tauriContext.isAvailable}
             >
               {loading ? <CircularProgress size={20} /> : 'Szukaj'}
             </Button>
@@ -584,7 +632,7 @@ export function RAGDatabaseManager() {
           <Button
             onClick={handleCreateDirectory}
             variant="contained"
-            disabled={!newDirectoryPath.trim() || loading}
+            disabled={!newDirectoryPath.trim() || loading || !tauriContext.isAvailable}
           >
             {loading ? <CircularProgress size={20} /> : 'Utwórz'}
           </Button>

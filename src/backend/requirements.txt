@@ -13,3 +13,6 @@ prometheus-fastapi-instrumentator==6.1.0
 
 # Dodaję aiofiles do zależności backendu
 aiofiles
+
+# Security dependencies
+bcrypt==4.3.0

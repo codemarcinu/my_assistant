@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pl" data-color-scheme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asystent AI - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <span class="material-icons">menu</span>
+                </button>
+                <h1 class="app-title">Asystent AI</h1>
+            </div>
+            <div class="header-right">
+                <div class="agent-status">
+                    <div class="status-indicator active" title="Wszystkie agenty aktywne">
+                        <span class="material-icons">smart_toy</span>
+                        <span class="status-text">5 agentów aktywnych</span>
+                    </div>
+                </div>
+                <button class="theme-toggle" id="themeToggle">
+                    <span class="material-icons">dark_mode</span>
+                </button>
+                <button class="settings-btn" id="settingsBtn">
+                    <span class="material-icons">settings</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                    <span class="material-icons">dashboard</span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="#ocr" class="nav-item" data-page="ocr">
+                    <span class="material-icons">camera_alt</span>
+                    <span class="nav-text">OCR Paragonów</span>
+                </a>
+                <a href="#pantry" class="nav-item" data-page="pantry">
+                    <span class="material-icons">kitchen</span>
+                    <span class="nav-text">Spiżarnia</span>
+                </a>
+                <a href="#analytics" class="nav-item" data-page="analytics">
+                    <span class="material-icons">analytics</span>
+                    <span class="nav-text">Analityka</span>
+                </a>
+                <a href="#rag" class="nav-item" data-page="rag">
+                    <span class="material-icons">library_books</span>
+                    <span class="nav-text">Baza Wiedzy</span>
+                </a>
+                <a href="#settings" class="nav-item" data-page="settings">
+                    <span class="material-icons">tune</span>
+                    <span class="nav-text">Ustawienia</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div class="page active" id="dashboard-page">
+                <div class="dashboard-grid">
+                    <!-- Chat Interface -->
+                    <div class="chat-container">
+                        <div class="chat-header">
+                            <h2>Czat z Asystentem</h2>
+                            <div class="chat-actions">
+                                <button class="btn btn--secondary btn--sm" id="clearChat">
+                                    <span class="material-icons">clear_all</span>
+                                    Wyczyść
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message assistant">
+                                <div class="message-avatar">
+                                    <span class="material-icons">smart_toy</span>
+                                </div>
+                                <div class="message-content">
+                                    <div class="message-text">
+                                        Cześć! Jestem Twoim asystentem AI. Mogę pomóc Ci z gotowaniem, zarządzaniem spiżarnią, pogodą i wieloma innymi rzeczami. Jak mogę Ci dziś pomóc?
+                                    </div>
+                                    <div class="message-time">19:45</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chat-input-container">
+                            <div class="file-upload-area" id="fileUploadArea">
+                                <span class="material-icons">cloud_upload</span>
+                                <span>Przeciągnij paragon tutaj lub kliknij aby wybrać</span>
+                                <input type="file" id="fileInput" accept="image/*" multiple>
+                            </div>
+                            
+                            <div class="chat-input-wrapper">
+                                <div class="chat-input">
+                                    <input type="text" id="messageInput" placeholder="Wpisz wiadomość..." maxlength="1000">
+                                    <button class="send-btn" id="sendBtn">
+                                        <span class="material-icons">send</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Commands Panel -->
+                    <div class="quick-commands">
+                        <h3>Szybkie Komendy</h3>
+                        <div class="commands-grid">
+                            <button class="command-btn" data-command="shopping">
+                                <div class="command-icon">🛒</div>
+                                <div class="command-text">
+                                    <div class="command-title">Zrobiłem zakupy</div>
+                                    <div class="command-desc">Dodaj paragon z zakupów</div>
+                                </div>
+                            </button>
+                            
+                            <button class="command-btn" data-command="weather">
+                                <div class="command-icon">🌤️</div>
+                                <div class="command-text">
+                                    <div class="command-title">Jaka pogoda?</div>
+                                    <div class="command-desc">Ząbki i Warszawa na 3 dni</div>
+                                </div>
+                            </button>
+                            
+                            <button class="command-btn" data-command="breakfast">
+                                <div class="command-icon">🍳</div>
+                                <div class="command-text">
+                                    <div class="command-title">Co na śniadanie?</div>
+                                    <div class="command-desc">Propozycje śniadania</div>
+                                </div>
+                            </button>
+                            
+                            <button class="command-btn" data-command="lunch">
+                                <div class="command-icon">🥪</div>
+                                <div class="command-text">
+                                    <div class="command-title">Co na obiad?</div>
+                                    <div class="command-desc">Posiłki na 3 dni</div>
+                                </div>
+                            </button>
+                            
+                            <button class="command-btn" data-command="inventory">
+                                <div class="command-icon">🧊</div>
+                                <div class="command-text">
+                                    <div class="command-title">Co mam do jedzenia?</div>
+                                    <div class="command-desc">Przegląd spiżarni</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Active Agents -->
+                    <div class="agents-panel">
+                        <h3>Aktywne Agenty</h3>
+                        <div class="agents-list" id="agentsList">
+                            <!-- Agents will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page" id="settings-page">
+                <div class="settings-container">
+                    <h1>Ustawienia Aplikacji</h1>
+                    
+                    <div class="settings-grid">
+                        <div class="settings-section card">
+                            <h3>Model AI</h3>
+                            <div class="form-group">
+                                <label class="form-label">Aktywny Model</label>
+                                <select class="form-control" id="aiModel">
+                                    <option value="gemma3-12b" selected>Gemma 3:12b</option>
+                                    <option value="gpt-4">GPT-4</option>
+                                    <option value="claude-3">Claude 3</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Długość odpowiedzi</label>
+                                <select class="form-control" id="responseLength">
+                                    <option value="short">Krótka</option>
+                                    <option value="medium" selected>Średnia</option>
+                                    <option value="long">Długa</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-section card">
+                            <h3>Preferencje</h3>
+                            <div class="form-group">
+                                <label class="form-label">Język interfejsu</label>
+                                <select class="form-control" id="language">
+                                    <option value="pl" selected>Polski</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="notifications" checked> Powiadomienia
+                                </label>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="autoBackup" checked> Automatyczne kopie zapasowe
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-section card">
+                            <h3>Prompty Systemowe</h3>
+                            <div class="form-group">
+                                <label class="form-label">Prompt dla Chef Agent</label>
+                                <textarea class="form-control" rows="3" id="chefPrompt">Jesteś ekspertem kulinarnym. Pomagasz w tworzeniu przepisów na podstawie dostępnych składników.</textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Prompt dla Weather Agent</label>
+                                <textarea class="form-control" rows="3" id="weatherPrompt">Dostarczasz aktualne prognozy pogody w przyjazny i zrozumiały sposób.</textarea>
+                            </div>
+                            
+                            <button class="btn btn--primary">Zapisz Zmiany</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RAG Management Page -->
+            <div class="page" id="rag-page">
+                <div class="rag-container">
+                    <h1>Zarządzanie Bazą Wiedzy</h1>
+                    
+                    <div class="rag-actions">
+                        <button class="btn btn--primary">
+                            <span class="material-icons">add</span>
+                            Dodaj Dokumenty
+                        </button>
+                        <button class="btn btn--secondary">
+                            <span class="material-icons">refresh</span>
+                            Odśwież Indeks
+                        </button>
+                    </div>
+
+                    <div class="rag-collections">
+                        <div class="collection-card card">
+                            <h3>Przepisy rodzinne</h3>
+                            <div class="collection-stats">
+                                <span class="stat">45 dokumentów</span>
+                                <span class="stat">Ostatnia aktualizacja: 20.06.2025</span>
+                            </div>
+                            <div class="collection-actions">
+                                <button class="btn btn--outline btn--sm">Edytuj</button>
+                                <button class="btn btn--outline btn--sm">Eksportuj</button>
+                            </div>
+                        </div>
+
+                        <div class="collection-card card">
+                            <h3>Diety i żywienie</h3>
+                            <div class="collection-stats">
+                                <span class="stat">23 dokumenty</span>
+                                <span class="stat">Ostatnia aktualizacja: 25.06.2025</span>
+                            </div>
+                            <div class="collection-actions">
+                                <button class="btn btn--outline btn--sm">Edytuj</button>
+                                <button class="btn btn--outline btn--sm">Eksportuj</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other pages (simplified for brevity) -->
+            <div class="page" id="ocr-page">
+                <div class="page-content">
+                    <h1>OCR Paragonów</h1>
+                    <p>Funkcjonalność w przygotowaniu...</p>
+                </div>
+            </div>
+
+            <div class="page" id="pantry-page">
+                <div class="page-content">
+                    <h1>Zarządzanie Spiżarnią</h1>
+                    <p>Funkcjonalność w przygotowaniu...</p>
+                </div>
+            </div>
+
+            <div class="page" id="analytics-page">
+                <div class="page-content">
+                    <h1>Analityka Wydatków</h1>
+                    <p>Funkcjonalność w przygotowaniu...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
