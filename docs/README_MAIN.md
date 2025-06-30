@@ -1,9 +1,10 @@
-# 📚 FoodSave AI – Kompleksowy Spis Treści Projektu (30.06.2025)
+# 📚 FoodSave AI – Kompleksowy Spis Treści Projektu (27.01.2025)
 
 ## 1. Główne przewodniki i przegląd
 - [README.md](README.md) – Szybki start, architektura, status, linki
 - [docs/README.md](docs/README.md) – Rozszerzony opis, funkcje, konfiguracja
 - [docs/TOC.md](docs/TOC.md) – Spis treści dokumentacji
+- [docs/PANEL_STEROWANIA_GUIDE.md](docs/PANEL_STEROWANIA_GUIDE.md) – **NEW** Panel sterowania foodsave-all.sh
 - [KOMPLEKSOWY_RAPORT_UPORZADKOWANIA_DOKUMENTACJI.md](reports/KOMPLEKSOWY_RAPORT_UPORZADKOWANIA_DOKUMENTACJI.md) – Najnowszy raport uporządkowania
 
 ## 2. Backend (src/backend/)
@@ -72,6 +73,7 @@
 - [docker-compose*.yaml](docker-compose.yaml) – Konfiguracja Docker Compose (dev/prod)
 - [Dockerfile, Dockerfile.ollama](Dockerfile) – Buildy backendu i modeli
 - [env.dev, env.dev.example](env.dev.example) – Przykładowe pliki środowiskowe
+- [foodsave-all.sh](foodsave-all.sh) – **NEW** Panel sterowania systemem
 - [run_all.sh, run_dev.sh, foodsave*.sh](run_all.sh) – Skrypty uruchomieniowe
 
 ## 8. Roadmapa, rozwój, licencje
@@ -112,6 +114,7 @@ FoodSave AI to zaawansowany system AI do zarządzania żywnością, który łąc
 ## 📋 Table of Contents
 
 - [🚀 Quick Start](#-quick-start)
+- [🎮 Panel Sterowania](#-panel-sterowania)
 - [📖 Project Overview](#-project-overview)
 - [🏗️ Architecture](#️-architecture)
 - [🛠️ Technology Stack](#️-technology-stack)
@@ -142,9 +145,44 @@ FoodSave AI to zaawansowany system AI do zarządzania żywnością, który łąc
 
 This is the fastest and most reliable way to get the entire FoodSave AI system running.
 
-### 🚀 Szybki Start (Docker - Zalecane)
+### 🎮 Panel Sterowania (Zalecane)
 
-To najszybszy i najbardziej niezawodny sposób uruchomienia całego systemu FoodSave AI.
+**Najłatwiejszy sposób uruchomienia systemu** - intuicyjny panel sterowania dla wszystkich użytkowników:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/foodsave-ai.git
+cd foodsave-ai
+
+# 2. Uruchom panel sterowania
+./foodsave-all.sh
+```
+
+**Panel oferuje:**
+- 🚀 **Uruchom system** (tryb deweloperski/produkcyjny)
+- 🖥️ **Aplikacja desktop** (Tauri)
+- 📊 **Status systemu** (monitoring w czasie rzeczywistym)
+- 📝 **Logi systemu** (szczegółowe logi wszystkich komponentów)
+- 🛑 **Zatrzymaj usługi** (bezpieczne zatrzymanie)
+- 🔧 **Diagnostyka** (sprawdzanie środowiska)
+
+**Bezpośrednie komendy:**
+```bash
+./foodsave-all.sh dev      # Tryb deweloperski
+./foodsave-all.sh prod     # Tryb produkcyjny
+./foodsave-all.sh status   # Status systemu
+./foodsave-all.sh stop     # Zatrzymaj usługi
+```
+
+**Aplikacja będzie dostępna pod adresami:**
+- 🌐 **Frontend**: http://localhost:3000
+- 🔧 **Backend API**: http://localhost:8000
+- 📚 **API Docs**: http://localhost:8000/docs
+- 🤖 **Ollama**: http://localhost:11434
+
+### 🚀 Szybki Start (Docker - Zaawansowane)
+
+Dla użytkowników zaawansowanych - ręczna konfiguracja:
 
 ```bash
 # 1. Clone the repository
@@ -189,6 +227,45 @@ cp env.dev.example .env
 ./scripts/dev-setup.sh logs frontend
 ./scripts/dev-setup.sh logs ollama
 ```
+
+---
+
+## 🎮 Panel Sterowania
+
+### Funkcje Panelu
+
+Panel sterowania `foodsave-all.sh` to intuicyjny interfejs zarządzania systemem, zaprojektowany dla:
+
+#### 👥 Użytkowników Nietechnicznych
+- **Interaktywne menu** - bez znajomości komend
+- **Diagnostyka automatyczna** - sprawdzanie środowiska
+- **Bezpieczne operacje** - zatrzymywanie i uruchamianie
+- **Przyjazne komunikaty** - jasne instrukcje
+
+#### 👨‍💻 Deweloperów
+- **Tryb deweloperski** - hot reload, szczegółowe logi
+- **Zarządzanie logami** - centralne przeglądanie
+- **Bezpośrednie komendy** - automatyzacja
+- **Diagnostyka zaawansowana** - szczegółowe sprawdzenia
+
+#### 🔧 Administratorów
+- **Monitoring systemu** - status wszystkich komponentów
+- **Zarządzanie zasobami** - kontrola procesów
+- **Tryb produkcyjny** - zoptymalizowane działanie
+- **Backup i recovery** - bezpieczeństwo danych
+
+### Kluczowe Korzyści
+
+✅ **Łatwość użycia** - Menu interaktywne dla wszystkich  
+✅ **Bezpieczeństwo** - Bezpieczne zatrzymywanie i uruchamianie  
+✅ **Diagnostyka** - Automatyczne sprawdzanie środowiska  
+✅ **Monitoring** - Status wszystkich komponentów w czasie rzeczywistym  
+✅ **Logi** - Centralne zarządzanie logami systemu  
+✅ **Wieloplatformowość** - Działa na Linux, macOS, Windows  
+
+### Dokumentacja Panelu
+
+Szczegółowy przewodnik użytkownika: **[PANEL_STEROWANIA_GUIDE.md](docs/PANEL_STEROWANIA_GUIDE.md)**
 
 ---
 

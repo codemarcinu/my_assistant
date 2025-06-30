@@ -1,12 +1,13 @@
 # 📚 FoodSave AI – Table of Contents (Auto-generated)
 
-**Last Updated**: 29.06.2025 (updated after documentation consolidation)
+**Last Updated**: 27.01.2025 (updated after documentation consolidation and panel control guide)
 
 ## 1. Project Overview & Quick Start
 - [README.md](../README.md) – Minimalist project entry, links to docs
 - [docs/README_MAIN.md](README_MAIN.md) – Main project guide, quick start, architecture
 - [docs/DOCUMENTATION_SUMMARY.md](DOCUMENTATION_SUMMARY.md) – Documentation overview and structure
 - [docs/INDEX.md](INDEX.md) – Automatic index of all documentation files
+- [docs/PANEL_STEROWANIA_GUIDE.md](PANEL_STEROWANIA_GUIDE.md) – **NEW** Panel sterowania foodsave-all.sh guide
 
 ## 2. System Architecture & Design
 - [ARCHITECTURE_DOCUMENTATION.md](ARCHITECTURE_DOCUMENTATION.md)
@@ -59,6 +60,7 @@
 - [ALL_SCRIPTS_DOCUMENTATION.md](ALL_SCRIPTS_DOCUMENTATION.md)
 - [SCRIPTS_DOCUMENTATION.md](SCRIPTS_DOCUMENTATION.md)
 - [scripts/README.md](scripts/README.md)
+- [../foodsave-all.sh](../foodsave-all.sh) – **NEW** Panel sterowania systemem
 
 ## 10. Frontend Implementation & UX
 - [frontend/README.md](frontend/README.md)

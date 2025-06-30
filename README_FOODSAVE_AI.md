@@ -220,7 +220,7 @@ curl -X POST http://localhost:11434/api/pull \
 
 ```bash
 # Health check
-curl http://localhost:8000/monitoring/health
+curl http://localhost:8000/health
 
 # Chat API
 curl -X POST http://localhost:8000/api/chat/chat \
@@ -252,7 +252,7 @@ The system includes specialized AI agents:
 
 ```bash
 # Backend health
-curl http://localhost:8000/monitoring/health
+curl http://localhost:8000/health
 
 # Ollama status
 curl http://localhost:11434/api/tags

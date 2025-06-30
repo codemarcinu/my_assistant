@@ -150,7 +150,7 @@ show_status() {
     # Check backend
     if check_service $BACKEND_PORT "Backend API"; then
         # Test API endpoint
-        if curl -s "http://localhost:$BACKEND_PORT/monitoring/health" | grep -q "healthy"; then
+        if curl -s "http://localhost:$BACKEND_PORT/health" | grep -q "healthy"; then
             print_success "Backend API is healthy"
         else
             print_warning "Backend API is running but health check failed"
