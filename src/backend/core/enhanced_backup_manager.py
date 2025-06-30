@@ -898,5 +898,15 @@ class EnhancedBackupManager:
             return {"error": str(e)}
 
 
-# Global enhanced backup manager instance
-enhanced_backup_manager = EnhancedBackupManager()
+# Global enhanced backup manager instance - lazy singleton
+_enhanced_backup_manager_instance = None
+
+def get_enhanced_backup_manager() -> EnhancedBackupManager:
+    """Get or create the global enhanced backup manager instance"""
+    global _enhanced_backup_manager_instance
+    if _enhanced_backup_manager_instance is None:
+        _enhanced_backup_manager_instance = EnhancedBackupManager()
+    return _enhanced_backup_manager_instance
+
+# For backward compatibility
+enhanced_backup_manager = get_enhanced_backup_manager

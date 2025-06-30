@@ -1,5 +1,5 @@
 # Multi-stage build for production backend
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -24,15 +24,15 @@ RUN pip install --timeout 600 --retries 3 poetry && \
 # Copy dependency files
 COPY pyproject.toml poetry.lock ./
 
-# Install dependencies with multiple retry attempts and longer timeouts
+# Install dependencies with multiple retry attempts
 RUN for i in 1 2 3; do \
         echo "Attempt $i to install dependencies..." && \
-        poetry install --no-interaction --no-ansi --timeout 1800 && break || \
+        poetry install --no-interaction --no-ansi && break || \
         (echo "Attempt $i failed, waiting before retry..." && sleep 60); \
     done
 
 # Production stage
-FROM python:3.12-slim as production
+FROM python:3.12-slim AS production
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -60,12 +60,10 @@ RUN pip install uvicorn celery
 # Copy application code (from root context)
 COPY src/backend ./backend
 
-# Create necessary directories and set permissions
+# Create necessary directories with proper permissions BEFORE switching user
 RUN mkdir -p /app/logs /app/data /app/data/vector_store /app/backups /app/backups/config /app/backups/database /app/backups/files /app/backups/vector_store && \
-    chown -R foodsave:foodsave /app
-
-# Set ownership to non-root user
-RUN chown -R foodsave:foodsave /app
+    chown -R foodsave:foodsave /app && \
+    chmod -R 755 /app/logs
 
 # Switch to non-root user
 USER foodsave

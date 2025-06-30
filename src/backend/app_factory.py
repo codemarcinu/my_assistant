@@ -22,7 +22,6 @@ from backend.api import analytics
 from backend.api.v1.endpoints import receipts
 from backend.api.v2.api import api_router as api_v2_router
 from backend.api.v2.exceptions import APIErrorDetail, APIException
-from src.api.v3 import receipts as receipts_v3  # Import API v3
 from backend.settings import settings
 from backend.core.cache_manager import CacheManager
 from backend.core.database import AsyncSessionLocal, Base, engine, get_db
@@ -237,7 +236,6 @@ def create_app() -> FastAPI:
     app.include_router(api_router, prefix="/api")
     app.include_router(api_v1_router, prefix="/api/v1")
     app.include_router(api_v2_router, prefix="/api/v2")
-    app.include_router(receipts_v3.router, prefix="/api/v3", tags=["Receipts V3 - Async"])
 
     # Limiter state needs to be attached to the app
     app.state.limiter = limiter

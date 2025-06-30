@@ -1,0 +1,321 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (using official image)
+  postgres:
+    image: postgres:15-alpine
+    container_name: foodsave-postgres-opt
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=foodsave_ai
+      - POSTGRES_USER=foodsave_user
+      - POSTGRES_PASSWORD=foodsave_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./logs/postgres:/var/log/postgresql
+    networks:
+      - foodsave-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foodsave_user -d foodsave_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Redis Cache (using official image)
+  redis:
+    image: redis:7-alpine
+    container_name: foodsave-redis-opt
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./logs/redis:/var/log/redis
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "notice", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    networks:
+      - foodsave-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # Ollama LLM service (existing - no rebuild)
+  ollama:
+    image: aiasisstmarubo-ollama:latest
+    container_name: foodsave-ollama-opt
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./logs/ollama:/var/log/ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_KEEP_ALIVE=24h
+    networks:
+      - foodsave-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/version || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+
+  # FastAPI Backend (optimized build)
+  backend:
+    image: foodsave-backend:latest
+    container_name: foodsave-backend-opt
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/app/data
+      - backend_logs:/app/logs
+      - backend_backups:/app/backups
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql+asyncpg://foodsave_user:foodsave_password@postgres:5432/foodsave_ai
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_CHAT_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_CODE_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_EMBEDDING_MODEL=nomic-embed-text
+      - RAG_VECTOR_STORE_PATH=/app/data/vector_store
+      - REDIS_URL=redis://redis:6379/0
+      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
+      - SECRET_KEY=your-secret-key-here
+      - JWT_SECRET_KEY=your-jwt-secret-key-here
+    networks:
+      - foodsave-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Celery Worker (optimized build)
+  celery_worker:
+    image: foodsave-celery-worker:latest
+    container_name: foodsave-celery-worker-opt
+    command: celery -A backend.config.celery_config.celery_app worker --loglevel=info --concurrency=4
+    working_dir: /app
+    volumes:
+      - backend_data:/app/data
+      - backend_logs:/app/logs
+      - temp_uploads:/app/temp_uploads
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql+asyncpg://foodsave_user:foodsave_password@postgres:5432/foodsave_ai
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_CHAT_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_CODE_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_EMBEDDING_MODEL=nomic-embed-text
+      - RAG_VECTOR_STORE_PATH=/app/data/vector_store
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - foodsave-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A backend.config.celery_config.celery_app inspect ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Celery Beat (optimized build)
+  celery_beat:
+    image: foodsave-celery-beat:latest
+    container_name: foodsave-celery-beat-opt
+    command: celery -A backend.config.celery_config.celery_app beat --loglevel=info --schedule=/app/logs/celerybeat-schedule
+    working_dir: /app
+    volumes:
+      - backend_data:/app/data
+      - backend_logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql+asyncpg://foodsave_user:foodsave_password@postgres:5432/foodsave_ai
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_CHAT_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_CODE_MODEL=SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0
+      - DEFAULT_EMBEDDING_MODEL=nomic-embed-text
+      - RAG_VECTOR_STORE_PATH=/app/data/vector_store
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - foodsave-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A backend.config.celery_config.celery_app inspect ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # Next.js Frontend (optimized build)
+  frontend:
+    image: foodsave-frontend:latest
+    container_name: foodsave-frontend-opt
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_TELEMETRY_DISABLED=1
+    networks:
+      - foodsave-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_data:
+  backend_data:
+  backend_logs:
+  backend_backups:
+  temp_uploads:
+
+networks:
+  foodsave-network:
+    driver: bridge
+    name: foodsave-optimized-network 

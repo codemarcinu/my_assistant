@@ -13,14 +13,16 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from backend.api.v2.exceptions import (APIErrorCodes, BadRequestError,
                                        InternalServerError, NotFoundError,
                                        UnprocessableEntityError)
-from backend.core.enhanced_backup_manager import enhanced_backup_manager
+from backend.core.enhanced_backup_manager import get_enhanced_backup_manager
 from backend.auth.auth_middleware import get_current_user
+from backend.auth.models import User
+from backend.core.security_manager import security_manager
 
 router = APIRouter(prefix="/enhanced-backup", tags=["Enhanced Backup Management"])
 logger = logging.getLogger(__name__)
@@ -64,11 +66,27 @@ class EnhancedBackupStatsResponse(BaseModel):
 
 
 @router.post("/create", response_model=EnhancedBackupResponse)
-async def create_enhanced_backup(request: EnhancedBackupRequest):
+async def create_enhanced_backup(
+    request: EnhancedBackupRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     Create enhanced backup with encryption and cloud upload
     """
     try:
+        enhanced_backup_manager = get_enhanced_backup_manager()
+        
+        # Log security event
+        await security_manager.log_security_event(
+            event_type="backup_requested",
+            resource="enhanced_backup",
+            action="create",
+            user_id=current_user.id,
+            success=True,
+            details=request.model_dump(),
+            risk_level="low"
+        )
+        
         result = await enhanced_backup_manager.create_enhanced_backup(
             backup_name=request.backup_name,
             components=request.components,
@@ -95,6 +113,17 @@ async def create_enhanced_backup(request: EnhancedBackupRequest):
         raise
     except Exception as e:
         logger.error(f"Error creating enhanced backup: {e}")
+        
+        await security_manager.log_security_event(
+            event_type="backup_failed",
+            resource="enhanced_backup",
+            action="create",
+            user_id=current_user.id,
+            success=False,
+            details={"error": str(e)},
+            risk_level="high"
+        )
+        
         return JSONResponse(
             status_code=500,
             content={
@@ -107,11 +136,14 @@ async def create_enhanced_backup(request: EnhancedBackupRequest):
 
 
 @router.get("/list")
-async def list_enhanced_backups():
+async def list_enhanced_backups(
+    current_user: User = Depends(get_current_user)
+):
     """
     List all enhanced backups with metadata
     """
     try:
+        enhanced_backup_manager = get_enhanced_backup_manager()
         backups = await enhanced_backup_manager.list_enhanced_backups()
         
         return JSONResponse(
@@ -140,11 +172,27 @@ async def list_enhanced_backups():
 
 
 @router.post("/restore", response_model=Dict[str, Any])
-async def restore_enhanced_backup(request: EnhancedRestoreRequest):
+async def restore_enhanced_backup(
+    request: EnhancedRestoreRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     Restore from enhanced backup
     """
     try:
+        enhanced_backup_manager = get_enhanced_backup_manager()
+        
+        # Log security event
+        await security_manager.log_security_event(
+            event_type="backup_restore_requested",
+            resource=request.backup_name,
+            action="restore",
+            user_id=current_user.id,
+            success=True,
+            details=request.model_dump(),
+            risk_level="high"
+        )
+        
         result = await enhanced_backup_manager.restore_enhanced_backup(
             backup_name=request.backup_name,
             components=request.components,
@@ -170,6 +218,17 @@ async def restore_enhanced_backup(request: EnhancedRestoreRequest):
         raise
     except Exception as e:
         logger.error(f"Error restoring enhanced backup: {e}")
+        
+        await security_manager.log_security_event(
+            event_type="backup_restore_failed",
+            resource=request.backup_name,
+            action="restore",
+            user_id=current_user.id,
+            success=False,
+            details={"error": str(e)},
+            risk_level="high"
+        )
+        
         return JSONResponse(
             status_code=500,
             content={
@@ -182,11 +241,14 @@ async def restore_enhanced_backup(request: EnhancedRestoreRequest):
 
 
 @router.get("/stats", response_model=EnhancedBackupStatsResponse)
-async def get_enhanced_backup_stats():
+async def get_enhanced_backup_stats(
+    current_user: User = Depends(get_current_user)
+):
     """
     Get comprehensive enhanced backup statistics
     """
     try:
+        enhanced_backup_manager = get_enhanced_backup_manager()
         stats = await enhanced_backup_manager.get_backup_stats()
         
         if "error" in stats:
@@ -226,7 +288,7 @@ async def verify_enhanced_backup(backup_name: str):
     """
     try:
         # Get backup metadata
-        backups = await enhanced_backup_manager.list_enhanced_backups()
+        backups = await get_enhanced_backup_manager().list_enhanced_backups()
         backup_metadata = None
         
         for backup in backups:
@@ -242,7 +304,7 @@ async def verify_enhanced_backup(backup_name: str):
         
         # Find backup file
         backup_file = None
-        for file_path in enhanced_backup_manager.backup_dir.glob(f"{backup_name}_full.tar.gz*"):
+        for file_path in get_enhanced_backup_manager().backup_dir.glob(f"{backup_name}_full.tar.gz*"):
             if file_path.exists():
                 backup_file = file_path
                 break
@@ -254,7 +316,7 @@ async def verify_enhanced_backup(backup_name: str):
             )
         
         # Verify backup integrity
-        verification_result = await enhanced_backup_manager._verify_backup_integrity(
+        verification_result = await get_enhanced_backup_manager()._verify_backup_integrity(
             backup_file, backup_metadata
         )
         
@@ -292,7 +354,7 @@ async def cleanup_enhanced_backups():
     Clean up old enhanced backups based on retention policy
     """
     try:
-        await enhanced_backup_manager._cleanup_old_backups()
+        await get_enhanced_backup_manager()._cleanup_old_backups()
         
         return JSONResponse(
             status_code=200,
@@ -325,7 +387,7 @@ async def get_enhanced_backup_config():
     Get enhanced backup configuration
     """
     try:
-        config = enhanced_backup_manager.config.model_dump()
+        config = get_enhanced_backup_manager().config.model_dump()
         
         # Remove sensitive information
         sensitive_keys = ["encryption_key", "cloud_bucket"]
@@ -364,16 +426,16 @@ async def enhanced_backup_health_check():
         # Basic health checks
         checks = {
             "backup_manager": True,
-            "backup_directory": enhanced_backup_manager.backup_dir.exists(),
+            "backup_directory": get_enhanced_backup_manager().backup_dir.exists(),
             "component_directories": all(
-                dir_path.exists() for dir_path in enhanced_backup_manager.component_dirs.values()
+                dir_path.exists() for dir_path in get_enhanced_backup_manager().component_dirs.values()
             ),
-            "cloud_client": enhanced_backup_manager.cloud_client is not None if enhanced_backup_manager.config.cloud_backup_enabled else True,
+            "cloud_client": get_enhanced_backup_manager().cloud_client is not None if get_enhanced_backup_manager().config.cloud_backup_enabled else True,
         }
         
         # Test backup directory write permissions
         try:
-            test_file = enhanced_backup_manager.backup_dir / "health_check.tmp"
+            test_file = get_enhanced_backup_manager().backup_dir / "health_check.tmp"
             test_file.write_text("health_check")
             test_file.unlink()
             checks["write_permissions"] = True
@@ -382,10 +444,10 @@ async def enhanced_backup_health_check():
             logger.error(f"Write permissions health check failed: {e}")
         
         # Test cloud connectivity if enabled
-        if enhanced_backup_manager.config.cloud_backup_enabled and enhanced_backup_manager.cloud_client:
+        if get_enhanced_backup_manager().config.cloud_backup_enabled and get_enhanced_backup_manager().cloud_client:
             try:
                 # Simple cloud test
-                enhanced_backup_manager.cloud_client.list_buckets()
+                get_enhanced_backup_manager().cloud_client.list_buckets()
                 checks["cloud_connectivity"] = True
             except Exception as e:
                 checks["cloud_connectivity"] = False
@@ -404,9 +466,9 @@ async def enhanced_backup_health_check():
                     "status": overall_status,
                     "checks": checks,
                     "config": {
-                        "cloud_backup_enabled": enhanced_backup_manager.config.cloud_backup_enabled,
-                        "encrypt_backups": enhanced_backup_manager.config.encrypt_backups,
-                        "verify_backups": enhanced_backup_manager.config.verify_backups,
+                        "cloud_backup_enabled": get_enhanced_backup_manager().config.cloud_backup_enabled,
+                        "encrypt_backups": get_enhanced_backup_manager().config.encrypt_backups,
+                        "verify_backups": get_enhanced_backup_manager().config.verify_backups,
                     },
                     "timestamp": datetime.now().isoformat()
                 },
