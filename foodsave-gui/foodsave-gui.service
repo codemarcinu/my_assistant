@@ -1,0 +1,26 @@
+[Unit]
+Description=FoodSave AI GUI Server
+Documentation=https://github.com/your-repo/foodsave-ai
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/marcin/Dokumenty/agentai/makeit/AIASISSTMARUBO/foodsave-gui
+ExecStart=/home/marcin/Dokumenty/agentai/makeit/AIASISSTMARUBO/.venv/bin/python3 /home/marcin/Dokumenty/agentai/makeit/AIASISSTMARUBO/foodsave-gui/server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=foodsave-gui
+Environment=PYTHONUNBUFFERED=1
+
+# Bezpieczeństwo
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/marcin/Dokumenty/agentai/makeit/AIASISSTMARUBO
+
+[Install]
+WantedBy=default.target 

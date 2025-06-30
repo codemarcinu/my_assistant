@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodSave AI - Panel Sterowania</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <h1>FoodSave AI</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="showHelp()">
+                        <i class="fas fa-question-circle"></i>
+                        Pomoc
+                    </button>
+                    <button class="btn btn-primary" onclick="refreshStatus()">
+                        <i class="fas fa-sync-alt"></i>
+                        Odśwież
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Status Overview -->
+            <section class="status-overview">
+                <h2><i class="fas fa-chart-line"></i> Status Systemu</h2>
+                <div class="status-grid">
+                    <div class="status-card" id="backend-status">
+                        <div class="status-icon">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="status-info">
+                            <h3>Backend</h3>
+                            <p class="status-text">Sprawdzam...</p>
+                        </div>
+                    </div>
+                    <div class="status-card" id="frontend-status">
+                        <div class="status-icon">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="status-info">
+                            <h3>Frontend</h3>
+                            <p class="status-text">Sprawdzam...</p>
+                        </div>
+                    </div>
+                    <div class="status-card" id="database-status">
+                        <div class="status-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <div class="status-info">
+                            <h3>Baza Danych</h3>
+                            <p class="status-text">Sprawdzam...</p>
+                        </div>
+                    </div>
+                    <div class="status-card" id="ai-status">
+                        <div class="status-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="status-info">
+                            <h3>AI Model</h3>
+                            <p class="status-text">Sprawdzam...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section class="quick-actions">
+                <h2><i class="fas fa-bolt"></i> Szybkie Akcje</h2>
+                <div class="actions-grid">
+                    <div class="action-card" onclick="startDevelopmentMode()">
+                        <div class="action-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3>Tryb Deweloperski</h3>
+                        <p>Dla programistów i testowania</p>
+                        <div class="action-badge">Rekomendowane</div>
+                    </div>
+                    <div class="action-card" onclick="startProductionMode()">
+                        <div class="action-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h3>Tryb Produkcyjny</h3>
+                        <p>Dla użytkowników końcowych</p>
+                    </div>
+                    <div class="action-card" onclick="startTauriApp()">
+                        <div class="action-icon">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                        <h3>Aplikacja Desktop</h3>
+                        <p>Natywna aplikacja systemowa</p>
+                    </div>
+                    <div class="action-card" onclick="startTauriDev()">
+                        <div class="action-icon">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <h3>Tryb Deweloperski Tauri</h3>
+                        <p>Uruchom aplikację w trybie dev</p>
+                        <div class="action-badge">Deweloperskie</div>
+                    </div>
+                    <div class="action-card" onclick="stopAllServices()">
+                        <div class="action-icon">
+                            <i class="fas fa-stop"></i>
+                        </div>
+                        <h3>Zatrzymaj Wszystko</h3>
+                        <p>Bezpieczne zatrzymanie systemu</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Options -->
+            <section class="advanced-options">
+                <h2><i class="fas fa-cogs"></i> Opcje Zaawansowane</h2>
+                <div class="options-grid">
+                    <div class="option-card" onclick="showLogs()">
+                        <div class="option-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h3>Pokaż Logi</h3>
+                        <p>Dostęp do logów systemowych</p>
+                    </div>
+                    <div class="option-card" onclick="checkEnvironment()">
+                        <div class="option-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <h3>Sprawdź Środowisko</h3>
+                        <p>Diagnostyka systemu</p>
+                    </div>
+                    <div class="option-card" onclick="buildTauriApp()">
+                        <div class="option-icon">
+                            <i class="fas fa-hammer"></i>
+                        </div>
+                        <h3>Zbuduj Aplikację</h3>
+                        <p>Tworzenie pliku instalacyjnego</p>
+                    </div>
+                    <div class="option-card" onclick="showBackups()">
+                        <div class="option-icon">
+                            <i class="fas fa-save"></i>
+                        </div>
+                        <h3>Kopie Zapasowe</h3>
+                        <p>Zarządzanie backupami</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- System Info -->
+            <section class="system-info">
+                <h2><i class="fas fa-info-circle"></i> Informacje Systemowe</h2>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3>Przydatne Linki</h3>
+                        <div class="links-list">
+                            <a href="http://localhost:3000" target="_blank" class="link-item">
+                                <i class="fas fa-external-link-alt"></i>
+                                Interfejs Web
+                            </a>
+                            <a href="http://localhost:8000/docs" target="_blank" class="link-item">
+                                <i class="fas fa-book"></i>
+                                Dokumentacja API
+                            </a>
+                            <a href="http://localhost:8000" target="_blank" class="link-item">
+                                <i class="fas fa-cog"></i>
+                                Backend API
+                            </a>
+                        </div>
+                    </div>
+                    <div class="info-card">
+                        <h3>Porty Systemu</h3>
+                        <div class="ports-list">
+                            <div class="port-item">
+                                <span class="port-number">3000</span>
+                                <span class="port-desc">Frontend (Web)</span>
+                            </div>
+                            <div class="port-item">
+                                <span class="port-number">8000</span>
+                                <span class="port-desc">Backend (API)</span>
+                            </div>
+                            <div class="port-item">
+                                <span class="port-number">5432</span>
+                                <span class="port-desc">Baza Danych</span>
+                            </div>
+                            <div class="port-item">
+                                <span class="port-number">11434</span>
+                                <span class="port-desc">AI Model</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <h3 id="loadingText">Przetwarzam...</h3>
+                <p id="loadingDescription">Proszę czekać...</p>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal" id="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Tytuł</h3>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    Treść modala
+                </div>
+                <div class="modal-footer" id="modalFooter">
+                    <button class="btn btn-secondary" onclick="closeModal()">Zamknij</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
