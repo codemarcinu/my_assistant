@@ -27,7 +27,7 @@ COPY pyproject.toml poetry.lock ./
 # Install dependencies with multiple retry attempts and longer timeouts
 RUN for i in 1 2 3; do \
         echo "Attempt $i to install dependencies..." && \
-        poetry install --only=main --no-interaction --no-ansi --timeout 1800 && break || \
+        poetry install --no-interaction --no-ansi --timeout 1800 && break || \
         (echo "Attempt $i failed, waiting before retry..." && sleep 60); \
     done
 
@@ -53,14 +53,12 @@ WORKDIR /app
 # Copy installed packages and python from builder
 COPY --from=builder /usr/local /usr/local
 ENV PATH="/usr/local/bin:$PATH"
-RUN pip install uvicorn
+
+# Fallback: ensure uvicorn and celery are installed
+RUN pip install uvicorn celery
 
 # Copy application code (from root context)
 COPY src/backend ./backend
-
-# Copy dependency files for poetry
-COPY pyproject.toml poetry.lock ./
-RUN pip install poetry && poetry config virtualenvs.create false && poetry install --only=main --no-interaction --no-ansi
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/logs /app/data /app/data/vector_store /app/backups /app/backups/config /app/backups/database /app/backups/files /app/backups/vector_store && \
