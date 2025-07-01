@@ -54,6 +54,21 @@ async fn monitor_promotions(store: Option<String>) -> Result<String, String> {
     lib::monitor_promotions(store).await
 }
 
+#[tauri::command]
+async fn compress_image(image_data: String, options: lib::ImageCompressionOptions) -> Result<lib::CompressedImageResult, String> {
+    lib::compress_image(image_data, options).await
+}
+
+#[tauri::command]
+async fn detect_receipt_contour(image_data: String) -> Result<lib::ReceiptContourResult, String> {
+    lib::detect_receipt_contour(image_data).await
+}
+
+#[tauri::command]
+async fn analyze_image_quality(image_data: String) -> Result<lib::ImageQualityResult, String> {
+    lib::analyze_image_quality(image_data).await
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -66,7 +81,10 @@ fn main() {
             make_api_request,
             run_scraper_sidecar,
             run_ai_analysis_sidecar,
-            monitor_promotions
+            monitor_promotions,
+            compress_image,
+            detect_receipt_contour,
+            analyze_image_quality,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

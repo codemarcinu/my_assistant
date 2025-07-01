@@ -33,7 +33,7 @@ export interface UseWebSocketOptions {
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const {
-    url = 'ws://localhost:8000/ws/dashboard',
+    url = 'ws://localhost:8001/ws/dashboard',
     autoReconnect = true,
     reconnectInterval = 5000,
     maxReconnectAttempts = 5,
@@ -125,7 +125,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       console.error('Error creating WebSocket connection:', err);
       setError('Failed to create WebSocket connection');
     }
-  }, [url, autoReconnect, reconnectInterval, maxReconnectAttempts, reconnectAttempts]);
+  }, [url, autoReconnect, reconnectInterval, maxReconnectAttempts]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {

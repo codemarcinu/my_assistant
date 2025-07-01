@@ -172,7 +172,7 @@ describe('useTauriAPI', () => {
 
       let response
       await act(async () => {
-        response = await result.current.makeApiRequest('https://api.example.com', 'GET')
+        response = await result.current.makeApiRequest('GET', 'https://api.example.com')
       })
 
       expect(mockInvoke).toHaveBeenCalledWith('make_api_request', {
@@ -192,8 +192,8 @@ describe('useTauriAPI', () => {
       let response
       await act(async () => {
         response = await result.current.makeApiRequest(
-          'https://api.example.com',
           'POST',
+          'https://api.example.com',
           '{"data": "test"}'
         )
       })

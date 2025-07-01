@@ -16,6 +16,8 @@ from backend.agents.rag_agent import RAGAgent
 from backend.agents.search_agent import SearchAgent
 from backend.agents.weather_agent import WeatherAgent
 from backend.core.decorators import handle_exceptions
+from backend.agents.anti_hallucination.enhanced_ocr_agent import EnhancedOCRAgent
+from backend.agents.anti_hallucination.enhanced_receipt_analysis_agent import EnhancedReceiptAnalysisAgent
 
 # Module-level configuration
 config: Dict[str, Any] = {}
@@ -78,8 +80,10 @@ class AgentFactory:
         "Categorization": CategorizationAgent,  # Alias z wielką literą
         "meal_planning": MealPlannerAgent,
         "MealPlanner": MealPlannerAgent,  # Alias z wielką literą
-        "ocr": OCRAgent,
-        "OCR": OCRAgent,  # Alias z wielką literą
+        "ocr": EnhancedOCRAgent,
+        "OCR": EnhancedOCRAgent,  # Alias z wielką literą
+        "receipt_analysis": EnhancedReceiptAnalysisAgent,
+        "ReceiptAnalysis": EnhancedReceiptAnalysisAgent,  # Alias z wielką literą
         "analytics": AnalyticsAgent,
         "Analytics": AnalyticsAgent,  # Alias z wielką literą
         "promo_scraping": PromoScrapingAgent,
@@ -125,7 +129,10 @@ class AgentFactory:
             "GeneralConversationAgent", general_conversation_cls
         )
         self.agent_registry.register_agent_class(
-            "OCR", self._get_agent_class("OCRAgent")
+            "OCR", self._get_agent_class("EnhancedOCRAgent")
+        )
+        self.agent_registry.register_agent_class(
+            "ReceiptAnalysis", self._get_agent_class("EnhancedReceiptAnalysisAgent")
         )
         self.agent_registry.register_agent_class(
             "Weather", self._get_agent_class("WeatherAgent")
@@ -231,7 +238,7 @@ class AgentFactory:
         # Map class names to actual module files (relative imports)
         module_map = {
             "GeneralConversationAgent": "general_conversation_agent",
-            "OCRAgent": "ocr_agent",
+            "EnhancedOCRAgent": "anti_hallucination.enhanced_ocr_agent",
             "WeatherAgent": "weather_agent",
             "SearchAgent": "search_agent",
             "ChefAgent": "chef_agent",
@@ -241,6 +248,7 @@ class AgentFactory:
             "RAGAgent": "rag_agent",
             "Orchestrator": "orchestrator",
             "BaseAgent": "base_agent",
+            "EnhancedReceiptAnalysisAgent": "anti_hallucination.enhanced_receipt_analysis_agent",
         }
 
         if class_name not in module_map:

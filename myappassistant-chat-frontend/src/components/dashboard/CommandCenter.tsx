@@ -268,7 +268,7 @@ export function CommandCenter() {
               <CircularProgress />
             </Box>
           }>
-            <AgentStatus agents={wsAgents} isConnected={wsConnected} />
+            <AgentStatus />
           </Suspense>
         </TabPanel>
 

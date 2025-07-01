@@ -3,7 +3,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -46,7 +46,7 @@ services:
       context: .
       dockerfile: src/backend/Dockerfile.prod
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://foodsave_user:foodsave_password@postgres:5432/foodsave_ai
       - REDIS_HOST=redis
@@ -134,9 +134,9 @@ services:
       context: ./myappassistant-chat-frontend
       dockerfile: Dockerfile.prod
     ports:
-      - "3000:3000"
+      - "3003:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
       - NODE_ENV=production
     depends_on:
       - backend

@@ -712,5 +712,12 @@ class AsyncDocumentLoader:
         self.loading_task = asyncio.create_task(_indexing_task())
 
 
-# Global instance with optimized index
-vector_store = VectorStore(index_type="IndexIVFFlat")
+# Global instance with optimized index - only create if FAISS is available and not in testing
+if FAISS_AVAILABLE and not os.environ.get('DISABLE_FAISS'):
+    try:
+        vector_store = VectorStore(index_type="IndexIVFFlat")
+    except Exception as e:
+        logger.warning(f"Failed to create global vector store instance: {e}")
+        vector_store = None
+else:
+    vector_store = None

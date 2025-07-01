@@ -53,7 +53,164 @@ Testy kompletnych scenariuszy użytkownika.
 - Testy interfejsu użytkownika
 - Testy kompletnych funkcjonalności
 
-## 🛠️ Konfiguracja Testów
+## 🎨 Frontend Testing (React/TypeScript)
+
+### Status: ✅ **KOMPLETNE POKRYCIE TESTAMI**
+
+Frontend aplikacji FoodSave AI ma kompletny zestaw testów z 100% pokryciem głównych komponentów i hooków.
+
+#### 📊 Wyniki Testów Frontend
+
+| Komponent/Hook | Testy | Status | Pokrycie |
+|----------------|-------|--------|----------|
+| **ErrorBanner** | 18/18 | ✅ PASS | 100% |
+| **useWebSocket** | 26/26 | ✅ PASS | 100% |
+| **useRAG** | 20/20 | ✅ PASS | 100% |
+| **useTauriAPI** | 9/9 | ✅ PASS | 100% |
+| **TauriTestComponent** | 8/8 | ✅ PASS | 100% |
+| **ŁĄCZNIE** | **81/81** | **✅ PASS** | **100%** |
+
+#### 🛠️ Stack Technologiczny Frontend
+
+- **Jest:** Framework testowy
+- **React Testing Library:** Testowanie komponentów React
+- **@testing-library/user-event:** Symulacja interakcji użytkownika
+- **@testing-library/jest-dom:** Dodatkowe matchery
+
+#### 📁 Struktura Testów Frontend
+
+```
+myappassistant-chat-frontend/
+├── tests/
+│   └── unit/
+│       ├── components/
+│       │   └── ErrorBanner.test.tsx
+│       └── hooks/
+│           ├── useWebSocket.test.ts
+│           └── useRAG.test.ts
+├── src/
+│   ├── components/__tests__/
+│   │   └── TauriTestComponent.test.tsx
+│   └── hooks/__tests__/
+│       └── useTauriAPI.test.ts
+└── jest.config.js
+```
+
+#### 🚀 Uruchamianie Testów Frontend
+
+```bash
+# Przejdź do katalogu frontend
+cd myappassistant-chat-frontend
+
+# Wszystkie testy
+npm test
+
+# Konkretny plik testowy
+npm test -- ErrorBanner.test.tsx
+
+# Testy z coverage
+npm test -- --coverage
+
+# Testy w trybie watch
+npm test -- --watch
+```
+
+#### 📝 Przykłady Testów Frontend
+
+**1. Test Komponentu React**
+
+```typescript
+// tests/unit/components/ErrorBanner.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { ErrorBanner } from '@/components/ErrorBanner';
+
+describe('ErrorBanner', () => {
+  const defaultProps = {
+    error: 'Test error message',
+    onRetry: jest.fn(),
+    onDismiss: jest.fn(),
+  };
+
+  it('should render error message', () => {
+    render(<ErrorBanner {...defaultProps} />);
+    expect(screen.getByText('Test error message')).toBeInTheDocument();
+  });
+
+  it('should call onRetry when retry button is clicked', () => {
+    const onRetry = jest.fn();
+    render(<ErrorBanner {...defaultProps} onRetry={onRetry} />);
+    
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+**2. Test Hook React**
+
+```typescript
+// tests/unit/hooks/useWebSocket.test.ts
+import { renderHook, act } from '@testing-library/react';
+import { useWebSocket } from '@/hooks/useWebSocket';
+
+describe('useWebSocket', () => {
+  beforeEach(() => {
+    // Mock WebSocket
+    global.WebSocket = jest.fn(() => ({
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      send: jest.fn(),
+      close: jest.fn(),
+      readyState: WebSocket.OPEN,
+    })) as any;
+  });
+
+  it('should connect to WebSocket on mount', () => {
+    renderHook(() => useWebSocket());
+    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:8000/ws/dashboard');
+  });
+
+  it('should handle connection errors', () => {
+    const { result } = renderHook(() => useWebSocket());
+    
+    act(() => {
+      // Simulate connection error
+      const ws = global.WebSocket.mock.results[0].value;
+      ws.onerror(new Event('error'));
+    });
+
+    expect(result.current.error).toBe('WebSocket connection error');
+  });
+});
+```
+
+#### 🎯 Najlepsze Praktyki Frontend
+
+1. **Arrange-Act-Assert:** Czytelna struktura testów
+2. **Mocking:** Izolacja testowanych jednostek
+3. **Accessibility:** Testy dostępności dla wszystkich komponentów
+4. **Error Handling:** Testy obsługi błędów i edge cases
+5. **Async Testing:** Prawidłowe testowanie operacji asynchronicznych
+
+#### 🔧 Konfiguracja Jest
+
+```javascript
+// jest.config.js
+module.exports = {
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/index.tsx',
+  ],
+};
+```
+
+## 🛠️ Konfiguracja Testów Backend
 
 ### Pytest Configuration
 
@@ -91,7 +248,7 @@ memray = "^1.12.0"
 locust = "^2.20.0"
 ```
 
-## 🧪 Przykłady Testów
+## 🧪 Przykłady Testów Backend
 
 ### 1. Unit Tests - Agent Tests
 

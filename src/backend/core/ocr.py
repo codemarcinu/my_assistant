@@ -5,6 +5,8 @@ import tracemalloc
 import threading
 import time
 from typing import Any, Dict, List, Optional
+import cv2
+import numpy as np
 
 import fitz  # Import biblioteki PyMuPDF
 import pytesseract
@@ -35,15 +37,20 @@ class OCRProcessor:
 
     def _get_default_receipt_config(self) -> str:
         """Generuje domyślną konfigurację Tesseract zoptymalizowaną dla paragonów"""
-        return r"--oem 3 --psm 6"
+        return r"--oem 1 --psm 6"  # Zmieniono na LSTM (oem 1) zgodnie z rekomendacjami
 
     def _get_tesseract_config(self) -> str:
         """Generuje konfigurację Tesseract z uwzględnieniem języków i optymalizacji dla paragonów"""
-        # Specjalna konfiguracja dla paragonów polskich sklepów
+        # Specjalna konfiguracja dla paragonów polskich sklepów - ulepszona zgodnie z rekomendacjami audytu
         receipt_config = (
-            "--oem 3 --psm 6 "
+            "--oem 1 --psm 6 "  # LSTM engine, uniform block of text
             "-c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "abcdefghijklmnopqrstuvwxyzĄĆĘŁŃÓŚŹŻąćęłńóśźż.,:-/%()[] "
+            "-c tessedit_pageseg_mode=6 "  # Uniform block of text
+            "-c tessedit_ocr_engine_mode=1 "  # LSTM only
+            "-c preserve_interword_spaces=1 "  # Zachowaj spacje między słowami
+            "-c textord_heavy_nr=1 "  # Lepsze rozpoznawanie numerów
+            "-c textord_min_linesize=2.0 "  # Minimalny rozmiar linii
         )
         # Use English as default, with fallback to no language specification
         # Check if Polish is available, if not use English only
@@ -63,61 +70,300 @@ class OCRProcessor:
         return f"{receipt_config} {lang_part}"
 
     def _get_fallback_config(self) -> str:
-        """Fallback configuration without language specification"""
+        """Fallback configuration without language specification - ulepszona wersja"""
         return (
-            "--oem 3 --psm 6 "
+            "--oem 1 --psm 6 "
             "-c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "abcdefghijklmnopqrstuvwxyzĄĆĘŁŃÓŚŹŻąćęłńóśźż.,:-/%()[] "
+            "-c tessedit_pageseg_mode=6 "
+            "-c tessedit_ocr_engine_mode=1 "
+            "-c preserve_interword_spaces=1 "
+            "-c textord_heavy_nr=1 "
+            "-c textord_min_linesize=2.0 "
         )
 
-    def _preprocess_receipt_image(self, image: Image.Image) -> Image.Image:
-        """Preprocessing obrazu paragonu dla lepszego OCR"""
+    def _detect_receipt_contour(self, image: np.ndarray) -> Optional[np.ndarray]:
+        """Wykrywa kontur paragonu i koryguje perspektywę - ulepszona wersja"""
         try:
             # Konwersja do skali szarości
-            if image.mode != "L":
-                image = image.convert("L")
-
-            # Zwiększenie kontrastu
-            enhancer = ImageEnhance.Contrast(image)
-            image = enhancer.enhance(1.5)
-
-            # Zwiększenie ostrości
-            enhancer = ImageEnhance.Sharpness(image)
-            image = enhancer.enhance(1.2)
-
-            # Zmiana rozmiaru jeśli obraz jest za mały
-            width, height = image.size
-            if width < 800 or height < 600:
-                # Zachowaj proporcje
-                ratio = max(800 / width, 600 / height)
-                new_width = int(width * ratio)
-                new_height = int(height * ratio)
-                image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-            logger.info(
-                "Obraz paragonu przetworzony",
-                extra={
-                    "original_size": f"{width}x{height}",
-                    "final_size": f"{image.size[0]}x{image.size[1]}",
-                    "mode": image.mode,
-                },
-            )
-
-            return image
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            
+            # Zastosuj Gaussian blur aby zredukować szum
+            blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+            
+            # Wykryj krawędzie z lepszymi parametrami
+            edges = cv2.Canny(blurred, 30, 200, apertureSize=3)
+            
+            # Morfologiczne operacje aby połączyć krawędzie
+            kernel = np.ones((3, 3), np.uint8)
+            edges = cv2.dilate(edges, kernel, iterations=1)
+            edges = cv2.erode(edges, kernel, iterations=1)
+            
+            # Znajdź kontury
+            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            if not contours:
+                logger.info("Nie znaleziono konturów w obrazie")
+                return None
+            
+            # Znajdź największy kontur (prawdopodobnie paragon)
+            largest_contour = max(contours, key=cv2.contourArea)
+            
+            # Sprawdź czy kontur ma odpowiedni rozmiar (min 15% obrazu)
+            contour_area = cv2.contourArea(largest_contour)
+            image_area = image.shape[0] * image.shape[1]
+            
+            if contour_area < image_area * 0.15:
+                logger.info(f"Kontur za mały: {contour_area/image_area:.2%} obrazu")
+                return None
+            
+            # Aproksymuj kontur do wielokąta z lepszą tolerancją
+            epsilon = 0.03 * cv2.arcLength(largest_contour, True)
+            approx = cv2.approxPolyDP(largest_contour, epsilon, True)
+            
+            # Jeśli mamy 4 punkty, to prawdopodobnie prostokąt (paragon)
+            if len(approx) == 4:
+                logger.info("Znaleziono prostokątny kontur paragonu")
+                return approx
+            
+            # Jeśli mamy więcej punktów, spróbuj znaleźć najlepszy prostokąt
+            if len(approx) > 4:
+                # Znajdź najmniejszy prostokąt zawierający kontur
+                rect = cv2.minAreaRect(largest_contour)
+                box = cv2.boxPoints(rect)
+                box = np.int0(box)
+                logger.info("Użyto minimalnego prostokąta zawierającego")
+                return box
+            
+            logger.info(f"Nieprawidłowa liczba punktów konturu: {len(approx)}")
+            return None
+            
         except Exception as e:
-            logger.warning(f"Błąd podczas preprocessingu obrazu: {e}")
+            logger.warning(f"Błąd podczas wykrywania konturu: {e}")
+            return None
+
+    def _perspective_correction(self, image: np.ndarray, contour: np.ndarray) -> np.ndarray:
+        """Koryguje perspektywę paragonu - ulepszona wersja"""
+        try:
+            # Sortuj punkty konturu
+            pts = contour.reshape(4, 2)
+            rect = np.zeros((4, 2), dtype="float32")
+            
+            # Suma współrzędnych (lewy górny)
+            s = pts.sum(axis=1)
+            rect[0] = pts[np.argmin(s)]
+            rect[2] = pts[np.argmax(s)]
+            
+            # Różnica współrzędnych (prawy górny)
+            diff = np.diff(pts, axis=1)
+            rect[1] = pts[np.argmin(diff)]
+            rect[3] = pts[np.argmax(diff)]
+            
+            # Oblicz wymiary nowego obrazu
+            widthA = np.sqrt(((rect[2][0] - rect[3][0]) ** 2) + ((rect[2][1] - rect[3][1]) ** 2))
+            widthB = np.sqrt(((rect[1][0] - rect[0][0]) ** 2) + ((rect[1][1] - rect[0][1]) ** 2))
+            maxWidth = max(int(widthA), int(widthB))
+            
+            heightA = np.sqrt(((rect[1][0] - rect[2][0]) ** 2) + ((rect[1][1] - rect[2][1]) ** 2))
+            heightB = np.sqrt(((rect[0][0] - rect[3][0]) ** 2) + ((rect[0][1] - rect[3][1]) ** 2))
+            maxHeight = max(int(heightA), int(heightB))
+            
+            # Punkty docelowe
+            dst = np.array([
+                [0, 0],
+                [maxWidth - 1, 0],
+                [maxWidth - 1, maxHeight - 1],
+                [0, maxHeight - 1]
+            ], dtype="float32")
+            
+            # Oblicz macierz transformacji
+            M = cv2.getPerspectiveTransform(rect, dst)
+            
+            # Zastosuj transformację
+            warped = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
+            
+            logger.info(f"Korekcja perspektywy: {image.shape} -> {warped.shape}")
+            return warped
+            
+        except Exception as e:
+            logger.warning(f"Błąd podczas korekcji perspektywy: {e}")
+            return image
+
+    def _adaptive_threshold(self, image: np.ndarray) -> np.ndarray:
+        """Zastosuj adaptacyjny threshold dla lepszego kontrastu - ulepszona wersja"""
+        try:
+            # Konwersja do skali szarości jeśli potrzebne
+            if len(image.shape) == 3:
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = image
+            
+            # Zastosuj CLAHE (Contrast Limited Adaptive Histogram Equalization)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+            enhanced = clahe.apply(gray)
+            
+            # Zastosuj adaptacyjny threshold
+            thresh = cv2.adaptiveThreshold(
+                enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 2
+            )
+            
+            # Morfologiczne operacje aby usunąć szum i połączyć linie
+            kernel = np.ones((2, 2), np.uint8)
+            thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+            thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+            
+            return thresh
+            
+        except Exception as e:
+            logger.warning(f"Błąd podczas adaptacyjnego threshold: {e}")
+            return image
+
+    def _scale_to_300_dpi(self, image: np.ndarray) -> np.ndarray:
+        """Skaluje obraz do 300 DPI dla lepszego OCR - ulepszona wersja"""
+        try:
+            # Oblicz wymagany rozmiar dla 300 DPI
+            # 300 DPI = 118.11 pikseli na cm
+            # Standardowy paragon: 80mm x 200mm = 8cm x 20cm
+            target_width = int(8.0 * 118.11)  # ~945 pikseli
+            target_height = int(20.0 * 118.11)  # ~2362 pikseli
+            
+            # Zachowaj proporcje oryginalnego obrazu
+            h, w = image.shape[:2]
+            aspect_ratio = w / h
+            
+            if aspect_ratio > 1:  # Szeroki obraz
+                new_width = target_width
+                new_height = int(target_width / aspect_ratio)
+            else:  # Wysoki obraz
+                new_height = target_height
+                new_width = int(target_height * aspect_ratio)
+            
+            # Skaluj obraz z wysoką jakością
+            scaled = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LANCZOS4)
+            
+            logger.info(f"Skalowanie do 300 DPI: {image.shape} -> {scaled.shape}")
+            return scaled
+            
+        except Exception as e:
+            logger.warning(f"Błąd podczas skalowania do 300 DPI: {e}")
+            return image
+
+    def _enhance_contrast_and_sharpness(self, image: np.ndarray) -> np.ndarray:
+        """Zwiększa kontrast i ostrość obrazu"""
+        try:
+            # Zwiększenie kontrastu
+            clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+            if len(image.shape) == 3:
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = image
+            enhanced = clahe.apply(gray)
+            
+            # Zwiększenie ostrości
+            kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            sharpened = cv2.filter2D(enhanced, -1, kernel)
+            
+            # Dodatkowe ulepszenie kontrastu
+            enhanced_final = cv2.convertScaleAbs(sharpened, alpha=1.2, beta=10)
+            
+            return enhanced_final
+            
+        except Exception as e:
+            logger.warning(f"Błąd podczas ulepszania kontrastu i ostrości: {e}")
+            return image
+
+    def _preprocess_receipt_image(self, image: Image.Image) -> Image.Image:
+        """Zaawansowany preprocessing obrazu paragonu dla lepszego OCR - ulepszona wersja"""
+        try:
+            # Konwersja PIL Image do OpenCV format
+            if image.mode == 'RGBA':
+                image = image.convert('RGB')
+            
+            # Konwersja do numpy array
+            img_array = np.array(image)
+            
+            # Konwersja RGB do BGR (OpenCV format)
+            if len(img_array.shape) == 3:
+                img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+            
+            # 1. Wykryj kontur paragonu
+            contour = self._detect_receipt_contour(img_array)
+            
+            # 2. Korekcja perspektywy jeśli wykryto kontur
+            if contour is not None:
+                img_array = self._perspective_correction(img_array, contour)
+                logger.info("Zastosowano korekcję perspektywy")
+            
+            # 3. Skaluj do 300 DPI
+            img_array = self._scale_to_300_dpi(img_array)
+            logger.info("Przeskalowano do 300 DPI")
+            
+            # 4. Ulepsz kontrast i ostrość
+            img_array = self._enhance_contrast_and_sharpness(img_array)
+            logger.info("Ulepszono kontrast i ostrość")
+            
+            # 5. Adaptacyjny threshold
+            img_array = self._adaptive_threshold(img_array)
+            logger.info("Zastosowano adaptacyjny threshold")
+            
+            # Konwersja z powrotem do PIL Image
+            processed_image = Image.fromarray(img_array)
+            
+            logger.info(
+                "Preprocessing obrazu zakończony",
+                extra={
+                    "original_size": image.size,
+                    "processed_size": processed_image.size,
+                    "contour_detected": contour is not None
+                }
+            )
+            
+            return processed_image
+            
+        except Exception as e:
+            logger.error(f"Błąd podczas preprocessingu obrazu: {e}")
             return image
 
     def process_image(
         self, image_bytes: bytes, config: Optional[str] = None
     ) -> OCRResult:
-        """Przetwarza obraz na tekst z context managerem i preprocessingiem"""
+        """Przetwarza obraz na tekst z context managerem i preprocessingiem - ulepszona wersja"""
+        start_time = time.time()
+        preprocessing_steps = []
+        
         try:
             with Image.open(io.BytesIO(image_bytes)) as image:
+                # Log original image metadata
+                original_metadata = {
+                    "size": image.size,
+                    "mode": image.mode,
+                    "format": image.format,
+                    "file_size_bytes": len(image_bytes)
+                }
+                
                 # Preprocessing obrazu dla lepszego OCR
                 processed_image = self._preprocess_receipt_image(image)
+                preprocessing_steps.append("image_preprocessing")
+                
+                # Log preprocessing metadata
+                preprocessing_metadata = {
+                    "original_size": original_metadata["size"],
+                    "processed_size": processed_image.size,
+                    "preprocessing_steps": preprocessing_steps
+                }
 
                 config = config or self._get_tesseract_config()
+                
+                # Log Tesseract configuration
+                logger.info(
+                    "Rozpoczynam OCR z ulepszoną konfiguracją",
+                    extra={
+                        "tesseract_config": config,
+                        "languages": self.languages,
+                        "preprocessing_applied": True
+                    }
+                )
+                
                 data = pytesseract.image_to_data(
                     processed_image, config=config, output_type=pytesseract.Output.DICT
                 )
@@ -129,28 +375,64 @@ class OCRProcessor:
                     else 0
                 )
 
+                # Calculate processing time
+                processing_time = time.time() - start_time
+                
+                # Enhanced metadata
+                enhanced_metadata = {
+                    "source": "image",
+                    "pages": 1,
+                    "language": self.languages[0] if self.languages else "unknown",
+                    "preprocessing_applied": True,
+                    "preprocessing_steps": preprocessing_steps,
+                    "original_metadata": original_metadata,
+                    "preprocessing_metadata": preprocessing_metadata,
+                    "tesseract_config": config,
+                    "processing_time_seconds": processing_time,
+                    "text_blocks": len([line for line in data["text"] if line.strip()]),
+                    "confidence_distribution": {
+                        "high": len([conf for conf in data["conf"] if conf > 80]),
+                        "medium": len([conf for conf in data["conf"] if 50 <= conf <= 80]),
+                        "low": len([conf for conf in data["conf"] if conf < 50])
+                    }
+                }
+
                 logger.info(
-                    "OCR przetwarzanie obrazu zakończone",
+                    "OCR przetwarzanie obrazu zakończone pomyślnie",
                     extra={
                         "confidence": avg_conf,
                         "text_length": len(text),
                         "language": self.languages[0] if self.languages else "unknown",
+                        "processing_time_seconds": processing_time,
+                        "preprocessing_steps": preprocessing_steps,
+                        "text_blocks": enhanced_metadata["text_blocks"]
                     },
                 )
 
                 return OCRResult(
                     text=text,
                     confidence=avg_conf,
-                    metadata={
-                        "source": "image",
-                        "pages": 1,
-                        "language": self.languages[0] if self.languages else "unknown",
-                        "preprocessing_applied": True,
-                    },
+                    metadata=enhanced_metadata,
                 )
         except Exception as e:
-            logger.error(f"OCR image processing error: {e}")
-            return OCRResult(text="", confidence=0, metadata={"error": str(e)})
+            processing_time = time.time() - start_time
+            logger.error(
+                f"OCR image processing error: {e}",
+                extra={
+                    "processing_time_seconds": processing_time,
+                    "preprocessing_steps": preprocessing_steps,
+                    "error_type": type(e).__name__
+                }
+            )
+            return OCRResult(
+                text="", 
+                confidence=0, 
+                metadata={
+                    "error": str(e),
+                    "processing_time_seconds": processing_time,
+                    "preprocessing_steps": preprocessing_steps
+                }
+            )
 
     def process_pdf(self, pdf_bytes: bytes, config: Optional[str] = None) -> OCRResult:
         """Przetwarza plik PDF na tekst z context managerem i cleanup"""

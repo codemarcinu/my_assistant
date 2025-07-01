@@ -1,4 +1,5 @@
 # Multi-stage build for production backend
+# ZALEŻNOŚCI INSTALOWANE PRZEZ POETRY (pyproject.toml) - BEST PRACTICE
 FROM python:3.12-slim AS builder
 
 # Install build dependencies
@@ -41,6 +42,8 @@ RUN apt-get update && apt-get install -y \
     libblas3 \
     liblapack3 \
     curl \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -52,10 +55,9 @@ WORKDIR /app
 
 # Copy installed packages and python from builder
 COPY --from=builder /usr/local /usr/local
-ENV PATH="/usr/local/bin:$PATH"
-
-# Fallback: ensure uvicorn and celery are installed
-RUN pip install uvicorn celery
+ENV PATH="/usr/local/bin:/home/foodsave/.local/bin:$PATH"
+RUN ls -l /usr/local/bin
+RUN ls -l /home/foodsave/.local/bin || true
 
 # Copy application code (from root context)
 COPY src/backend ./backend

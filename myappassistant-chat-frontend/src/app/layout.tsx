@@ -19,19 +19,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl" suppressHydrationWarning>
+    <>
       <FontSizeProvider>
         <EmotionRegistry>
           <Providers>
-            <body>
-              <FontSizeWrapper>
-                {children}
-              </FontSizeWrapper>
-              <Toaster position="top-right" richColors />
-            </body>
+            <FontSizeWrapper>
+              {children}
+            </FontSizeWrapper>
+            <Toaster position="top-right" richColors />
           </Providers>
         </EmotionRegistry>
       </FontSizeProvider>
-    </html>
+    </>
   );
 }
