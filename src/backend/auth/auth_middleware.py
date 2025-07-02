@@ -33,6 +33,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/health",
             "/ready",
             "/api/v2/weather",  # Weather endpoint doesn't require authentication
+            "/ws/dashboard",  # WebSocket endpoint doesn't require authentication
+            "/ws/status",  # WebSocket status endpoint doesn't require authentication
+            "/ws/test",  # WebSocket test endpoint doesn't require authentication
+            "/api/ws/dashboard",  # WebSocket endpoint doesn't require authentication
+            "/api/ws/status",  # WebSocket status endpoint doesn't require authentication
         ]
 
     async def dispatch(self, request: Request, call_next) -> None:

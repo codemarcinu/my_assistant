@@ -56,7 +56,7 @@ class AgentRouter:
         pass
 
     async def route_to_agent(
-        self, intent: Dict[str, Any], context: Dict[str, Any]
+        self, intent: Dict[str, Any], context: Dict[str, Any], user_command: str = ""
     ) -> Dict[str, Any]:
         intent_type = intent.get("type", "general")
         agent_type = self.agent_registry.get_agent_type_for_intent(intent_type)
@@ -84,7 +84,13 @@ class AgentRouter:
             # Przyjmujemy, że context jest wystarczający dla agenta,
             # a agent sam wyciągnie z niego potrzebne dane, w tym `query` lub `message`.
             logger.debug(f"Processing with agent: {agent_type}")
-            response = await agent.process(context)
+            
+            # Dodaj user_command do kontekstu
+            agent_context = context.copy()
+            agent_context["query"] = user_command
+            agent_context["message"] = user_command
+            
+            response = await agent.process(agent_context)
 
             logger.debug(f"Agent response: {type(response)} - {response}")
 

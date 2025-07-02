@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.agents.agent_router import AgentRouter
+from backend.agents.router_service import AgentRouter
 from backend.agents.intent_detector import SimpleIntentDetector
 from backend.agents.memory_manager import MemoryManager
 from backend.agents.orchestrator import Orchestrator
@@ -41,14 +41,9 @@ def create_orchestrator(db: AsyncSession) -> Orchestrator:
     agent_factory = AgentFactory(agent_registry=agent_registry)
     logger.debug("AgentRegistry and AgentFactory created")
 
-    # Utwórz router agentów
-    agent_router = AgentRouter()
-    logger.debug("AgentRouter created")
-
-    # Zarejestruj ReceiptAnalysisAgent
-    agent_router.register_agent(
-        AgentType.RECEIPT_ANALYSIS, ReceiptAnalysisAgent()
-    )
+    # Utwórz router agentów z fabryką
+    agent_router = AgentRouter(agent_factory, agent_registry)
+    logger.debug("AgentRouter created with factory")
 
     # Utwórz menedżera pamięci
     memory_manager = MemoryManager()

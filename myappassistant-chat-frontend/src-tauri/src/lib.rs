@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use chrono::{DateTime, Utc};
-use tauri::{command, async_runtime};
-use image::{ImageBuffer, Rgb, DynamicImage, GenericImageView};
 use base64::{Engine as _, engine::general_purpose};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -103,14 +101,12 @@ pub fn show_system_notification(title: String, body: String) -> Result<(), Strin
 }
 
 pub fn show_custom_notification(notification: NotificationData) -> Result<(), String> {
-    let mut notif = notify_rust::Notification::new()
-        .summary(&notification.title)
-        .body(&notification.body);
-    
-    if let Some(icon) = notification.icon {
-        notif = notif.icon(&icon);
+    let mut notif = notify_rust::Notification::new();
+    notif.summary(&notification.title)
+         .body(&notification.body);
+    if let Some(icon) = &notification.icon {
+        notif.icon(icon);
     }
-    
     notif.show().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -122,8 +118,14 @@ pub async fn save_receipt_data(receipt: ReceiptData) -> Result<String, String> {
 }
 
 pub fn get_app_data_dir() -> Result<PathBuf, String> {
-    tauri::api::path::app_data_dir(&tauri::Config::default())
-        .ok_or_else(|| "Could not get app data directory".to_string())
+    // In Tauri 2.x, we need to use the app handle to get the data directory
+    // This function will be called from a Tauri command context where we have access to the app
+    let app_data_dir = std::env::var("APPDATA")
+        .or_else(|_| std::env::var("HOME").map(|home| format!("{}/.config", home)))
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."));
+    
+    Ok(app_data_dir.join("foodsave-ai"))
 }
 
 pub async fn make_api_request(url: String, method: String, body: Option<String>) -> Result<String, String> {
@@ -325,7 +327,7 @@ pub async fn analyze_image_quality(
         .map_err(|e| format!("Failed to load image: {}", e))?;
     
     let rgb_img = img.to_rgb8();
-    let (width, height) = rgb_img.dimensions();
+    let (_width, _height) = rgb_img.dimensions();
     
     // Prosta analiza jakości obrazu
     let mut total_brightness = 0u32;

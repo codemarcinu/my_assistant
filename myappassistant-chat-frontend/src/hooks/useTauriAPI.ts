@@ -117,7 +117,7 @@ export const useTauriAPI = () => {
     } else {
       // Fallback for web browser - use fetch API
       // Ensure the URL is properly formatted
-      const fullUrl = url.startsWith('http') ? url : `http://localhost:8000${url}`;
+      const fullUrl = url.startsWith('http') ? url : `http://localhost:8001${url}`;
       return await webApiClient.request(fullUrl, method, body);
     }
   };

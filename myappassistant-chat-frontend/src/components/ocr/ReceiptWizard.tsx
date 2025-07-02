@@ -268,7 +268,7 @@ export function ReceiptWizard() {
       const formData = new FormData();
       formData.append('file', compressedFile);
 
-      const ocrResponse = await fetch('http://localhost:8000/api/v3/receipts/process', {
+              const ocrResponse = await fetch('http://localhost:8001/api/v3/receipts/process', {
         method: 'POST',
         body: formData,
       });
@@ -303,7 +303,7 @@ export function ReceiptWizard() {
 
     while (attempts < maxAttempts) {
       try {
-        const statusResponse = await fetch(`http://localhost:8000/api/v3/receipts/status/${jobId}`);
+        const statusResponse = await fetch(`http://localhost:8001/api/v3/receipts/status/${jobId}`);
         const statusData = await statusResponse.json();
         
         if (statusData.data.status === 'SUCCESS') {

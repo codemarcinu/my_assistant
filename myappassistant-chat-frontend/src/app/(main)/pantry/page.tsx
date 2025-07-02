@@ -85,14 +85,14 @@ export default function PantryPage() {
       setLoading(true);
       
       // Load pantry items
-      const pantryResponse = await fetch('http://localhost:8000/api/pantry/products');
+              const pantryResponse = await fetch('http://localhost:8001/api/pantry/products');
       if (pantryResponse.ok) {
         const pantryData = await pantryResponse.json();
         setPantryItems(pantryData);
       }
 
       // Load available products
-      const productsResponse = await fetch('http://localhost:8000/api/v2/food/products');
+              const productsResponse = await fetch('http://localhost:8001/api/v2/food/products');
       if (productsResponse.ok) {
         const productsData = await productsResponse.json();
         setProducts(productsData);
@@ -107,7 +107,7 @@ export default function PantryPage() {
 
   const addPantryItem = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/pantry/add', {
+              const response = await fetch('http://localhost:8001/api/pantry/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ export default function PantryPage() {
 
   const updatePantryItem = async (item: PantryItem) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/pantry/update/${item.id}`, {
+              const response = await fetch(`http://localhost:8001/api/pantry/update/${item.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +161,7 @@ export default function PantryPage() {
     if (!confirm('Czy na pewno chcesz usunąć ten produkt?')) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/pantry/delete/${itemId}`, {
+              const response = await fetch(`http://localhost:8001/api/pantry/delete/${itemId}`, {
         method: 'DELETE',
       });
 

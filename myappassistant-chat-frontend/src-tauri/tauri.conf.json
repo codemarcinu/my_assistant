@@ -6,8 +6,7 @@
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeDevCommand": "npm run dev"
   },
   "app": {
     "windows": [
@@ -63,7 +62,7 @@
     "app": {},
     "http": {
       "scope": [
-        "http://localhost:8000/**",
+        "http://localhost:8001/**",
         "https://api.foodsave.ai/**"
       ]
     },

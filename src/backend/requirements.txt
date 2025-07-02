@@ -43,7 +43,7 @@ numpy==1.26.0
 scipy==1.15.3
 scikit-learn==1.7.0
 sentence-transformers==2.2.2
-faiss-cpu==1.7.4
+faiss-cpu==1.11.0
 ollama==0.1.0
 
 # OpenTelemetry packages for monitoring and observability
