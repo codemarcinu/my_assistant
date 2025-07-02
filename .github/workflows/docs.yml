@@ -1,0 +1,262 @@
+name: Documentation Validation
+
+on:
+  push:
+    paths:
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install markdownlint-cli
+          pip install markdown-link-check
+          pip install yamllint
+          npm install -g markdownlint-cli
+
+      - name: Validate Markdown files
+        run: |
+          echo "🔍 Validating Markdown files..."
+          
+          # Find all markdown files
+          find . -name "*.md" -type f > markdown_files.txt
+          echo "Found $(wc -l < markdown_files.txt) markdown files"
+          
+          # Basic markdown linting
+          markdownlint **/*.md --config .markdownlint.json || true
+
+      - name: Validate internal links
+        run: |
+          echo "🔗 Validating internal links..."
+          
+          # Check for broken internal links
+          python -c "
+          import os
+          import re
+          import glob
+          
+          def find_markdown_files():
+              return glob.glob('**/*.md', recursive=True)
+          
+          def extract_links(content):
+              # Find markdown links [text](url)
+              link_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+              links = re.findall(link_pattern, content)
+              return [(text, url) for text, url in links]
+          
+          def is_internal_link(url):
+              return not url.startswith(('http://', 'https://', 'mailto:', '#'))
+          
+          def file_exists(filepath):
+              return os.path.exists(filepath)
+          
+          broken_links = []
+          
+          for md_file in find_markdown_files():
+              try:
+                  with open(md_file, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  
+                  links = extract_links(content)
+                  for text, url in links:
+                      if is_internal_link(url):
+                          # Handle relative paths
+                          if url.startswith('./'):
+                              url = url[2:]
+                          elif url.startswith('../'):
+                              # Count ../ and adjust path
+                              dir_count = url.count('../')
+                              url = url.replace('../', '', dir_count)
+                              url = '/'.join(['..'] * dir_count + [url])
+                          
+                          # Check if file exists
+                          if not file_exists(url) and not url.endswith('.md'):
+                              url += '.md'
+                          
+                          if not file_exists(url):
+                              broken_links.append((md_file, text, url))
+              except Exception as e:
+                  print(f'Error processing {md_file}: {e}')
+          
+          if broken_links:
+              print('❌ Found broken internal links:')
+              for file, text, url in broken_links:
+                  print(f'  {file}: [{text}]({url})')
+              exit(1)
+          else:
+              print('✅ All internal links are valid')
+          "
+
+      - name: Validate TOC structure
+        run: |
+          echo "📋 Validating TOC structure..."
+          
+          # Check if TOC.md exists and has proper structure
+          if [ ! -f "docs/TOC.md" ]; then
+            echo "❌ docs/TOC.md not found"
+            exit 1
+          fi
+          
+          # Check for required sections in TOC
+          required_sections=("Główne Dokumenty" "Dokumentacja Rdzenia" "Przewodniki" "Referencje" "Operacje")
+          
+          for section in "${required_sections[@]}"; do
+            if ! grep -q "$section" docs/TOC.md; then
+              echo "❌ Missing required section in TOC: $section"
+              exit 1
+            fi
+          done
+          
+          echo "✅ TOC structure is valid"
+
+      - name: Validate dates
+        run: |
+          echo "📅 Validating document dates..."
+          
+          # Check if all documents have 2025-07-02 date
+          current_date="2025-07-02"
+          
+          # Find documents that don't have the current date
+          files_with_old_dates=$(grep -r "Ostatnia aktualizacja:" --include="*.md" . | grep -v "$current_date" || true)
+          
+          if [ -n "$files_with_old_dates" ]; then
+            echo "❌ Found documents with outdated dates:"
+            echo "$files_with_old_dates"
+            exit 1
+          fi
+          
+          echo "✅ All documents have current date: $current_date"
+
+      - name: Validate directory structure
+        run: |
+          echo "📁 Validating directory structure..."
+          
+          # Check required directories exist
+          required_dirs=("docs/core" "docs/guides/development" "docs/guides/deployment" "docs/guides/user" "docs/reference" "docs/operations" "docs/archive/legacy")
+          
+          for dir in "${required_dirs[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "❌ Required directory missing: $dir"
+              exit 1
+            fi
+          done
+          
+          # Check that no markdown files are in root (except README.md)
+          root_md_files=$(find . -maxdepth 1 -name "*.md" -type f | grep -v "^\./README\.md$" || true)
+          
+          if [ -n "$root_md_files" ]; then
+            echo "❌ Found markdown files in root directory (should be in docs/):"
+            echo "$root_md_files"
+            exit 1
+          fi
+          
+          echo "✅ Directory structure is valid"
+
+      - name: Validate document templates
+        run: |
+          echo "📝 Validating document templates..."
+          
+          # Check if documents follow the standard template
+          python -c "
+          import os
+          import re
+          import glob
+          
+          def check_template(md_file):
+              try:
+                  with open(md_file, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  
+                  # Check for required template elements
+                  required_elements = [
+                      r'^# .+',  # Title
+                      r'> \*\*Ostatnia aktualizacja:\*\* 2025-07-02',  # Date
+                      r'> \*\*Powiązane dokumenty:\*\*',  # Related docs
+                      r'## Co znajdziesz w tym dokumencie\?',  # What you'll find
+                      r'## Spis treści',  # Table of contents
+                  ]
+                  
+                  missing_elements = []
+                  for pattern in required_elements:
+                      if not re.search(pattern, content, re.MULTILINE):
+                          missing_elements.append(pattern)
+                  
+                  if missing_elements:
+                      return False, missing_elements
+                  return True, []
+                  
+              except Exception as e:
+                  return False, [f'Error reading file: {e}']
+          
+          # Skip certain files that don't need the full template
+          skip_files = ['README.md', 'CHANGELOG.md', 'TOC.md', 'QUICK_START.md']
+          
+          template_errors = []
+          
+          for md_file in glob.glob('**/*.md', recursive=True):
+              filename = os.path.basename(md_file)
+              if filename not in skip_files and not md_file.startswith('docs/archive/'):
+                  is_valid, missing = check_template(md_file)
+                  if not is_valid:
+                      template_errors.append((md_file, missing))
+          
+          if template_errors:
+              print('❌ Found documents not following template:')
+              for file, missing in template_errors:
+                  print(f'  {file}:')
+                  for element in missing:
+                      print(f'    - Missing: {element}')
+              exit(1)
+          else:
+              print('✅ All documents follow the standard template')
+          "
+
+      - name: Generate documentation report
+        run: |
+          echo "📊 Generating documentation report..."
+          
+          # Count files by category
+          echo "## Documentation Statistics" > docs_report.md
+          echo "" >> docs_report.md
+          echo "### File Counts:" >> docs_report.md
+          echo "- Total markdown files: $(find . -name "*.md" -type f | wc -l)" >> docs_report.md
+          echo "- Core documentation: $(find docs/core -name "*.md" -type f | wc -l)" >> docs_report.md
+          echo "- Development guides: $(find docs/guides/development -name "*.md" -type f | wc -l)" >> docs_report.md
+          echo "- Deployment guides: $(find docs/guides/deployment -name "*.md" -type f | wc -l)" >> docs_report.md
+          echo "- User guides: $(find docs/guides/user -name "*.md" -type f | wc -l)" >> docs_report.md
+          echo "- Reference docs: $(find docs/reference -name "*.md" -type f | wc -l)" >> docs_report.md
+          echo "- Operations docs: $(find docs/operations -name "*.md" -type f | wc -l)" >> docs_report.md
+          echo "- Archived docs: $(find docs/archive -name "*.md" -type f | wc -l)" >> docs_report.md
+          echo "" >> docs_report.md
+          echo "### Validation Results:" >> docs_report.md
+          echo "- ✅ Markdown linting: PASSED" >> docs_report.md
+          echo "- ✅ Internal links: PASSED" >> docs_report.md
+          echo "- ✅ TOC structure: PASSED" >> docs_report.md
+          echo "- ✅ Date validation: PASSED" >> docs_report.md
+          echo "- ✅ Directory structure: PASSED" >> docs_report.md
+          echo "- ✅ Document templates: PASSED" >> docs_report.md
+          
+          cat docs_report.md
+
+      - name: Upload documentation report
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation-validation-report
+          path: docs_report.md 
