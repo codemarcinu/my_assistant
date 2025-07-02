@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,7 +38,8 @@ def create_orchestrator(db: AsyncSession) -> Orchestrator:
     logger.debug("SimpleIntentDetector created")
 
     # Utwórz rejestr agentów i fabrykę
-    agent_registry = AgentRegistry()
+    config_file = os.path.join(os.path.dirname(__file__), "../data/config/agent_config.json")
+    agent_registry = AgentRegistry(config_file=config_file)
     agent_factory = AgentFactory(agent_registry=agent_registry)
     logger.debug("AgentRegistry and AgentFactory created")
 

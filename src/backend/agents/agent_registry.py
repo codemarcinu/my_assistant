@@ -1,14 +1,21 @@
+import json
+import os
 from typing import Dict, Optional, Type
 
 from backend.agents.interfaces import BaseAgent
 
 
 class AgentRegistry:
-    def __init__(self) -> None:
+    def __init__(self, config_file: Optional[str] = None) -> None:
         self._agents: Dict[str, Type[BaseAgent]] = {}
         self._intent_mappings: Dict[str, str] = {}
-        # Register intent to agent mappings
-        self.intent_to_agent_mapping = {
+        
+        # Load intent mappings from config file or use defaults
+        self.intent_to_agent_mapping = self._load_intent_mappings(config_file)
+        
+    def _load_intent_mappings(self, config_file: Optional[str] = None) -> Dict[str, str]:
+        """Load intent mappings from config file or return defaults"""
+        default_mappings = {
             "general_conversation": "GeneralConversation",
             "food_conversation": "GeneralConversation",
             "shopping_conversation": "Categorization",
@@ -23,6 +30,17 @@ class AgentRegistry:
             "analytics": "Analytics",
             "general": "GeneralConversation",  # Default mapping
         }
+        
+        if config_file and os.path.exists(config_file):
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    return config.get('intent_mappings', default_mappings)
+            except Exception as e:
+                print(f"Error loading agent config: {e}, using defaults")
+                return default_mappings
+        
+        return default_mappings
 
     def register_agent_class(
         self, agent_type: str, agent_class: Type[BaseAgent]

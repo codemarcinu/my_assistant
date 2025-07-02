@@ -59,3 +59,5 @@ prometheus-fastapi-instrumentator==6.1.0
 # Additional dependencies
 celery==5.3.4
 kombu==5.3.4
+aiohttp>=3.8.0
+memory_profiler>=0.61.0

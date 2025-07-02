@@ -85,4 +85,60 @@ Pełna dokumentacja projektu znajduje się w katalogu [`docs/`](./docs/).
 
 ---
 
-> Szczegółowe przewodniki, raporty, checklisty, roadmapy, architektura, API, testy, wdrożenie, monitoring i inne materiały znajdziesz w katalogu `docs/` oraz jego podkatalogach. 
+> Szczegółowe przewodniki, raporty, checklisty, roadmapy, architektura, API, testy, wdrożenie, monitoring i inne materiały znajdziesz w katalogu `docs/` oraz jego podkatalogach.
+
+# MyAppAssistant – Instrukcja naprawy środowiska kontenerowego
+
+## Najczęstszy problem: SearchAgent – nieoczekiwany argument 'llm_client'
+
+Jeśli w logach lub monitoringu pojawia się błąd:
+
+```
+SearchAgent.__init__() got an unexpected keyword argument 'llm_client'
+```
+
+Oznacza to, że w środowisku kontenerowym działa stary obraz Dockera lub nie został przebudowany backend po aktualizacji kodu.
+
+## Rozwiązanie krok po kroku
+
+1. **Zatrzymaj wszystkie kontenery**:
+
+```bash
+docker compose down
+```
+
+2. **Usuń stare obrazy i cache Dockera** (UWAGA: usunie wszystkie nieużywane obrazy!):
+
+```bash
+docker system prune -af
+```
+
+3. **Przebuduj obrazy bez cache**:
+
+```bash
+docker compose build --no-cache
+```
+
+4. **Uruchom ponownie kontenery**:
+
+```bash
+docker compose up -d
+```
+
+5. **Sprawdź status agenta Search**:
+
+```bash
+curl -s http://localhost:8000/monitoring/status | jq '.components.agents.agents.search'
+```
+
+Status powinien być `"healthy"` lub nie zawierać błędu związanego z `llm_client`.
+
+## Dodatkowe kroki (jeśli problem nie ustępuje)
+
+- Upewnij się, że nie masz lokalnych plików .pyc ani katalogów __pycache__ w kodzie źródłowym.
+- Jeśli korzystasz z Docker Swarm lub K8s – wymuś pełny redeploy.
+- Jeśli korzystasz z innego systemu CI/CD – upewnij się, że pipeline buduje obrazy od zera.
+
+---
+
+**W razie dalszych problemów: sprawdź logi backendu oraz upewnij się, że kod w kontenerze jest aktualny względem repozytorium.** 

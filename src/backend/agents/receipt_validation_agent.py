@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 
 from backend.agents.base_agent import BaseAgent
 from backend.agents.interfaces import AgentResponse
+from backend.core.decorators import handle_exceptions
 
 logger = logging.getLogger(__name__)
 

@@ -1,16 +1,16 @@
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from backend.agents.agent_factory import AgentFactory
 from backend.agents.agent_registry import AgentRegistry
 from backend.agents.error_types import AgentError, AgentProcessingError
-from backend.agents.interfaces import AgentResponse
+from backend.agents.interfaces import AgentResponse, IntentData, MemoryContext, IAgentRouter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class AgentRouter:
+class AgentRouter(IAgentRouter):
     def __init__(
         self, agent_factory: AgentFactory, agent_registry: AgentRegistry
     ) -> None:
@@ -56,9 +56,9 @@ class AgentRouter:
         pass
 
     async def route_to_agent(
-        self, intent: Dict[str, Any], context: Dict[str, Any], user_command: str = ""
-    ) -> Dict[str, Any]:
-        intent_type = intent.get("type", "general")
+        self, intent: IntentData, context: MemoryContext, user_command: str = ""
+    ) -> AgentResponse:
+        intent_type = intent.type
         agent_type = self.agent_registry.get_agent_type_for_intent(intent_type)
 
         try:
@@ -75,98 +75,59 @@ class AgentRouter:
 
             if agent is None:
                 logger.error(f"Agent factory returned None for type: {agent_type}")
-                return self._create_fallback_response(
-                    intent_type, "Agent creation failed"
+                return AgentResponse(
+                    success=False,
+                    error="Agent creation failed",
+                    text="Przepraszam, wystąpił problem podczas tworzenia agenta."
                 )
 
             logger.debug(f"Agent created successfully: {type(agent)}")
 
-            # Przyjmujemy, że context jest wystarczający dla agenta,
-            # a agent sam wyciągnie z niego potrzebne dane, w tym `query` lub `message`.
+            # Przygotuj dane wejściowe dla agenta
+            input_data = {
+                "query": user_command,
+                "intent": intent.type,
+                "entities": intent.entities,
+                "confidence": intent.confidence,
+                "session_id": context.session_id,
+                "context": context.history[-10:] if context.history else [],
+            }
+            
             logger.debug(f"Processing with agent: {agent_type}")
-            
-            # Dodaj user_command do kontekstu
-            agent_context = context.copy()
-            agent_context["query"] = user_command
-            agent_context["message"] = user_command
-            
-            response = await agent.process(agent_context)
+            response = await agent.process(input_data)
 
             logger.debug(f"Agent response: {type(response)} - {response}")
 
             # Upewnij się, że AgentResponse jest właściwie obsługiwany
             if isinstance(response, AgentResponse):
-                return {
-                    "response": response.model_dump(),  # Używamy model_dump() dla Pydantic v2
-                    "metadata": {
-                        "intent": intent_type,
-                        "agent": agent_type,
-                        "entities": intent.get("entities", {}),
-                        "fallback_used": (
-                            False
-                            if agent_type
-                            == self.agent_registry.get_agent_type_for_intent(
-                                intent_type
-                            )
-                            else True
-                        ),
-                    },
-                }
-            else:  # Jeśli agent zwróci inny typ
-                return {
-                    "response": (
-                        response if isinstance(response, dict) else str(response)
-                    ),
-                    "metadata": {
-                        "intent": intent_type,
-                        "agent": agent_type,
-                        "entities": intent.get("entities", {}),
-                        "fallback_used": (
-                            False
-                            if agent_type
-                            == self.agent_registry.get_agent_type_for_intent(
-                                intent_type
-                            )
-                            else True
-                        ),
-                    },
-                }
+                return response
+            else:
+                # Jeśli agent zwróci inny typ, opakuj w AgentResponse
+                return AgentResponse(
+                    success=True,
+                    text=str(response) if response else "Brak odpowiedzi",
+                    data={"original_response": response}
+                )
 
         except AgentError as e:
             logger.error(
                 f"AgentError during processing with agent {agent_type}: {str(e)}",
                 exc_info=True,
             )
-            # Użyj bardziej szczegółowego błędu z error_types
-            raise AgentProcessingError(
-                f"Error processing request: {str(e)}",
-                agent_type=agent_type,
-            ) from e
+            return AgentResponse(
+                success=False,
+                error=f"Error processing request: {str(e)}",
+                text="Przepraszam, wystąpił błąd podczas przetwarzania żądania."
+            )
         except Exception as e:
             logger.error(
                 f"Unexpected error processing request with agent {agent_type}: {str(e)}",
                 exc_info=True,
             )
-            raise AgentProcessingError(
-                "Przepraszam, wystąpił nieoczekiwany błąd podczas przetwarzania żądania.",
-                agent_type=agent_type,
-            ) from e
+            return AgentResponse(
+                success=False,
+                error="Przepraszam, wystąpił nieoczekiwany błąd podczas przetwarzania żądania.",
+                text="Przepraszam, wystąpił nieoczekiwany błąd podczas przetwarzania żądania."
+            )
 
-    # Dodaj prywatną metodę pomocniczą do generowania odpowiedzi fallback
-    def _create_fallback_response(
-        self, intent_type: str, error_message: str
-    ) -> Dict[str, Any]:
-        return {
-            "response": {
-                "success": False,
-                "error": f"Przepraszam, wystąpił problem podczas przetwarzania żądania: {error_message}",
-                "text": "Przepraszam, wystąpił problem podczas przetwarzania żądania.",
-                "message": "Processing failed due to an error.",
-            },
-            "metadata": {
-                "intent": intent_type,
-                "agent": "FallbackHandler",
-                "entities": {},
-                "fallback_used": True,
-            },
-        }
+

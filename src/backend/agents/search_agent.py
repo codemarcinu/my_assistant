@@ -39,7 +39,7 @@ class SearchAgent(BaseAgent):
     Zoptymalizowany z cache'owaniem wyników wyszukiwania.
     """
 
-    def __init__(self, config: Dict[str, Any] = None) -> None:
+    def __init__(self, config: Dict[str, Any] = None, **kwargs) -> None:
         super().__init__(config=config)
         self.search_providers = {
             "wikipedia": WikipediaSearchProvider(),
@@ -48,6 +48,7 @@ class SearchAgent(BaseAgent):
         self.default_provider = "duck"
         self.response_generator = ResponseGenerator()
         self.cache_enabled = config.get("cache_enabled", True) if config else True
+        # Ignoruj nieznane kwargs przekazywane przez DI, testy, monitoring, kontenery
 
     def detect_search_type(self, query: str) -> str:
         """

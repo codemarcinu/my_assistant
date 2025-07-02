@@ -9,6 +9,7 @@ from pydantic import BaseModel, ValidationError
 
 from backend.agents.base_agent import BaseAgent
 from backend.agents.interfaces import AgentResponse
+from backend.core.decorators import handle_exceptions
 from backend.core.hybrid_llm_client import hybrid_llm_client
 from backend.core.product_categorizer import ProductCategorizer
 

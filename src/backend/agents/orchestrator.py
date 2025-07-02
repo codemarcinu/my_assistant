@@ -5,11 +5,12 @@ from typing import Any, Callable, Coroutine, Dict, Optional
 import asyncio
 
 from sqlalchemy.ext.asyncio import AsyncSession
+import pybreaker
 
 from backend.core.profile_manager import ProfileManager
 from backend.models.user_profile import InteractionType
 
-from backend.agents.agent_router import AgentRouter
+from backend.agents.router_service import AgentRouter
 from backend.agents.base_agent import BaseAgent
 from backend.agents.error_types import ErrorSeverity
 from backend.agents.intent_detector import SimpleIntentDetector as IntentDetector
@@ -29,75 +30,32 @@ class CircuitBreakerError(Exception):
     pass
 
 
-class SimpleCircuitBreaker:
+class AsyncCircuitBreaker:
     """
-    Simple CircuitBreaker for protecting asynchronous calls
-    without using problematic pybreaker library
+    Async wrapper for pybreaker circuit breaker
     """
-
-    # State constants
-    STATE_CLOSED = "closed"
-    STATE_OPEN = "open"
-    STATE_HALF_OPEN = "half-open"
-
+    
     def __init__(self, name: str, fail_max: int = 3, reset_timeout: int = 60) -> None:
-        """Initialize Circuit Breaker"""
-        self.name = name
-        self.fail_max = fail_max
-        self.reset_timeout = reset_timeout
-        self.current_state = self.STATE_CLOSED
-        self.failures = 0
-        self.last_failure_time = 0
+        """Initialize Circuit Breaker with pybreaker"""
+        self.breaker = pybreaker.CircuitBreaker(
+            fail_max=fail_max,
+            reset_timeout=reset_timeout,
+            name=name
+        )
         logger.info(
-            f"Initialized SimpleCircuitBreaker({name}) with fail_max={fail_max}, reset_timeout={reset_timeout}"
+            f"Initialized AsyncCircuitBreaker({name}) with fail_max={fail_max}, reset_timeout={reset_timeout}"
         )
 
     async def call_async(
         self, func: Callable[..., Coroutine[Any, Any, Any]], *args: Any, **kwargs: Any
     ) -> Any:
         """Execute async function with circuit breaker protection"""
-        current_time = datetime.now().timestamp()
-
-        # Check if circuit is open and if reset timeout has passed
-        if self.current_state == self.STATE_OPEN:
-            if current_time - self.last_failure_time > self.reset_timeout:
-                logger.info(
-                    f"CircuitBreaker({self.name}) reset timeout expired, moving to half-open"
-                )
-                self.current_state = self.STATE_HALF_OPEN
-            else:
-                logger.warning(f"CircuitBreaker({self.name}) is OPEN, rejecting call")
-                raise CircuitBreakerError(
-                    f"CircuitBreaker {self.name} is OPEN. Try again later."
-                )
-
         try:
-            # Call the function
-            result = await func(*args, **kwargs)
-
-            # Success - reset failure counter
-            if self.current_state in [self.STATE_CLOSED, self.STATE_HALF_OPEN]:
-                self.failures = 0
-                self.current_state = self.STATE_CLOSED
-
-            return result
-
-        except Exception as e:
-            # Handle error
-            self.failures += 1
-            self.last_failure_time = current_time
-
-            logger.warning(
-                f"CircuitBreaker({self.name}) recorded failure {self.failures}/{self.fail_max}: {str(e)}"
-            )
-
-            # If failure limit exceeded, open the circuit
-            if self.failures >= self.fail_max:
-                self.current_state = self.STATE_OPEN
-                logger.error(f"CircuitBreaker({self.name}) is now OPEN")
-
-            # Re-raise the error
-            raise
+            # Use pybreaker's call method with async function
+            return await self.breaker.call_async(func, *args, **kwargs)
+        except pybreaker.CircuitBreakerError as e:
+            logger.warning(f"CircuitBreaker({self.breaker.name}) is OPEN: {str(e)}")
+            raise CircuitBreakerError(f"CircuitBreaker {self.breaker.name} is OPEN. Try again later.") from e
 
 
 class Orchestrator:
@@ -137,7 +95,7 @@ class Orchestrator:
             self.synthesizer = None
         
         # Initialize circuit breaker for fault tolerance
-        self.circuit_breaker = SimpleCircuitBreaker(
+        self.circuit_breaker = AsyncCircuitBreaker(
             name="orchestrator_circuit_breaker",
             fail_max=5,
             reset_timeout=60,

@@ -115,6 +115,7 @@ class Settings(BaseSettings):
     FALLBACK_STRATEGY: str = "progressive"  # progressive, round_robin, quality_first
     ENABLE_MODEL_FALLBACK: bool = True
     FALLBACK_TIMEOUT: int = 60  # sekundy przed przełączeniem na fallback
+    VALIDATE_MODELS_ON_STARTUP: bool = True  # Walidacja modeli przy starcie
 
     # Konfiguracja dla modelu MMLW (opcjonalny, lepszy dla języka polskiego)
     USE_MMLW_EMBEDDINGS: bool = True  # Automatycznie włączone

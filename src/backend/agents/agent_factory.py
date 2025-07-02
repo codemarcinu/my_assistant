@@ -1,4 +1,5 @@
 import logging
+import threading
 from typing import Any, Dict, Optional, Type
 
 from pydantic import BaseModel
@@ -100,6 +101,7 @@ class AgentFactory:
         self.container = container or AgentContainer()
         self.config: Dict[str, Any] = {}
         self._agent_cache: Dict[str, BaseAgent] = {}  # Cache dla agentów
+        self._cache_lock = threading.Lock()  # Thread-safe lock dla cache
         self._registry: Dict[str, BaseAgent] = {}  # Registry dla agentów (dla testów)
         self.agent_config = {
             "ocr": {"module": "ocr_agent"},
@@ -121,43 +123,52 @@ class AgentFactory:
             pass
 
         # Register agent classes with the registry
-        general_conversation_cls = self._get_agent_class("GeneralConversationAgent")
-        self.agent_registry.register_agent_class(
-            "GeneralConversation", general_conversation_cls
-        )
-        self.agent_registry.register_agent_class(
-            "GeneralConversationAgent", general_conversation_cls
-        )
-        self.agent_registry.register_agent_class(
-            "OCR", self._get_agent_class("EnhancedOCRAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "ReceiptAnalysis", self._get_agent_class("EnhancedReceiptAnalysisAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "Weather", self._get_agent_class("WeatherAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "Search", self._get_agent_class("SearchAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "Chef", self._get_agent_class("ChefAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "MealPlanner", self._get_agent_class("MealPlannerAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "Categorization", self._get_agent_class("CategorizationAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "Analytics", self._get_agent_class("AnalyticsAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "RAG", self._get_agent_class("RAGAgent")
-        )
-        self.agent_registry.register_agent_class(
-            "CustomAgent", self._get_agent_class("BaseAgent")
-        )
+        self._register_agent_classes()
+
+    def _register_agent_classes(self) -> None:
+        """Register all agent classes with the registry in a safe way"""
+        try:
+            general_conversation_cls = self._get_agent_class("GeneralConversationAgent")
+            self.agent_registry.register_agent_class(
+                "GeneralConversation", general_conversation_cls
+            )
+            self.agent_registry.register_agent_class(
+                "GeneralConversationAgent", general_conversation_cls
+            )
+            self.agent_registry.register_agent_class(
+                "OCR", self._get_agent_class("EnhancedOCRAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "ReceiptAnalysis", self._get_agent_class("EnhancedReceiptAnalysisAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "Weather", self._get_agent_class("WeatherAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "Search", self._get_agent_class("SearchAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "Chef", self._get_agent_class("ChefAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "MealPlanner", self._get_agent_class("MealPlannerAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "Categorization", self._get_agent_class("CategorizationAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "Analytics", self._get_agent_class("AnalyticsAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "RAG", self._get_agent_class("RAGAgent")
+            )
+            self.agent_registry.register_agent_class(
+                "CustomAgent", self._get_agent_class("BaseAgent")
+            )
+        except Exception as e:
+            logger.error(f"Error registering agent classes: {e}")
+            # Continue with basic registration
+            pass
 
     def register_agent(self, agent_type: str, agent_class: Type[BaseAgent]) -> None:
         """
@@ -189,11 +200,12 @@ class AgentFactory:
         Returns:
             BaseAgent: Configured agent instance
         """
-        # Sprawdź cache jeśli włączony
+        # Thread-safe cache check
         if use_cache and not config and not kwargs:
-            cache_key = agent_type
-            if cache_key in self._agent_cache:
-                return self._agent_cache[cache_key]
+            with self._cache_lock:
+                cache_key = agent_type
+                if cache_key in self._agent_cache:
+                    return self._agent_cache[cache_key]
 
         # ✅ ALWAYS: Proper agent registration with fallback
         if agent_type not in self.AGENT_REGISTRY:
@@ -207,19 +219,18 @@ class AgentFactory:
 
         # ✅ ALWAYS: Provide default dependencies for agents that require them
         if agent_type in ("search", "Search"):
-            # SearchAgent doesn't require vector_store in constructor
-            if "llm_client" not in kwargs:
-                from backend.core.hybrid_llm_client import hybrid_llm_client
-
-                kwargs["llm_client"] = hybrid_llm_client
+            # SearchAgent doesn't require llm_client in constructor
+            # It uses hybrid_llm_client internally
+            pass
 
         # Utwórz instancję agenta
         agent = agent_class(**kwargs)
 
-        # Zapisz w cache jeśli włączony i nie ma dodatkowej konfiguracji
+        # Thread-safe cache save
         if use_cache and not config and not kwargs:
-            cache_key = agent_type
-            self._agent_cache[cache_key] = agent
+            with self._cache_lock:
+                cache_key = agent_type
+                self._agent_cache[cache_key] = agent
 
         return agent
 
@@ -282,7 +293,8 @@ class AgentFactory:
 
     def cleanup(self) -> None:
         """Perform any necessary cleanup for the factory, such as clearing caches."""
-        self._agent_cache.clear()
+        with self._cache_lock:
+            self._agent_cache.clear()
         logger.info("AgentFactory cache cleared.")
 
     def reset(self) -> None:
