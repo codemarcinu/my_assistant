@@ -1,35 +1,127 @@
-# MyAppAssistant Project Rules
+# .cursorrules - FoodSave AI Development Ruleset
+# Comprehensive coding, security, and AI interaction guidelines
+# Version: 2025-07-02
 
-## Project Context
-- FastAPI backend application with AI agent system
-- Python 3.12+ with modern async/await patterns
-- PostgreSQL database with SQLAlchemy ORM
-- Pytest for testing with high coverage requirements
+## 🧠 Project Overview
+- **Platform**: Desktop (Tauri 2.x) + Web (Next.js 15, React 18)
+- **Backend**: FastAPI (Python 3.12+), PostgreSQL, Redis
+- **AI Agents**: Local models (Ollama + Bielik), Multi-agent architecture
+- **Tooling**: Docker Compose, Prometheus, Grafana, Playwright, Storybook
 
-## Code Standards
-- Follow PEP 8 style guidelines
-- Use type hints for all function signatures
-- Prefer composition over inheritance
-- Write docstrings for all public methods
-- Use async/await for I/O operations
+---
 
-## Testing Requirements
-- Maintain >80% test coverage
-- Write unit tests for all business logic
-- Include integration tests for API endpoints
-- Mock external dependencies in tests
-- Use pytest fixtures for test setup
+## 🧪 Code Standards
 
-## Security Practices
-- Never commit secrets or API keys
-- Use environment variables for configuration
-- Implement proper input validation
-- Follow OWASP security guidelines
-- Use parameterized queries for database operations
+### 🦀 Rust (Tauri)
+- Use idiomatic `Result<T, E>` for all error-prone operations
+- Async everywhere via `tokio`, never block main thread
+- All IPC (invoke) commands must validate inputs and return serializable responses
+- Enforce `serde` serialization with proper error propagation
+- Follow Tauri Capabilities (CSP, filesystem, dialog, http, shell) — **explicit, minimal and safe**
+- State management in Rust backend must respect lifetimes and thread-safety
 
-## Performance Guidelines
-- Optimize database queries
-- Use connection pooling
-- Implement caching where appropriate
-- Monitor response times <200ms for API endpoints
-- Use async patterns for concurrent operations
+### 🧠 TypeScript / React
+- Enable `strict` mode; all functions and props must be fully typed
+- Use `zod` or `yup` for runtime validation where needed
+- Use `Zustand` for state management + localStorage persistence
+- Error boundaries required for all async React components
+- Reusable UI components in feature-based folders; tested in Storybook
+
+### 🐍 Python (FastAPI)
+- Full type hints + docstrings for every function
+- Use `async def` for all endpoints and I/O operations
+- Input validation via `Pydantic` models; sanitize all external data
+- Separate routers (`api/v1/*`) by domain; avoid monolithic endpoints
+- DB access via `SQLAlchemy` ORM; use connection pooling and async sessions
+
+---
+
+## 💬 LLM Integration Rules
+
+- **Agent Prompting**: Provide clear, structured, domain-specific prompts
+- **Timeouts & Failover**: All AI calls must use timeout + fallback responses
+- **Sensitive Data**: Never send raw receipt data without obfuscation
+- **Model Feedback**: Track agent performance (success/failure, latency, confidence)
+- **Modular Agents**: Isolate functionality: e.g., `IntentDetector`, `MemoryManager`, `ResponseComposer`
+- **Streaming**: Use token streaming for long responses (if supported)
+
+---
+
+## 🛠️ Desktop App Standards (Tauri)
+
+- Responsive layout: min width 800px, max fluid
+- Native integrations: dialogs, notifications, local file access
+- App state must persist across restarts
+- Use Tauri's secure API layer for filesystem/shell access
+- Sandboxing: no external calls unless explicitly whitelisted
+
+---
+
+## 🧾 OCR & Receipt Handling
+
+- Pre-check image resolution and brightness; inform user if suboptimal
+- Compress images on client side (e.g., WebP, <1MB)
+- Validate receipt structure: date, price, VAT ID, shop name
+- Secure storage: encrypt all sensitive receipt data (e.g., product list, prices)
+- Use Polish-specific retail parsing heuristics (e.g., Biedronka, Lidl)
+
+---
+
+## 🔒 Security & Privacy
+
+- All API communication over HTTPS, validate responses (status code + schema)
+- Environment variables for secrets and API keys; never hardcoded
+- Enforce CSP (Content Security Policy) on frontend
+- All IPC and LLM requests must include input validation and sanitation
+- Encrypt sensitive data in DB using field-level encryption (e.g., Fernet)
+
+---
+
+## 🚀 Performance Optimization
+
+- **Frontend**: Lazy-load components, debounce inputs, progressive image rendering
+- **Backend**: Use `Redis` cache for expensive queries, paginated responses
+- **AI**: Token-based streaming, GPU offloading if available
+- **Desktop**: Clean up background threads and memory on window close
+
+---
+
+## 🧪 Testing & QA
+
+- **Rust**: `tokio::test`, mock Tauri API, validate IPC logic
+- **Python**: `pytest`, >90% coverage, integration tests for API + DB
+- **Frontend**: `Jest`, `React Testing Library`, `Playwright` for E2E
+- **Cross-platform**: Validate builds for Windows, Linux, macOS (via Tauri CI)
+
+---
+
+## 📁 File Structure & Docs
+
+- Tauri commands in `src-tauri/src/lib.rs` with Rustdoc comments
+- API routers in `backend/api/v1/` by domain (e.g., `receipts.py`, `users.py`)
+- Frontend organized by features (`/features/receipts`, `/features/chat`)
+- Use shared types/interfaces in `/shared` or `/common`
+- TypeScript: JSDoc required for utility functions
+- Markdown docs in `/docs` or inline via `README.md` in subfolders
+
+---
+
+## 🗣️ Polish Language Support
+
+- All UI localized via `i18next`
+- Errors/messages: user-friendly, context-aware, and fully translated
+- Use `date-fns` or equivalent for Polish date/time formatting
+- Recognize Polish VAT formats, common shop names, and units (szt., kg, ml)
+
+---
+
+## 🧷 Dev Workflow
+
+- Dev: `tauri dev` + Next.js dev server + Docker backend
+- Git hooks: `pre-commit` with `black`, `eslint`, `prettier`, `mypy`
+- CI/CD: Lint, test, build for all 3 platforms
+- Manual code review checklist: 🔐 Security | ⚙️ Performance | 🧠 AI logic | 🧼 Readability
+
+---
+
+# END OF RULESET
