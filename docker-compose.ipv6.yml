@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: .
+      dockerfile: src/backend/Dockerfile
+    container_name: foodsave-backend
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:8001:8000"  # Nasłuchuj na wszystkich interfejsach IPv4
+      - "[::]:8001:8000"     # Nasłuchuj na wszystkich interfejsach IPv6
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite+aiosqlite:///./foodsave_prod.db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OLLAMA_URL=http://ollama:11434
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL:-}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - ollama
+    networks:
+      - foodsave-network
+
+  frontend:
+    build:
+      context: ./myappassistant-chat-frontend
+      dockerfile: Dockerfile
+    container_name: foodsave-frontend
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:3003:3000"
+      - "[::]:3003:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+    depends_on:
+      - backend
+    networks:
+      - foodsave-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: foodsave-redis
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:6380:6379"
+      - "[::]:6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - foodsave-network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: foodsave-ollama
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:11434:11434"
+      - "[::]:11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - foodsave-network
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile
+    container_name: foodsave-celery-worker
+    restart: unless-stopped
+    command: celery -A backend.celery_config worker --loglevel=info
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite+aiosqlite:///./foodsave_prod.db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - foodsave-network
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: src/backend/Dockerfile
+    container_name: foodsave-celery-beat
+    restart: unless-stopped
+    command: celery -A backend.celery_config beat --loglevel=info
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite+aiosqlite:///./foodsave_prod.db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - foodsave-network
+
+volumes:
+  redis_data:
+  ollama_data:
+
+networks:
+  foodsave-network:
+    driver: bridge
+    enable_ipv6: true 
