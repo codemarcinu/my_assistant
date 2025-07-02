@@ -65,7 +65,9 @@ COPY src/backend ./backend
 # Create necessary directories with proper permissions BEFORE switching user
 RUN mkdir -p /app/logs /app/data /app/data/vector_store /app/backups /app/backups/config /app/backups/database /app/backups/files /app/backups/vector_store && \
     chown -R foodsave:foodsave /app && \
-    chmod -R 755 /app/logs
+    chmod -R 777 /app/logs && \
+    chmod -R 777 /app/data && \
+    chmod -R 777 /app/backups
 
 # Switch to non-root user
 USER foodsave

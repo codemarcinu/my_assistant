@@ -176,11 +176,25 @@ class SecurityManager:
         
         # Create log directory if it doesn't exist
         log_path = Path(self.config.audit_log_path)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            # Ensure proper permissions
+            log_path.parent.chmod(0o777)
+        except Exception as e:
+            logger.warning(f"Could not create log directory: {e}")
+            # Fallback to console logging only
+            return audit_logger
         
-        # File handler
-        file_handler = logging.FileHandler(log_path)
-        file_handler.setLevel(logging.INFO)
+        # File handler with error handling
+        try:
+            file_handler = logging.FileHandler(log_path)
+            file_handler.setLevel(logging.INFO)
+        except PermissionError:
+            logger.warning(f"Permission denied for log file: {log_path}. Using console logging only.")
+            return audit_logger
+        except Exception as e:
+            logger.warning(f"Could not create file handler: {e}. Using console logging only.")
+            return audit_logger
         
         # JSON formatter
         formatter = logging.Formatter(
