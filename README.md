@@ -141,4 +141,20 @@ Status powinien być `"healthy"` lub nie zawierać błędu związanego z `llm_cl
 
 ---
 
-**W razie dalszych problemów: sprawdź logi backendu oraz upewnij się, że kod w kontenerze jest aktualny względem repozytorium.** 
+**W razie dalszych problemów: sprawdź logi backendu oraz upewnij się, że kod w kontenerze jest aktualny względem repozytorium.**
+
+# MyAppAssistant – Tryb Kontenerowy (2025-07-02)
+
+## 🐳 Najważniejsze informacje
+- System działa wyłącznie w trybie kontenerów Docker Compose.
+- Modele AI (Ollama) przechowywane są tylko w wolumenie Docker (`aiasisstmarubo_ollama_data`).
+- Lokalny katalog modeli został usunięty – nie przechowuje żadnych modeli.
+- Wszystkie kluczowe komponenty uruchamiane są jako kontenery: backend, frontend, Celery, Redis, Postgres, Ollama.
+
+## ✅ Pełne testy systemu
+- Skrypt testowy: `FULL_SYSTEM_TEST.py`
+- Wyniki testów: **100% sukcesu (8/8)**
+- Wyniki: `full_system_test_results.json`, logi: `full_system_test.log`
+- Uruchomienie testów: `python3 FULL_SYSTEM_TEST.py`
+
+--- 

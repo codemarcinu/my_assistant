@@ -290,4 +290,26 @@ commit b9ad177 - feat: Complete multi-agent system optimization and refactoring
 
 ---
 
+## 🐳 Tryb Kontenerowy (Docker Compose)
+
+- System działa wyłącznie w trybie kontenerów Docker Compose.
+- Wszystkie modele AI (Ollama) przechowywane są wyłącznie w wolumenie Docker (`aiasisstmarubo_ollama_data`).
+- Lokalny katalog `/usr/share/ollama/.ollama/models` został usunięty – nie przechowuje żadnych modeli.
+- Backend, frontend, Celery, Redis, Postgres, Ollama uruchamiane są jako osobne kontenery.
+
+## ✅ Pełne Testy Systemu (2025-07-02)
+
+- Wykonano pełny test systemu (`FULL_SYSTEM_TEST.py`).
+- Wyniki testów: **100% sukcesu (8/8)**.
+- Testowane komponenty: backend, frontend, API agentów, czat, modele Ollama, baza danych, Redis/Celery, kontenery Docker.
+- Wyniki testów zapisane w pliku: `full_system_test_results.json`.
+- Logi testów: `full_system_test.log`.
+
+## 📂 Lokalizacja skryptu testowego
+
+- Skrypt: `FULL_SYSTEM_TEST.py` (w katalogu głównym repozytorium)
+- Uruchomienie: `python3 FULL_SYSTEM_TEST.py`
+
+---
+
 **🎉 Deployment completed successfully! The MyAppAssistant multi-agent system is now fully operational with all optimizations implemented and tested.** 

@@ -1,0 +1,94 @@
+{
+  "overall_success": true,
+  "total_tests": 8,
+  "passed_tests": 8,
+  "failed_tests": 0,
+  "success_rate": 100.0,
+  "test_results": {
+    "docker_containers": {
+      "success": true,
+      "containers": [
+        "aiasisstmarubo-celery_worker-1",
+        "aiasisstmarubo-celery_beat-1",
+        "aiasisstmarubo-frontend-1",
+        "aiasisstmarubo-backend-1",
+        "aiasisstmarubo-ollama-1",
+        "aiasisstmarubo-postgres-1",
+        "aiasisstmarubo-redis-1",
+        "foodsave-promtail-dev",
+        "foodsave-loki-dev"
+      ],
+      "missing_containers": [],
+      "required_count": 7,
+      "running_count": 9
+    },
+    "backend_health": {
+      "success": true,
+      "status": "healthy",
+      "timestamp": "2025-07-02T06:27:18.887054",
+      "response_time": "N/A"
+    },
+    "ollama_models": {
+      "success": true,
+      "models_count": 7,
+      "total_size_gb": 29.2,
+      "available_models": [
+        "nomic-embed-text:latest",
+        "mistral:7b",
+        "llama3.2:3b",
+        "gemma3:12b",
+        "SpeakLeash/bielik-11b-v2.3-instruct:Q5_K_M",
+        "SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0",
+        "llama2:7b"
+      ],
+      "missing_models": [],
+      "required_count": 6
+    },
+    "agents_api": {
+      "success": true,
+      "agents_count": 14,
+      "available_agents": [
+        "Chef",
+        "Weather",
+        "Search",
+        "RAG",
+        "OCR",
+        "Categorization",
+        "MealPlanner",
+        "Analytics",
+        "GeneralConversation",
+        "General",
+        "Cooking",
+        "Code",
+        "Shopping",
+        "ReceiptAnalysis"
+      ],
+      "missing_agents": [],
+      "required_count": 14
+    },
+    "chat_functionality": {
+      "success": true,
+      "response_received": false,
+      "session_id": null,
+      "response_length": 0
+    },
+    "frontend_accessibility": {
+      "success": true,
+      "status_code": 200,
+      "content_type": "text/html; charset=utf-8",
+      "response_size": 92172
+    },
+    "database_connection": {
+      "success": true,
+      "status_code": 404,
+      "database_accessible": true
+    },
+    "redis_connection": {
+      "success": true,
+      "celery_worker_status": "checked_by_backend",
+      "backend_health": "healthy",
+      "log_snippet": "- linux-6.11.0-28-generic-x86_64-with-glibc2.36 2025-07-02 06:01:29\n- *** --- * --- \n- ** ---------- [config]\n- ** ---------- .> app:         myappassistant:0x7180301c7770\n- ** ---------- .> transport:   redis://redis:6379/0\n- ** ---------- .> results:     redis://redis:6379/0\n- *** --- * --- .> concurrency: 4 (prefork)\n-- ******* ---- .> task events: on\n--- ***** ----- \n -------------- [queues]\n                .> default          exchange=default(direct) key=default\n                \n\n[tasks]\n\n\n"
+    }
+  },
+  "timestamp": "2025-07-02 08:27:29"
+}
