@@ -1,4 +1,4 @@
-import { invoke } from '@/lib/tauri-client';
+import { invoke as tauriInvoke } from '@/lib/tauri-client';
 
 export interface ReceiptItem {
   name: string;
@@ -25,6 +25,8 @@ export interface NotificationData {
 const isTauriAvailable = () => {
   return typeof window !== 'undefined' && window.__TAURI__ !== undefined;
 };
+
+const invoke = typeof tauriInvoke === 'function' ? tauriInvoke : null;
 
 // Fallback API client for web browser usage
 const webApiClient = {
@@ -53,18 +55,18 @@ const webApiClient = {
 export const useTauriAPI = () => {
   const processReceipt = async (path: string): Promise<ReceiptData> => {
     if (isTauriAvailable()) {
-      return await invoke('process_receipt_image', { path });
+      if (!invoke) throw new Error('Brak wsparcia dla invoke w tym środowisku');
+      return await (invoke('process_receipt_image', { path }) as Promise<ReceiptData>);
     } else {
-      // Fallback for web browser - you might want to implement file upload handling
       throw new Error('Receipt processing is only available in the desktop app');
     }
   };
 
   const showNotification = async (title: string, body: string): Promise<void> => {
     if (isTauriAvailable()) {
-      return await invoke('show_system_notification', { title, body });
+      if (!invoke) throw new Error('Brak wsparcia dla invoke w tym środowisku');
+      await (invoke('show_system_notification', { title, body }) as Promise<void>);
     } else {
-      // Fallback for web browser - use browser notifications
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, { body });
       } else if ('Notification' in window && Notification.permission !== 'denied') {
@@ -78,18 +80,18 @@ export const useTauriAPI = () => {
 
   const showCustomNotification = async (notification: NotificationData): Promise<void> => {
     if (isTauriAvailable()) {
-      return await invoke('show_custom_notification', { notification });
+      if (!invoke) throw new Error('Brak wsparcia dla invoke w tym środowisku');
+      await (invoke('show_custom_notification', { notification }) as Promise<void>);
     } else {
-      // Fallback for web browser
       await showNotification(notification.title, notification.body);
     }
   };
 
   const saveReceiptData = async (receipt: ReceiptData): Promise<string> => {
     if (isTauriAvailable()) {
-      return await invoke('save_receipt_data', { receipt });
+      if (!invoke) throw new Error('Brak wsparcia dla invoke w tym środowisku');
+      return await (invoke('save_receipt_data', { receipt }) as Promise<string>);
     } else {
-      // Fallback for web browser - save to localStorage or send to backend
       const receipts = JSON.parse(localStorage.getItem('receipts') || '[]');
       receipts.push({ ...receipt, id: Date.now().toString() });
       localStorage.setItem('receipts', JSON.stringify(receipts));
@@ -99,10 +101,10 @@ export const useTauriAPI = () => {
 
   const getAppDataDir = async (): Promise<string> => {
     if (isTauriAvailable()) {
-      const path = await invoke('get_app_data_dir');
+      if (!invoke) throw new Error('Brak wsparcia dla invoke w tym środowisku');
+      const path = await (invoke('get_app_data_dir') as Promise<string>);
       return typeof path === 'string' ? path : String(path);
     } else {
-      // Fallback for web browser
       return '/app-data';
     }
   };
@@ -113,10 +115,9 @@ export const useTauriAPI = () => {
     body?: string
   ): Promise<string> => {
     if (isTauriAvailable()) {
-      return await invoke('make_api_request', { url, method, body });
+      if (!invoke) throw new Error('Brak wsparcia dla invoke w tym środowisku');
+      return await (invoke('make_api_request', { url, method, body }) as Promise<string>);
     } else {
-      // Fallback for web browser - use fetch API
-      // Ensure the URL is properly formatted
       const fullUrl = url.startsWith('http') ? url : `http://localhost:8001${url}`;
       return await webApiClient.request(fullUrl, method, body);
     }
@@ -124,9 +125,9 @@ export const useTauriAPI = () => {
 
   const greet = async (name: string): Promise<string> => {
     if (isTauriAvailable()) {
-      return await invoke('greet', { name });
+      if (!invoke) throw new Error('Brak wsparcia dla invoke w tym środowisku');
+      return await (invoke('greet', { name }) as Promise<string>);
     } else {
-      // Fallback for web browser
       return `Hello, ${name}! You've been greeted from the web browser!`;
     }
   };

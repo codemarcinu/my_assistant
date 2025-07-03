@@ -80,7 +80,14 @@ export function QuickCommands() {
         case 'weather': {
           const weatherResponse = await weatherAPI.getWeather('Zabki,PL');
           const weatherData = weatherResponse.data;
-          responseMessage = `🌤️ **Aktualna pogoda w ${weatherData.location}:**\n\n**Temperatura:** ${weatherData.temperature}°C\n**Warunki:** ${weatherData.condition} ${weatherData.icon}\n**Wilgotność:** ${weatherData.humidity}%\n**Wiatr:** ${weatherData.windSpeed} km/h\n\n**Prognoza na 3 dni:**\n${weatherData.forecast?.map((day: any, index: number) => { const dayNames = ['Dziś', 'Jutro', 'Pojutrze']; return `• **${dayNames[index]}:** ${day.temperature.min}°C - ${day.temperature.max}°C, ${day.condition} ${day.icon}`; }).join('\n') || 'Brak danych prognostycznych'}\n\n**Ostatnia aktualizacja:** ${new Date().toLocaleTimeString('pl-PL')}`;
+          const forecastText = Array.isArray(weatherData.forecast) && weatherData.forecast.length > 0 
+            ? weatherData.forecast.map((day: any, index: number) => { 
+                const dayNames = ['Dziś', 'Jutro', 'Pojutrze']; 
+                return `• **${dayNames[index]}:** ${day.temperature.min}°C - ${day.temperature.max}°C, ${day.condition} ${day.icon}`; 
+              }).join('\n')
+            : 'Brak danych prognostycznych';
+          
+          responseMessage = `🌤️ **Aktualna pogoda w ${weatherData.location}:**\n\n**Temperatura:** ${weatherData.temperature}°C\n**Warunki:** ${weatherData.condition} ${weatherData.icon}\n**Wilgotność:** ${weatherData.humidity}%\n**Wiatr:** ${weatherData.windSpeed} km/h\n\n**Prognoza na 3 dni:**\n${forecastText}\n\n**Ostatnia aktualizacja:** ${new Date().toLocaleTimeString('pl-PL')}`;
           agentType = targetAgent?.name || 'Agent Pogodowy';
           break;
         }
@@ -97,8 +104,8 @@ export function QuickCommands() {
           break;
         }
         case 'analytics': {
-          const analytics = await receiptAPI.analyzeExpenses('month');
-          responseMessage = `�� **Analiza wydatków (${analytics.time_range}):**\n\n**Podsumowanie:**\n• Całkowite wydatki: ${analytics.total_expenses.toFixed(2)} zł\n• Średni dzienny wydatek: ${analytics.average_daily.toFixed(2)} zł\n\n**Top kategorie:**\n${analytics.top_categories.map((cat: any, index: number) => `${index + 1}. ${cat.name}: ${cat.amount.toFixed(2)} zł (${cat.percentage}%)`).join('\n')}\n\n**Trendy:**\n• Wydatki na jedzenie: ${analytics.trends.food_increase > 0 ? '+' : ''}${analytics.trends.food_increase}%\n• Oszczędności na transporcie: ${analytics.trends.transport_savings}%\n• Nowa kategoria: ${analytics.trends.new_category} (${analytics.trends.new_category_amount.toFixed(2)} zł)\n\n**Ostatnia aktualizacja:** ${new Date(analytics.last_updated).toLocaleString('pl-PL')}`;
+          // Tymczasowo używamy fallback response dla analytics
+          responseMessage = `📊 **Analiza wydatków - Ostatni miesiąc**\n\nFunkcja analizy wydatków będzie dostępna wkrótce.`;
           break;
         }
         default: {

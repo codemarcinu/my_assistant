@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { 
   Upload, 
@@ -29,7 +30,14 @@ import {
   RefreshCw,
   AlertTriangle,
   Info,
-  Sparkles
+  Sparkles,
+  Search,
+  Plus,
+  Trash2,
+  Clock,
+  Zap,
+  Shield,
+  Lightbulb
 } from "lucide-react";
 import { useTauriAPI } from "@/hooks/useTauriAPI";
 import { toast } from "sonner";
@@ -41,6 +49,7 @@ interface ReceiptItem {
   category?: string;
   confidence?: number;
   boundingBox?: { x: number; y: number; width: number; height: number };
+  selected?: boolean;
 }
 
 interface ReceiptAnalysis {
@@ -93,6 +102,9 @@ export function ReceiptWizard() {
   const [contourResult, setContourResult] = useState<ReceiptContourResult | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [showBoundingBoxes, setShowBoundingBoxes] = useState(false);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [processingMessages, setProcessingMessages] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { makeApiRequest } = useTauriAPI();
@@ -104,6 +116,7 @@ export function ReceiptWizard() {
     setOcrResult(null);
     setAnalysisResult(null);
     setWarnings([]);
+    setProcessingMessages([]);
     
     // Utwórz podgląd
     const url = URL.createObjectURL(file);
@@ -248,29 +261,55 @@ export function ReceiptWizard() {
     }
   }, [previewUrl, selectedFile, handleFileSelect]);
 
-  // Przetwarzanie paragonu z ulepszonym workflow
+  // Przetwarzanie paragonu z ulepszonym workflow i komunikatem "Poczekaj chwilę"
   const processReceipt = async () => {
     if (!selectedFile) return;
+
+    // Utwórz AbortController dla możliwości anulowania
+    const controller = new AbortController();
+    setAbortController(controller);
 
     setIsProcessing(true);
     setProgress(0);
     setError(null);
     setCurrentStep('processing');
+    setProcessingMessages([]);
+
+    // DODAJ: Przyjazny komunikat dla użytkownika - KRYTYCZNY BRAK z raportu
+    toast.info("🔍 Poczekaj chwilę, przeanalizuję dla Ciebie dane z paragonu...", {
+      duration: 5000,
+      style: {
+        background: '#3B82F6',
+        color: 'white',
+      }
+    });
 
     try {
       // Step 1: Kompresja obrazu
       setProgress(10);
+      setProcessingMessages(prev => [...prev, "📸 Kompresuję obraz dla lepszej wydajności..."]);
       const compressedFile = await compressImage(selectedFile);
-      toast.info("Obraz został skompresowany");
+      
+      // Dodatkowe komunikaty podczas procesu
+      setTimeout(() => {
+        setProcessingMessages(prev => [...prev, "📸 Rozpoznaję tekst z obrazu..."]);
+        toast.info("📸 Rozpoznaję tekst z obrazu...");
+      }, 2000);
+      
+      setTimeout(() => {
+        setProcessingMessages(prev => [...prev, "🏪 Identyfikuję sklep i produkty..."]);
+        toast.info("🏪 Identyfikuję sklep i produkty...");
+      }, 5000);
 
       // Step 2: Upload and process with OCR
       setProgress(30);
       const formData = new FormData();
       formData.append('file', compressedFile);
 
-              const ocrResponse = await fetch('http://localhost:8001/api/v3/receipts/process', {
+      const ocrResponse = await fetch('http://localhost:8001/api/v3/receipts/process', {
         method: 'POST',
         body: formData,
+        signal: controller.signal, // Dodaj abort signal
       });
 
       if (!ocrResponse.ok) {
@@ -284,31 +323,52 @@ export function ReceiptWizard() {
 
       // Step 3: Poll for results
       const jobId = ocrData.data.job_id;
-      await pollForResults(jobId);
+      await pollForResults(jobId, controller);
 
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        toast.info("Anulowano przetwarzanie paragonu");
+        setCurrentStep('preview');
+        return;
+      }
+      
       const errorMessage = err instanceof Error ? err.message : 'Wystąpił nieoczekiwany błąd';
       setError(errorMessage);
       setCurrentStep('error');
       toast.error(`Błąd przetwarzania: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
+      setAbortController(null);
+    }
+  };
+
+  // Anulowanie przetwarzania
+  const handleCancel = () => {
+    if (abortController) {
+      abortController.abort();
+      setCurrentStep('preview');
+      toast.info("Przetwarzanie zostało anulowane");
     }
   };
 
   // Polling wyników z lepszym feedback
-  const pollForResults = async (jobId: string) => {
+  const pollForResults = async (jobId: string, controller: AbortController) => {
     const maxAttempts = 30;
     let attempts = 0;
 
     while (attempts < maxAttempts) {
       try {
-        const statusResponse = await fetch(`http://localhost:8001/api/v3/receipts/status/${jobId}`);
+        const statusResponse = await fetch(`http://localhost:8001/api/v3/receipts/status/${jobId}`, {
+          signal: controller.signal
+        });
         const statusData = await statusResponse.json();
         
         if (statusData.data.status === 'SUCCESS') {
           setAnalysisResult(statusData.data.result.analysis);
-          setEditableItems(statusData.data.result.analysis.items || []);
+          setEditableItems(statusData.data.result.analysis.items?.map((item: ReceiptItem) => ({
+            ...item,
+            selected: false
+          })) || []);
           setProgress(100);
           setCurrentStep('editing');
           toast.success('Paragon został pomyślnie przetworzony!');
@@ -320,6 +380,9 @@ export function ReceiptWizard() {
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          throw err;
+        }
         throw err;
       }
       attempts++;
@@ -345,12 +408,42 @@ export function ReceiptWizard() {
     setEditableItems(newItems);
   };
 
+  // Bulk operations dla tabeli
+  const handleSelectAll = () => {
+    const allSelected = editableItems.every(item => item.selected);
+    setEditableItems(editableItems.map(item => ({ ...item, selected: !allSelected })));
+  };
+
+  const handleDeleteSelected = () => {
+    const newItems = editableItems.filter(item => !item.selected);
+    setEditableItems(newItems);
+    toast.success(`Usunięto ${editableItems.length - newItems.length} produktów`);
+  };
+
+  const handleAddItem = () => {
+    const newItem: ReceiptItem = {
+      name: '',
+      quantity: 1,
+      price: 0,
+      category: '',
+      selected: false
+    };
+    setEditableItems([...editableItems, newItem]);
+    setEditingItem(editableItems.length);
+  };
+
+  // Filtrowanie produktów
+  const filteredItems = editableItems.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Zapisanie wyników
   const handleSaveResults = async () => {
     try {
       const finalData = {
         ...analysisResult,
-        items: editableItems,
+        items: editableItems.filter(item => item.name.trim() !== ''),
         processed_at: new Date().toISOString(),
         image_quality: imageQuality
       };
@@ -377,10 +470,33 @@ export function ReceiptWizard() {
     setEditingItem(null);
     setContourResult(null);
     setWarnings([]);
+    setProcessingMessages([]);
+    setSearchTerm('');
     
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
+  };
+
+  // Funkcja do przyjaznych komunikatów błędów
+  const getUserFriendlyError = (error: string | null): string => {
+    if (!error) return "Wystąpił nieznany błąd";
+    
+    const errorMap: Record<string, string> = {
+      'OCR processing failed': 'Nie udało się rozpoznać tekstu z obrazu. Sprawdź czy paragon jest czytelny.',
+      'Processing timeout': 'Przetwarzanie trwało zbyt długo. Spróbuj ponownie z lepszym obrazem.',
+      'Network error': 'Problem z połączeniem. Sprawdź połączenie z internetem.',
+      'Invalid file format': 'Nieobsługiwany format pliku. Użyj JPG, PNG lub PDF.',
+      'File too large': 'Plik jest zbyt duży. Skompresuj obraz przed przesłaniem.'
+    };
+
+    for (const [key, message] of Object.entries(errorMap)) {
+      if (error.toLowerCase().includes(key.toLowerCase())) {
+        return message;
+      }
+    }
+
+    return error;
   };
 
   // Renderowanie kroków
@@ -431,9 +547,27 @@ export function ReceiptWizard() {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-2">Podgląd Paragonu</h2>
-              <p className="text-gray-600">Sprawdź jakość obrazu przed przetwarzaniem</p>
+              <h2 className="text-2xl font-bold mb-2">📋 Sprawdź Paragon Przed Analizą</h2>
+              <p className="text-gray-600">Upewnij się, że tekst jest czytelny i paragon jest dobrze widoczny</p>
             </div>
+            
+            {/* Wskazówki dla najlepszych rezultatów */}
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start space-x-2">
+                  <Lightbulb className="h-4 w-4 text-blue-500 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-blue-900 mb-2">💡 Wskazówki dla najlepszych rezultatów:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-blue-700">
+                      <li>Upewnij się, że cały paragon jest widoczny</li>
+                      <li>Sprawdź czy tekst jest ostry i czytelny</li>
+                      <li>Usuń odblaski i cienie</li>
+                      <li>Ustaw paragon prosto względem krawędzi obrazu</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             
             {/* Ostrzeżenia i rekomendacje */}
             {warnings.length > 0 && (
@@ -568,6 +702,18 @@ export function ReceiptWizard() {
                 <Progress value={progress} className="w-full" />
               </div>
               
+              {/* Komunikaty o statusie przetwarzania */}
+              {processingMessages.length > 0 && (
+                <div className="space-y-2 text-sm text-gray-600">
+                  {processingMessages.map((message, index) => (
+                    <div key={index} className="flex items-center justify-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>{message}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <div className="space-y-2 text-xs text-gray-500">
                 <div className="flex items-center justify-center gap-2">
                   <FileText className="w-4 h-4" />
@@ -582,6 +728,12 @@ export function ReceiptWizard() {
                   <span>Kategoryzacja produktów</span>
                 </div>
               </div>
+              
+              {/* Przycisk anulowania */}
+              <Button variant="outline" onClick={handleCancel} className="mt-4">
+                <X className="w-4 h-4 mr-2" />
+                Anuluj przetwarzanie
+              </Button>
             </div>
           </div>
         );
@@ -590,7 +742,7 @@ export function ReceiptWizard() {
         return (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Edycja Wyników</h2>
+              <h2 className="text-2xl font-bold">🛒 Produkty z Paragonu</h2>
               <div className="flex space-x-2">
                 <Button 
                   variant="outline" 
@@ -643,74 +795,121 @@ export function ReceiptWizard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
+                    {/* Bulk operations */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          checked={editableItems.length > 0 && editableItems.every(item => item.selected)}
+                          onCheckedChange={handleSelectAll}
+                        />
+                        <span className="text-sm">Zaznacz wszystkie</span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={handleDeleteSelected}
+                          disabled={!editableItems.some(item => item.selected)}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Usuń zaznaczone
+                        </Button>
+                        <Button size="sm" onClick={handleAddItem}>
+                          <Plus className="w-3 h-3 mr-1" />
+                          Dodaj produkt
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Search */}
+                    <div className="relative mb-4">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Szukaj produktów..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {editableItems.map((item, index) => (
+                      {filteredItems.map((item, index) => (
                         <div key={index} className="flex items-center justify-between p-2 border rounded">
-                          <div className="flex-1">
-                            {editingItem === index ? (
-                              <div className="space-y-2">
-                                <Input
-                                  value={item.name}
-                                  onChange={(e) => {
-                                    const newItems = [...editableItems];
-                                    newItems[index] = { ...item, name: e.target.value };
-                                    setEditableItems(newItems);
-                                  }}
-                                />
-                                <div className="flex space-x-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              checked={item.selected}
+                              onCheckedChange={(checked) => {
+                                const newItems = [...editableItems];
+                                newItems[index] = { ...item, selected: checked as boolean };
+                                setEditableItems(newItems);
+                              }}
+                            />
+                            <div className="flex-1">
+                              {editingItem === index ? (
+                                <div className="space-y-2">
                                   <Input
-                                    type="number"
-                                    value={item.quantity}
+                                    value={item.name}
                                     onChange={(e) => {
                                       const newItems = [...editableItems];
-                                      newItems[index] = { ...item, quantity: parseFloat(e.target.value) || 0 };
+                                      newItems[index] = { ...item, name: e.target.value };
                                       setEditableItems(newItems);
                                     }}
-                                    className="w-20"
                                   />
-                                  <Input
-                                    type="number"
-                                    value={item.price}
-                                    onChange={(e) => {
-                                      const newItems = [...editableItems];
-                                      newItems[index] = { ...item, price: parseFloat(e.target.value) || 0 };
-                                      setEditableItems(newItems);
-                                    }}
-                                    className="w-24"
-                                  />
-                                </div>
-                                <div className="flex space-x-2">
-                                  <Button size="sm" onClick={() => handleSaveItem(index, item)}>
-                                    <Save className="w-3 h-3" />
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={() => setEditingItem(null)}>
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="font-medium">{item.name}</div>
-                                  <div className="text-sm text-gray-500">
-                                    {item.quantity} x {item.price.toFixed(2)} zł
+                                  <div className="flex space-x-2">
+                                    <Input
+                                      type="number"
+                                      value={item.quantity}
+                                      onChange={(e) => {
+                                        const newItems = [...editableItems];
+                                        newItems[index] = { ...item, quantity: parseFloat(e.target.value) || 0 };
+                                        setEditableItems(newItems);
+                                      }}
+                                      className="w-20"
+                                    />
+                                    <Input
+                                      type="number"
+                                      value={item.price}
+                                      onChange={(e) => {
+                                        const newItems = [...editableItems];
+                                        newItems[index] = { ...item, price: parseFloat(e.target.value) || 0 };
+                                        setEditableItems(newItems);
+                                      }}
+                                      className="w-24"
+                                    />
                                   </div>
-                                  {item.category && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      {item.category}
-                                    </Badge>
-                                  )}
+                                  <div className="flex space-x-2">
+                                    <Button size="sm" onClick={() => handleSaveItem(index, item)}>
+                                      <Save className="w-3 h-3" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => setEditingItem(null)}>
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
                                 </div>
-                                <div className="flex space-x-2">
-                                  <Button size="sm" variant="outline" onClick={() => handleEditItem(index)}>
-                                    <Edit className="w-3 h-3" />
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleDeleteItem(index)}>
-                                    <X className="w-3 h-3" />
-                                  </Button>
+                              ) : (
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-medium">{item.name}</div>
+                                    <div className="text-sm text-gray-500">
+                                      {item.quantity} x {item.price.toFixed(2)} zł
+                                    </div>
+                                    {item.category && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {item.category}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <Button size="sm" variant="outline" onClick={() => handleEditItem(index)}>
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => handleDeleteItem(index)}>
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -742,15 +941,29 @@ export function ReceiptWizard() {
         return (
           <div className="space-y-6 text-center">
             <AlertCircle className="w-16 h-16 mx-auto text-red-500" />
-            <h2 className="text-2xl font-bold">Wystąpił Błąd</h2>
-            <p className="text-gray-600">{error}</p>
+            <h2 className="text-2xl font-bold">😕 Ups! Wystąpił problem</h2>
+            <p className="text-gray-600">{getUserFriendlyError(error)}</p>
             
             <div className="flex justify-center space-x-4">
               <Button variant="outline" onClick={handleReset}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Spróbuj ponownie
+                🔄 Spróbuj ponownie
+              </Button>
+              <Button variant="outline" onClick={handleReset}>
+                <Upload className="w-4 h-4 mr-2" />
+                📋 Wybierz inny paragon
               </Button>
             </div>
+            
+            {/* Debug info for developers */}
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                Szczegóły techniczne
+              </summary>
+              <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono text-left">
+                {error}
+              </div>
+            </details>
           </div>
         );
 

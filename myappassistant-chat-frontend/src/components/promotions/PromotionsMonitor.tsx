@@ -66,6 +66,7 @@ export const PromotionsMonitor: React.FC = () => {
     setError(null);
     
     try {
+      if (!invoke) throw new Error('Brak wsparcia dla invoke w tym środowisku');
       const result = await invoke('monitor_promotions');
       const data = JSON.parse(result as string);
       
