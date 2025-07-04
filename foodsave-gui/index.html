@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js dla wykresów -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -18,6 +20,11 @@
                     <h1>FoodSave AI</h1>
                 </div>
                 <div class="header-actions">
+                    <!-- Dark Mode Toggle -->
+                    <button class="btn btn-secondary" id="darkModeToggle" onclick="toggleDarkMode()">
+                        <i class="fas fa-moon"></i>
+                        <span id="darkModeText">Tryb Ciemny</span>
+                    </button>
                     <button class="btn btn-secondary" onclick="showHelp()">
                         <i class="fas fa-question-circle"></i>
                         Pomoc
@@ -35,42 +42,57 @@
             <!-- Status Overview -->
             <section class="status-overview">
                 <h2><i class="fas fa-chart-line"></i> Status Systemu</h2>
-                <div class="status-grid">
-                    <div class="status-card" id="backend-status">
-                        <div class="status-icon">
-                            <i class="fas fa-server"></i>
+                <div class="status-grid" id="dockerStatusPanel">
+                    <div class="status-card" id="docker-status">
+                        <div class="status-icon" id="dockerStatusIcon">
+                            <i class="fab fa-docker"></i>
                         </div>
                         <div class="status-info">
-                            <h3>Backend</h3>
-                            <p class="status-text">Sprawdzam...</p>
+                            <h3>Docker</h3>
+                            <p class="status-text" id="dockerStatusText">Sprawdzam...</p>
+                            <div id="dockerContainersInfo" style="margin-top:8px;font-size:0.95em;color:#666;"></div>
+                            <button class="btn btn-secondary" style="margin-top:10px;" onclick="showDockerContainers()"><i class="fas fa-list"></i> Pokaż szczegóły</button>
+                            <button class="btn btn-primary" style="margin-top:10px;" onclick="showDockerManagement()"><i class="fas fa-cogs"></i> Zarządzaj</button>
                         </div>
                     </div>
-                    <div class="status-card" id="frontend-status">
-                        <div class="status-icon">
-                            <i class="fas fa-globe"></i>
-                        </div>
-                        <div class="status-info">
-                            <h3>Frontend</h3>
-                            <p class="status-text">Sprawdzam...</p>
-                        </div>
+                </div>
+            </section>
+
+            <!-- Real-time Monitoring -->
+            <section class="monitoring-section">
+                <h2><i class="fas fa-tachometer-alt"></i> Monitoring w Czasie Rzeczywistym</h2>
+                <div class="monitoring-controls">
+                    <div class="refresh-controls">
+                        <label for="refreshInterval">Odświeżaj co:</label>
+                        <select id="refreshInterval" onchange="updateRefreshInterval()">
+                            <option value="5000">5 sekund</option>
+                            <option value="10000" selected>10 sekund</option>
+                            <option value="30000">30 sekund</option>
+                            <option value="60000">1 minuta</option>
+                            <option value="0">Wyłącz</option>
+                        </select>
                     </div>
-                    <div class="status-card" id="database-status">
-                        <div class="status-icon">
-                            <i class="fas fa-database"></i>
-                        </div>
-                        <div class="status-info">
-                            <h3>Baza Danych</h3>
-                            <p class="status-text">Sprawdzam...</p>
-                        </div>
+                    <button class="btn btn-secondary" onclick="toggleMonitoring()" id="monitoringToggle">
+                        <i class="fas fa-pause"></i>
+                        <span id="monitoringToggleText">Wstrzymaj</span>
+                    </button>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <h3>Użycie CPU</h3>
+                        <canvas id="cpuChart"></canvas>
                     </div>
-                    <div class="status-card" id="ai-status">
-                        <div class="status-icon">
-                            <i class="fas fa-brain"></i>
-                        </div>
-                        <div class="status-info">
-                            <h3>AI Model</h3>
-                            <p class="status-text">Sprawdzam...</p>
-                        </div>
+                    <div class="chart-container">
+                        <h3>Użycie RAM</h3>
+                        <canvas id="ramChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Użycie Dysk</h3>
+                        <canvas id="diskChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Aktywność Sieci</h3>
+                        <canvas id="networkChart"></canvas>
                     </div>
                 </div>
             </section>
@@ -78,43 +100,22 @@
             <!-- Quick Actions -->
             <section class="quick-actions">
                 <h2><i class="fas fa-bolt"></i> Szybkie Akcje</h2>
-                <div class="actions-grid">
-                    <div class="action-card" onclick="startDevelopmentMode()">
-                        <div class="action-icon">
-                            <i class="fas fa-code"></i>
-                        </div>
-                        <h3>Tryb Deweloperski</h3>
-                        <p>Dla programistów i testowania</p>
-                        <div class="action-badge">Rekomendowane</div>
+                <div class="quick-actions-grid">
+                    <div class="action-card">
+                        <div class="action-title">Kontenery Docker</div>
+                        <div class="action-status" id="docker-status">Status: <span>...</span></div>
+                        <button id="docker-start-btn">Uruchom wszystkie</button>
+                        <button id="docker-stop-btn">Zatrzymaj wszystkie</button>
+                        <button id="docker-restart-btn">Restartuj wszystkie</button>
+                        <button id="docker-rebuild-btn">Rebuilduj wszystkie</button>
+                        <button id="docker-manage-btn">Zarządzaj szczegółowo</button>
                     </div>
-                    <div class="action-card" onclick="startProductionMode()">
-                        <div class="action-icon">
-                            <i class="fas fa-rocket"></i>
-                        </div>
-                        <h3>Tryb Produkcyjny</h3>
-                        <p>Dla użytkowników końcowych</p>
-                    </div>
-                    <div class="action-card" onclick="startTauriApp()">
-                        <div class="action-icon">
-                            <i class="fas fa-desktop"></i>
-                        </div>
-                        <h3>Aplikacja Desktop</h3>
-                        <p>Natywna aplikacja systemowa</p>
-                    </div>
-                    <div class="action-card" onclick="startTauriDev()">
-                        <div class="action-icon">
-                            <i class="fas fa-code-branch"></i>
-                        </div>
-                        <h3>Tryb Deweloperski Tauri</h3>
-                        <p>Uruchom aplikację w trybie dev</p>
-                        <div class="action-badge">Deweloperskie</div>
-                    </div>
-                    <div class="action-card" onclick="stopAllServices()">
-                        <div class="action-icon">
-                            <i class="fas fa-stop"></i>
-                        </div>
-                        <h3>Zatrzymaj Wszystko</h3>
-                        <p>Bezpieczne zatrzymanie systemu</p>
+                    <div class="action-card">
+                        <div class="action-title">Tauri dev</div>
+                        <div class="action-status" id="tauri-status">Status: <span>...</span></div>
+                        <button id="tauri-start-btn">Uruchom</button>
+                        <button id="tauri-stop-btn">Zatrzymaj</button>
+                        <button id="tauri-logs-btn">Pokaż logi</button>
                     </div>
                 </div>
             </section>
@@ -137,6 +138,13 @@
                         <h3>Sprawdź Środowisko</h3>
                         <p>Diagnostyka systemu</p>
                     </div>
+                    <div class="option-card" onclick="showDiagnostics()">
+                        <div class="option-icon">
+                            <i class="fas fa-stethoscope"></i>
+                        </div>
+                        <h3>Diagnostyka</h3>
+                        <p>Testy łączności i wydajności</p>
+                    </div>
                     <div class="option-card" onclick="buildTauriApp()">
                         <div class="option-icon">
                             <i class="fas fa-hammer"></i>
@@ -150,6 +158,13 @@
                         </div>
                         <h3>Kopie Zapasowe</h3>
                         <p>Zarządzanie backupami</p>
+                    </div>
+                    <div class="option-card" onclick="showSettings()">
+                        <div class="option-icon">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <h3>Ustawienia</h3>
+                        <p>Konfiguracja systemu</p>
                     </div>
                 </div>
             </section>
@@ -225,6 +240,17 @@
                     <button class="btn btn-secondary" onclick="closeModal()">Zamknij</button>
                 </div>
             </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <div id="tauri-logs-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-logs-modal">&times;</span>
+            <pre id="tauri-logs-content"></pre>
         </div>
     </div>
 
