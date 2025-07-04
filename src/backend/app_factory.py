@@ -171,7 +171,10 @@ def create_app() -> FastAPI:
     app.add_middleware(SlowAPIMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allow_origins=[
+            "http://localhost:3000", "http://127.0.0.1:3000",
+            "http://localhost:8080", "http://127.0.0.1:8080"
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"]
@@ -211,6 +214,18 @@ def create_app() -> FastAPI:
     async def health_check():
         """Simple health check endpoint for Docker healthcheck."""
         return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+    # Add database health check endpoint
+    @app.get("/health/database")
+    async def database_health_check():
+        """Database health check endpoint."""
+        from backend.infrastructure.database.database import check_database_health
+        db_health = await check_database_health()
+        return {
+            "status": db_health.get("status", "unknown"),
+            "database": db_health,
+            "timestamp": datetime.now().isoformat()
+        }
 
     # Setup telemetry if enabled
     if settings.TELEMETRY_ENABLED:
