@@ -1,9 +1,12 @@
-
+"use client";
+import "@/i18n";
+import { CommandCenter } from "@/components/dashboard/CommandCenter";
+import { Layout } from "@/components/layout/Layout";
 
 export default function Home() {
   return (
-    <div>
-      <h1>Test Page</h1>
-    </div>
+    <Layout>
+      <CommandCenter />
+    </Layout>
   );
 }
