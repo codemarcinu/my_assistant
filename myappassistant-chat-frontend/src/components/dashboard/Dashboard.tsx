@@ -28,22 +28,19 @@ import { chatAPI } from '@/lib/api';
 import { receiptAPI } from '@/lib/api';
 
 export function Dashboard() {
-  const theme = useTheme();
   const { messages, addMessage, clearMessages, updateMessage } = useChatStore();
   const [inputValue, setInputValue] = React.useState('');
   const [isTyping, setIsTyping] = React.useState(false);
-  const [showReceiptProcessor, setShowReceiptProcessor] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // WebSocket for real-time dashboard updates
-  const { isConnected: wsConnected, agents: wsAgents, systemMetrics } = useWebSocket();
+  const { isConnected: wsConnected } = useWebSocket();
   
   // RAG integration
   const { 
     getRelevantDocuments, 
-    searchResults, 
     progress: ragProgress, 
     error: ragError,
     clearResults: clearRAGResults 
@@ -164,17 +161,16 @@ export function Dashboard() {
           const receiptResult = await receiptAPI.processReceipt(file);
           
           // Sprawdź czy odpowiedź ma poprawną strukturę
-          if (receiptResult.data && receiptResult.data.analysis) {
-            const analysis = receiptResult.data.analysis;
+          if (receiptResult.data) {
+            const receiptData = receiptResult.data;
             
             // Dodaj wiadomość o pomyślnym przetworzeniu
             addMessage({
               id: (Date.now() + 1).toString(),
-              content: `✅ Paragon został pomyślnie przetworzony!\n\n🏪 **Sklep:** ${analysis.store_name || 'Nieznany'}\n📅 **Data:** ${analysis.date || 'Nieznana'}\n💰 **Suma:** ${analysis.total_amount?.toFixed(2) || '0.00'} zł\n📦 **Produktów:** ${analysis.items?.length || 0}`,
+              content: `✅ Paragon został pomyślnie przetworzony!\n\n🏪 **Sklep:** ${receiptData.store || 'Nieznany'}\n📅 **Data:** ${receiptData.date || 'Nieznana'}\n💰 **Suma:** ${receiptData.total?.toFixed(2) || '0.00'} zł\n📦 **Produktów:** ${receiptData.items?.length || 0}`,
               role: 'assistant',
               timestamp: new Date(),
               agentType: 'receipt_analysis',
-              confidence: receiptResult.data.confidence,
             });
 
             // Dodaj pytanie "byłeś na zakupach?"

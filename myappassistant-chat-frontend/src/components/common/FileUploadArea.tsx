@@ -18,6 +18,7 @@ import {
   PictureAsPdf,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 
 interface FileUploadAreaProps {
   accept: string[];
@@ -45,14 +46,21 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// Schemat walidacji pliku
+const fileSchema = (accept: string[], maxSize: number) => z.object({
+  type: z.string().refine(val => accept.includes(val), {
+    message: 'Niedozwolony typ pliku',
+  }),
+  size: z.number().max(maxSize, { message: 'Plik za duży' }),
+  name: z.string(),
+});
+
 export function FileUploadArea({
   accept,
   maxSize,
   onUpload,
-  preview = false,
   isUploading = false,
 }: FileUploadAreaProps) {
-  const theme = useTheme();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,12 +82,16 @@ export function FileUploadArea({
     setDragActive(false);
 
     const files = Array.from(e.dataTransfer.files);
-    const validFiles = files.filter(file => {
-      const isValidType = accept.includes(file.type);
-      const isValidSize = file.size <= maxSize;
-      return isValidType && isValidSize;
+    const validFiles: File[] = [];
+    files.forEach(file => {
+      const result = fileSchema(accept, maxSize).safeParse(file);
+      if (result.success) {
+        validFiles.push(file);
+      } else {
+        // Możesz dodać obsługę błędu np. toastem
+        // alert(result.error.errors[0].message);
+      }
     });
-
     if (validFiles.length > 0) {
       setSelectedFiles(prev => [...prev, ...validFiles]);
     }
@@ -89,12 +101,16 @@ export function FileUploadArea({
     const files = event.target.files;
     if (files) {
       const fileArray = Array.from(files);
-      const validFiles = fileArray.filter(file => {
-        const isValidType = accept.includes(file.type);
-        const isValidSize = file.size <= maxSize;
-        return isValidType && isValidSize;
+      const validFiles: File[] = [];
+      fileArray.forEach(file => {
+        const result = fileSchema(accept, maxSize).safeParse(file);
+        if (result.success) {
+          validFiles.push(file);
+        } else {
+          // Możesz dodać obsługę błędu np. toastem
+          // alert(result.error.errors[0].message);
+        }
       });
-
       if (validFiles.length > 0) {
         setSelectedFiles(prev => [...prev, ...validFiles]);
       }

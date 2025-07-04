@@ -43,7 +43,7 @@ describe('useWebSocket', () => {
     it('should connect to WebSocket on mount', () => {
       renderHook(() => useWebSocket());
       
-      expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:8000/ws/dashboard');
+      expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:8001/ws/dashboard');
     });
 
     it('should use custom URL when provided', () => {

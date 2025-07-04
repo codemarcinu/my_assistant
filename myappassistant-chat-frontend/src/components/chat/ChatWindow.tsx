@@ -9,7 +9,6 @@ import {
   Avatar,
   Chip,
   Paper,
-  useTheme,
 } from '@mui/material';
 import {
   Send,
@@ -22,16 +21,31 @@ import { chatAPI } from '@/lib/api';
 import { useFontSize } from '../providers';
 import { TypewriterText } from './TypewriterText';
 import { ChatReceiptProcessor } from './ChatReceiptProcessor';
+import { ErrorBoundary } from '../common/ErrorBoundary';
+
+interface ReceiptData {
+  store_name: string;
+  date: string;
+  total_amount: number;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+    category?: string;
+    expiration_date?: string;
+    unit?: string;
+  }>;
+}
 
 export function ChatWindow() {
-  const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showReceiptProcessor, setShowReceiptProcessor] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { messages, addMessage, setTyping, updateMessage } = useChatStore();
+  const { messages, addMessage, updateMessage } = useChatStore();
   const { fontSize } = useFontSize();
   let fontSizeValue = '1rem';
   if (fontSize === 'small') fontSizeValue = '0.9rem';
@@ -129,7 +143,7 @@ export function ChatWindow() {
     }
   };
 
-  const handleReceiptComplete = (receiptData: any) => {
+  const handleReceiptComplete = (receiptData: ReceiptData) => {
     setShowReceiptProcessor(false);
     
     // Dodaj wiadomość o pomyślnym przetworzeniu
@@ -171,188 +185,195 @@ export function ChatWindow() {
       data-testid="chat-window"
     >
       {/* Obszar wiadomości */}
-      <Box
-        data-testid="messages-area"
-        sx={{
-          flex: 1,
-          overflow: 'auto',
-          p: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
+          console.error('ChatWindow error:', error, errorInfo);
+          // Możesz dodać logowanie do zewnętrznego serwisu
         }}
       >
-        {messages.length === 0 ? (
-          <Box
-            data-testid="welcome-message"
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              textAlign: 'center',
-            }}
-          >
-            <Avatar
+        <Box
+          data-testid="messages-area"
+          sx={{
+            flex: 1,
+            overflow: 'auto',
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+          }}
+        >
+          {messages.length === 0 ? (
+            <Box
+              data-testid="welcome-message"
               sx={{
-                width: 64,
-                height: 64,
-                mb: 2,
-                background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                textAlign: 'center',
               }}
             >
-              <SmartToy sx={{ fontSize: 32 }} />
-            </Avatar>
-            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-              Witaj w FoodSave AI
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 400 }}>
-              Jestem Twoim centrum dowodzenia AI. Pytaj mnie o dokumenty, przepisy, 
-              pogodę lub ogólne pytania. Przekieruję Twoje zapytanie do najlepszego agenta.
-            </Typography>
-          </Box>
-        ) : (
-          messages.map((message) => (
+              <Avatar
+                sx={{
+                  width: 64,
+                  height: 64,
+                  mb: 2,
+                  background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
+                }}
+              >
+                <SmartToy sx={{ fontSize: 32 }} />
+              </Avatar>
+              <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+                Witaj w FoodSave AI
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 400 }}>
+                Jestem Twoim centrum dowodzenia AI. Pytaj mnie o dokumenty, przepisy, 
+                pogodę lub ogólne pytania. Przekieruję Twoje zapytanie do najlepszego agenta.
+              </Typography>
+            </Box>
+          ) : (
+            messages.map((message) => (
+              <Box
+                key={message.id}
+                data-testid={`message-${message.role}-${message.id}`}
+                sx={{
+                  display: 'flex',
+                  gap: 2,
+                  justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                }}
+              >
+                {message.role === 'assistant' && (
+                  <Avatar
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
+                    }}
+                  >
+                    <SmartToy sx={{ fontSize: 16 }} />
+                  </Avatar>
+                )}
+                
+                <Paper
+                  data-testid={`message-content-${message.id}`}
+                  sx={{
+                    p: 2,
+                    maxWidth: '70%',
+                    background: message.role === 'user' 
+                      ? 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)'
+                      : 'rgba(255, 255, 255, 0.05)',
+                    border: message.role === 'user' 
+                      ? 'none'
+                      : '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  {message.role === 'assistant' ? (
+                    <TypewriterText 
+                      text={message.content} 
+                      speed={30}
+                      variant="body2"
+                      color="text.primary"
+                    />
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'white' }}>
+                      {message.content}
+                    </Typography>
+                  )}
+                  
+                  {message.agentType && (
+                    <Chip
+                      data-testid={`agent-type-${message.id}`}
+                      label={message.agentType}
+                      size="small"
+                      sx={{
+                        mt: 1,
+                        background: 'rgba(52, 199, 89, 0.2)',
+                        color: '#34C759',
+                        fontSize: '0.7rem',
+                      }}
+                    />
+                  )}
+                </Paper>
+
+                {message.role === 'user' && (
+                  <Avatar
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      background: 'rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <Person sx={{ fontSize: 16 }} />
+                  </Avatar>
+                )}
+              </Box>
+            ))
+          )}
+
+          {/* Procesor paragonów */}
+          {showReceiptProcessor && (
             <Box
-              key={message.id}
-              data-testid={`message-${message.role}-${message.id}`}
               sx={{
                 display: 'flex',
                 gap: 2,
-                justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                justifyContent: 'flex-start',
               }}
             >
-              {message.role === 'assistant' && (
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
-                  }}
-                >
-                  <SmartToy sx={{ fontSize: 16 }} />
-                </Avatar>
-              )}
-              
-              <Paper
-                data-testid={`message-content-${message.id}`}
+              <Avatar
                 sx={{
-                  p: 2,
-                  maxWidth: '70%',
-                  background: message.role === 'user' 
-                    ? 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  border: message.role === 'user' 
-                    ? 'none'
-                    : '1px solid rgba(255, 255, 255, 0.1)',
+                  width: 32,
+                  height: 32,
+                  background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
                 }}
               >
-                {message.role === 'assistant' ? (
-                  <TypewriterText 
-                    text={message.content} 
-                    speed={30}
-                    variant="body2"
-                    color="text.primary"
-                  />
-                ) : (
-                  <Typography variant="body2" sx={{ color: 'white' }}>
-                    {message.content}
-                  </Typography>
-                )}
-                
-                {message.agentType && (
-                  <Chip
-                    data-testid={`agent-type-${message.id}`}
-                    label={message.agentType}
-                    size="small"
-                    sx={{
-                      mt: 1,
-                      background: 'rgba(52, 199, 89, 0.2)',
-                      color: '#34C759',
-                      fontSize: '0.7rem',
-                    }}
-                  />
-                )}
+                <SmartToy sx={{ fontSize: 16 }} />
+              </Avatar>
+              <Paper
+                sx={{
+                  p: 2,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  maxWidth: '80%',
+                }}
+              >
+                <ChatReceiptProcessor
+                  onComplete={handleReceiptComplete}
+                  onCancel={handleReceiptCancel}
+                  onError={handleReceiptError}
+                />
               </Paper>
-
-              {message.role === 'user' && (
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                  }}
-                >
-                  <Person sx={{ fontSize: 16 }} />
-                </Avatar>
-              )}
             </Box>
-          ))
-        )}
-
-        {/* Procesor paragonów */}
-        {showReceiptProcessor && (
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 2,
-              justifyContent: 'flex-start',
-            }}
-          >
-            <Avatar
-              sx={{
-                width: 32,
-                height: 32,
-                background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
-              }}
-            >
-              <SmartToy sx={{ fontSize: 16 }} />
-            </Avatar>
-            <Paper
-              sx={{
-                p: 2,
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                maxWidth: '80%',
-              }}
-            >
-              <ChatReceiptProcessor
-                onComplete={handleReceiptComplete}
-                onCancel={handleReceiptCancel}
-                onError={handleReceiptError}
-              />
-            </Paper>
-          </Box>
-        )}
-        
-        {isTyping && (
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-start' }}>
-            <Avatar
-              sx={{
-                width: 32,
-                height: 32,
-                background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
-              }}
-            >
-              <SmartToy sx={{ fontSize: 16 }} />
-            </Avatar>
-            <Paper
-              sx={{
-                p: 2,
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Piszę...
-              </Typography>
-            </Paper>
-          </Box>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </Box>
+          )}
+          
+          {isTyping && (
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-start' }}>
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  background: 'linear-gradient(45deg, #007AFF 30%, #5856D6 90%)',
+                }}
+              >
+                <SmartToy sx={{ fontSize: 16 }} />
+              </Avatar>
+              <Paper
+                sx={{
+                  p: 2,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                }}
+              >
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Piszę...
+                </Typography>
+              </Paper>
+            </Box>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </Box>
+      </ErrorBoundary>
 
       {/* Obszar wprowadzania */}
       <Box

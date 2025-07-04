@@ -59,14 +59,14 @@ export function ReceiptProcessor({ onComplete, onCancel }: ReceiptProcessorProps
           const statusResponse = await receiptAPI.getTaskStatus(taskId);
           const status = statusResponse.data.status;
           
-          if (status === 'SUCCESS') {
-            setReceiptData(statusResponse.data.result.analysis);
+          if (status === 'completed') {
+            setReceiptData(statusResponse.data.result?.analysis as ReceiptData);
             setCurrentStep('editing');
             setProcessingProgress(100);
-          } else if (status === 'FAILURE') {
+          } else if (status === 'failed') {
             setError(statusResponse.data.error || 'Błąd przetwarzania paragonu');
             setCurrentStep('error');
-          } else if (status === 'PROGRESS') {
+          } else if (status === 'processing') {
             setProcessingProgress(statusResponse.data.progress || 0);
           }
         } catch (err) {
@@ -87,7 +87,7 @@ export function ReceiptProcessor({ onComplete, onCancel }: ReceiptProcessorProps
     try {
       // Użyj asynchronicznego przetwarzania
       const response = await receiptAPI.processReceiptAsync(file);
-      setTaskId(response.data.job_id);
+      setTaskId(response.data.task_id);
     } catch (err) {
       console.error('Błąd uruchomienia przetwarzania:', err);
       setError('Błąd uruchomienia przetwarzania paragonu');
@@ -102,17 +102,16 @@ export function ReceiptProcessor({ onComplete, onCancel }: ReceiptProcessorProps
     try {
       // Przygotuj dane do zapisu
       const saveData = {
-        trip_date: data.date,
-        store_name: data.store_name,
-        total_amount: data.total_amount,
-        products: data.items.map(item => ({
+        items: data.items.map(item => ({
           name: item.name,
           quantity: item.quantity,
-          unit_price: item.unit_price,
-          category: item.category,
-          expiration_date: item.expiration_date,
-          unit: item.unit
-        }))
+          price: item.unit_price,
+          category: item.category
+        })),
+        total: data.total_amount,
+        store: data.store_name,
+        date: data.date,
+        receipt_id: Date.now().toString()
       };
 
       await receiptAPI.saveReceiptData(saveData);

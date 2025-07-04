@@ -43,5 +43,55 @@
   },
   "settings": {
     "agent_status": "Status Agentów"
+  },
+  "chat": {
+    "welcome_title": "Witaj w FoodSave AI",
+    "welcome_message": "Jestem Twoim centrum dowodzenia AI. Pytaj mnie o dokumenty, przepisy, pogodę lub ogólne pytania. Przekieruję Twoje zapytanie do najlepszego agenta.",
+    "processing_receipt": "📄 Rozpoczynam przetwarzanie paragonu: {{fileName}}",
+    "file_attached": "📎 Załączono plik: {{fileName}}",
+    "receipt_success": "✅ Paragon został pomyślnie przetworzony i zapisany!\n\n🏪 **Sklep:** {{storeName}}\n📅 **Data:** {{date}}\n💰 **Suma:** {{totalAmount}} zł\n📦 **Produktów:** {{itemCount}}",
+    "receipt_cancelled": "❌ Przetwarzanie paragonu zostało anulowane.",
+    "receipt_error": "❌ Błąd przetwarzania paragonu: {{error}}",
+    "processing_message": "Przepraszam, nie udało się przetworzyć Twojego zapytania.",
+    "error_message": "Przepraszam, wystąpił błąd podczas przetwarzania Twojego zapytania. Spróbuj ponownie.",
+    "typing": "Piszę..."
+  },
+  "errors": {
+    "general": "Wystąpił błąd",
+    "unexpected": "Nieoczekiwany błąd w aplikacji",
+    "communication": "Błąd komunikacji z serwerem: {{error}}",
+    "processing": "Błąd przetwarzania: {{error}}",
+    "upload": "Błąd przesyłania dokumentu: {{error}}",
+    "loading": "Błąd ładowania dokumentów: {{error}}",
+    "search": "Błąd wyszukiwania: {{error}}",
+    "deletion": "Błąd usuwania dokumentu: {{error}}",
+    "rag_loading": "Błąd podczas ładowania danych RAG",
+    "rag_sync": "Błąd podczas synchronizacji bazy danych",
+    "rag_search": "Błąd podczas wyszukiwania",
+    "rag_search_docs": "Błąd podczas wyszukiwania dokumentów",
+    "rag_create_dir": "Błąd podczas tworzenia katalogu",
+    "rag_delete_doc": "Błąd podczas usuwania dokumentu",
+    "rag_delete_dir": "Błąd podczas usuwania katalogu",
+    "websocket": "Błąd połączenia WebSocket: {{error}}",
+    "command": "Błąd obsługi komendy.",
+    "operation": "Błąd operacji.",
+    "receipt_processing": "Błąd przetwarzania paragonu",
+    "receipt_status": "Błąd sprawdzania statusu przetwarzania",
+    "receipt_start": "Błąd uruchomienia przetwarzania paragonu",
+    "receipt_save": "Błąd zapisywania danych do bazy",
+    "pantry_load": "Błąd podczas ładowania danych spiżarni",
+    "pantry_add": "Błąd podczas dodawania produktu",
+    "pantry_update": "Błąd podczas aktualizacji produktu",
+    "pantry_delete": "Błąd podczas usuwania produktu",
+    "unknown": "Nieznany błąd"
+  },
+  "success": {
+    "receipt_processed": "Paragon został pomyślnie przetworzony!",
+    "receipt_saved": "Paragon został pomyślnie przetworzony i zapisany"
+  },
+  "buttons": {
+    "try_again": "Spróbuj ponownie",
+    "refresh_page": "Odśwież stronę",
+    "refresh_status": "Odśwież Status"
   }
 } 

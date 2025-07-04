@@ -8,13 +8,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
-  Upload, 
   FileText, 
   CheckCircle, 
   AlertCircle, 
   Loader2, 
   X,
-  Save,
   Edit,
   Receipt
 } from "lucide-react";
@@ -60,32 +58,32 @@ export function ChatReceiptProcessor({ onComplete, onCancel, onError }: ChatRece
           const statusResponse = await receiptAPI.getTaskStatus(taskId);
           const status = statusResponse.data.status;
           
-          if (status === 'SUCCESS') {
-            const analysis = statusResponse.data.result.analysis;
+          if (status === 'completed') {
+            const analysis = statusResponse.data.result?.analysis as Record<string, unknown>;
             // Konwertuj dane z analizy na format ReceiptData
             const convertedData: ReceiptData = {
-              store_name: analysis.store_name || 'Nieznany sklep',
-              date: analysis.date || new Date().toISOString().split('T')[0],
-              total_amount: analysis.total_amount || 0,
-              items: analysis.items?.map((item: any) => ({
-                name: item.name || 'Nieznany produkt',
-                quantity: item.quantity || 1,
-                unit_price: item.unit_price || 0,
-                total_price: item.total_price || 0,
-                category: item.category,
-                expiration_date: item.expiration_date,
-                unit: item.unit || 'szt.'
+              store_name: (analysis?.store_name as string) || 'Nieznany sklep',
+              date: (analysis?.date as string) || new Date().toISOString().split('T')[0],
+              total_amount: (analysis?.total_amount as number) || 0,
+              items: (analysis?.items as Array<Record<string, unknown>>)?.map((item) => ({
+                name: (item.name as string) || 'Nieznany produkt',
+                quantity: (item.quantity as number) || 1,
+                unit_price: (item.unit_price as number) || 0,
+                total_price: (item.total_price as number) || 0,
+                category: item.category as string,
+                expiration_date: item.expiration_date as string,
+                unit: (item.unit as string) || 'szt.'
               })) || []
             };
             setReceiptData(convertedData);
             setCurrentStep('editing');
             setProcessingProgress(100);
-          } else if (status === 'FAILURE') {
+          } else if (status === 'failed') {
             const errorMsg = statusResponse.data.error || 'Błąd przetwarzania paragonu';
             setError(errorMsg);
             setCurrentStep('error');
             onError?.(errorMsg);
-          } else if (status === 'PROGRESS') {
+          } else if (status === 'processing') {
             setProcessingProgress(statusResponse.data.progress || 0);
           }
         } catch (err) {
@@ -110,7 +108,7 @@ export function ChatReceiptProcessor({ onComplete, onCancel, onError }: ChatRece
     try {
       // Użyj asynchronicznego przetwarzania
       const response = await receiptAPI.processReceiptAsync(file);
-      setTaskId(response.data.job_id);
+      setTaskId(response.data.task_id);
     } catch (err) {
       console.error('Błąd uruchomienia przetwarzania:', err);
       const errorMsg = 'Błąd uruchomienia przetwarzania paragonu';
@@ -127,17 +125,16 @@ export function ChatReceiptProcessor({ onComplete, onCancel, onError }: ChatRece
     try {
       // Przygotuj dane do zapisu
       const saveData = {
-        trip_date: data.date,
-        store_name: data.store_name,
-        total_amount: data.total_amount,
-        products: data.items.map(item => ({
+        items: data.items.map(item => ({
           name: item.name,
           quantity: item.quantity,
-          unit_price: item.unit_price,
-          category: item.category,
-          expiration_date: item.expiration_date,
-          unit: item.unit
-        }))
+          price: item.unit_price,
+          category: item.category
+        })),
+        total: data.total_amount,
+        store: data.store_name,
+        date: data.date,
+        receipt_id: Date.now().toString()
       };
 
       await receiptAPI.saveReceiptData(saveData);
