@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from backend.core.language_detector import language_detector
 from backend.core.llm_client import LLMCache, llm_client
@@ -30,7 +30,8 @@ class ModelComplexity(str, Enum):
 class ModelConfig(BaseModel):
     """Configuration for a specific LLM model"""
 
-    model_config = ConfigDict()
+    class Config:
+        pass
     name: str
     complexity_levels: List[ModelComplexity]
     max_tokens: int

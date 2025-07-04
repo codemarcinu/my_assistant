@@ -22,14 +22,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Exclude Docker files
-Dockerfile*
+# Exclude Docker files (but keep Dockerfile.prod)
+Dockerfile.dev
 docker-compose*
 .dockerignore
-
-# Docker
-Dockerfile
-docker-compose.yml
 
 # Python
 *.py[cod]
@@ -51,11 +47,10 @@ htmlcov/
 *.cover
 *.log
 
-# Node.js
+# Node.js (exclude from root, but keep in frontend)
 node_modules/
 npm-debug.log
 yarn-error.log
-package-lock.json
 
 # IDEs and editors
 .idea/
@@ -67,7 +62,7 @@ package-lock.json
 # Backups
 backups/
 
-# Data
+# Data (keep structure)
 data/uploads/*
 !data/uploads/.gitkeep
 data/docs/*
@@ -75,3 +70,13 @@ data/docs/*
 
 # Archives
 archive/
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Temporary files
+temp_uploads/
+*.tmp
+*.temp

@@ -4,7 +4,7 @@ from enum import Enum
 from typing import (Any, AsyncGenerator, Dict, List, Optional, Type, TypeVar,
                     Union)
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 T = TypeVar("T")
 
@@ -36,7 +36,8 @@ IBaseAgent = BaseAgent
 class AgentResponse(BaseModel):
     """Enhanced response model with additional metadata and streaming support"""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    class Config:
+        arbitrary_types_allowed = True
 
     success: bool
     text: Optional[str] = None

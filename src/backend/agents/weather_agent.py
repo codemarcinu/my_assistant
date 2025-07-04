@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Type
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from backend.agents.base_agent import BaseAgent
 from backend.agents.interfaces import AgentResponse
@@ -37,7 +37,9 @@ class WeatherProvider(BaseModel):
     last_success: Optional[datetime] = None
     last_error: Optional[str] = None
     error_count: int = 0
-    model_config = ConfigDict(extra="allow")
+    
+    class Config:
+        extra = "allow"
 
     @property
     def is_enabled(self) -> bool:

@@ -1,13 +1,14 @@
 from typing import Any, Dict, Optional
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class APIErrorDetail(BaseModel):
     """Standardized API error response format for v2"""
 
-    model_config = ConfigDict()
+    class Config:
+        pass
     status_code: int
     error_code: str
     message: str

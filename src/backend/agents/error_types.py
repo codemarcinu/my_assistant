@@ -1,6 +1,6 @@
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from backend.agents.interfaces import ErrorSeverity
 
@@ -19,7 +19,9 @@ class AgentResponseEnhanced(BaseModel):
     processed_with_fallback: bool = False
     processing_time: float = 0.0
     metadata: Dict[str, Any] = {}
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class AlertConfig(BaseModel):

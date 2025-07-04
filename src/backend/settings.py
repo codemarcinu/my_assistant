@@ -4,7 +4,7 @@ import os
 import secrets
 from typing import List, Optional
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 # Set User-Agent environment variable early to prevent warnings
 os.environ.setdefault(
@@ -178,9 +178,10 @@ class Settings(BaseSettings):
     EXECUTOR_STEP_TIMEOUT: int = 60  # Timeout dla pojedynczego kroku (sekundy)
 
     # Ta linia mówi Pydantic, aby wczytał zmienne z pliku .env w głównym katalogu
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
-    )
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 # Tworzymy jedną, globalną instancję ustawień,

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import pytz
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -55,7 +55,7 @@ class UserSchedule(BaseModel):
     lunch_time: time = Field(default_factory=lambda: time(12, 0))
     time_zone: str = "Europe/Warsaw"
 
-    @field_validator("time_zone")
+    @validator("time_zone")
     @classmethod
     def validate_timezone(cls, v: str) -> str:
         if v not in pytz.all_timezones:

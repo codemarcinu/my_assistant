@@ -2,7 +2,7 @@
 from datetime import date
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 # --- Schematy dla Produktu ---
 
@@ -32,7 +32,8 @@ class ProductUpdate(BaseModel):
     quantity: Optional[float] = None
     unit_price: Optional[float] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 # Schemat używany przy odczytywaniu produktu z bazy danych
@@ -41,7 +42,8 @@ class ProductSchema(ProductBase):
     trip_id: int
 
     # Konfiguracja pozwalająca tworzyć schemat z obiektu SQLAlchemy
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 # --- Schematy dla Paragonu (ShoppingTrip) ---
@@ -69,7 +71,8 @@ class ShoppingTripUpdate(BaseModel):
     store_name: Optional[str] = None
     total_amount: Optional[float] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 # Schemat do odczytu paragonu z bazy - zawiera listę wczytanych produktów
@@ -77,7 +80,8 @@ class ShoppingTrip(ShoppingTripBase):
     id: int
     products: List[ProductSchema] = []
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
 class ShoppingTripSummary(BaseModel):
@@ -88,4 +92,5 @@ class ShoppingTripSummary(BaseModel):
     total_products: int
     total_cost: float
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
