@@ -57,6 +57,7 @@ services:
       - ENVIRONMENT=production
       - DEBUG=false
       - TESTING_MODE=true
+      - PYTHONPATH=/app
     depends_on:
       - postgres
       - redis
@@ -64,6 +65,7 @@ services:
     volumes:
       - ./src:/app
       - ./logs:/app/logs
+    command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -86,6 +88,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - ENVIRONMENT=production
       - DEBUG=false
+      - PYTHONPATH=/app
     depends_on:
       - postgres
       - redis
@@ -115,6 +118,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - ENVIRONMENT=production
       - DEBUG=false
+      - PYTHONPATH=/app
     depends_on:
       - postgres
       - redis
