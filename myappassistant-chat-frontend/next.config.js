@@ -11,9 +11,23 @@ module.exports = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  skipTrailingSlashRedirect: true,
-  skipMiddlewareUrlNormalize: true,
   generateBuildId: async () => {
     return 'build'
+  },
+  experimental: {
+    optimizePackageImports: ['@mui/material', '@mui/icons-material'],
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss:;"
+          },
+        ],
+      },
+    ]
   },
 }; 
