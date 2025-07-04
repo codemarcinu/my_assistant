@@ -24,13 +24,13 @@ import signal
 import tempfile
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True, origins=["http://localhost:8080", "http://127.0.0.1:8080"])
 
 # Konfiguracja
 SCRIPT_DIR = Path(__file__).parent.parent
 FOODSAVE_SCRIPT = SCRIPT_DIR / "foodsave-all.sh"
-BACKEND_PORT = 8000
-FRONTEND_PORT = 3000
+BACKEND_PORT = 8001
+FRONTEND_PORT = 3003
 OLLAMA_PORT = 11434
 
 tauri_dev_process = None
@@ -724,6 +724,40 @@ def get_logs(log_type='all'):
             'error': str(e)
         }), 500
 
+@app.route('/api/system/logs/clear', methods=['POST'])
+def clear_logs():
+    """Czyści logi systemowe"""
+    try:
+        import os
+        from datetime import datetime
+        
+        # Wyczyść pliki logów
+        log_files = [
+            'logs/backend/backend.log',
+            'logs/frontend/frontend.log',
+            'logs/system/system.log',
+            'gui.log'
+        ]
+        
+        cleared_count = 0
+        for log_file in log_files:
+            try:
+                if os.path.exists(log_file):
+                    # Utwórz pusty plik (zamiast usuwania)
+                    with open(log_file, 'w') as f:
+                        f.write(f'# Logi wyczyszczone: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n')
+                    cleared_count += 1
+            except Exception as e:
+                print(f"Błąd czyszczenia {log_file}: {e}")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Wyczyszczono {cleared_count} plików logów',
+            'cleared_count': cleared_count
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/system/diagnostics')
 def run_diagnostics():
     """Uruchamia diagnostykę systemu"""
@@ -1131,9 +1165,9 @@ if __name__ == '__main__':
     print("🚀 Uruchamianie FoodSave AI GUI Server...")
     print(f"📁 Katalog roboczy: {SCRIPT_DIR}")
     print(f"🔧 Skrypt główny: {FOODSAVE_SCRIPT}")
-    print("🌐 Serwer dostępny na: http://localhost:8081")
-    print("📊 API dostępne na: http://localhost:8081/api/")
-    print("💚 Health check: http://localhost:8081/health")
+    print("🌐 Serwer dostępny na: http://localhost:8080")
+    print("📊 API dostępne na: http://localhost:8080/api/")
+    print("💚 Health check: http://localhost:8080/health")
     print("=" * 60)
     
-    app.run(host='0.0.0.0', port=8081, debug=False) 
+    app.run(host='0.0.0.0', port=8080, debug=False) 
