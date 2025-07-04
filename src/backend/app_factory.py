@@ -20,6 +20,7 @@ from backend.api import settings as settings_router
 from backend.api import upload
 from backend.api import analytics
 from backend.api.v1.endpoints import receipts
+from backend.api.v1.endpoints import devops
 from backend.api.v2.api import api_router as api_v2_router
 from backend.api.v2.exceptions import APIErrorDetail, APIException
 from backend.settings import settings
@@ -234,6 +235,7 @@ def create_app() -> FastAPI:
     api_v1_router = APIRouter()
     api_v1_router.include_router(receipts.router, tags=["Receipts V1"])
     api_v1_router.include_router(upload.router, tags=["Upload"])
+    api_v1_router.include_router(devops.router, tags=["DevOps"])
 
     app.include_router(monitoring.router)
     app.include_router(auth_router)
