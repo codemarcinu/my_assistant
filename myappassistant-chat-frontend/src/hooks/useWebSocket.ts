@@ -32,8 +32,13 @@ export interface UseWebSocketOptions {
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
+  // Detect Tauri (native) vs browser
+  const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
+  const defaultUrl = isTauri
+    ? 'ws://127.0.0.1:8001/ws/dashboard'
+    : 'ws://localhost:8001/ws/dashboard';
   const {
-    url = 'ws://localhost:8001/ws/dashboard',
+    url = defaultUrl,
     autoReconnect = true,
     reconnectInterval = 5000,
     maxReconnectAttempts = 5,
@@ -51,6 +56,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   const connect = useCallback(() => {
     try {
+      console.log('[WebSocket] Connecting to', url, 'isTauri:', isTauri);
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
@@ -103,7 +109,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
+        console.log('[WebSocket] Disconnected:', event.code, event.reason, event);
         setIsConnected(false);
         
         if (autoReconnect && reconnectAttempts < maxReconnectAttempts) {
@@ -117,7 +123,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       ws.onerror = (event) => {
-        console.error('WebSocket error:', event);
+        console.error('[WebSocket] Error:', event);
         setError('WebSocket connection error');
       };
 

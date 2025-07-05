@@ -25,8 +25,10 @@ WORKDIR /app
 # Copy dependency files
 COPY requirements.txt /app/
 
-# Install Python dependencies
-RUN pip install --retries 3 --timeout 300 -r requirements.txt
+# Install Python dependencies with WebSocket support
+RUN pip install --retries 3 --timeout 300 -r requirements.txt && \
+    pip install "uvicorn[standard]>=0.24.0" && \
+    pip install websockets>=12.0
 
 # Copy backend code
 COPY . /app/backend
