@@ -1,0 +1,10 @@
+import { WebSocketMetrics } from '@/components/monitoring/WebSocketMetrics';
+
+export default function AnalyticsPage() {
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">Analytics & Monitoring</h1>
+      <WebSocketMetrics />
+    </div>
+  );
+} 
