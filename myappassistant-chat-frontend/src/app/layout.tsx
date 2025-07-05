@@ -1,20 +1,26 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { WebSocketProvider } from '@/components/providers/WebSocketProvider';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "FoodSave AI - Centrum Dowodzenia AI",
-  description: "Zaawansowany system wieloagentowy AI do zarządzania żywnością i przepisami",
+  title: 'FoodSave AI Assistant',
+  description: 'AI-powered food management and receipt processing system',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="pl">
-      <body>
-        {children}
+      <body className={inter.className}>
+        <WebSocketProvider>
+          {children}
+        </WebSocketProvider>
       </body>
     </html>
   );

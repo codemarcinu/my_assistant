@@ -1,322 +1,200 @@
 "use client";
 
-import React, { useState, lazy, Suspense } from 'react';
-import {
-  Box,
-  Tabs,
-  Tab,
-  Typography,
-  Paper,
-  Chip,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import {
-  Chat,
-  SmartToy,
-  Monitor,
-  LibraryBooks,
-  Settings,
-  Code,
-  Refresh,
-  Wifi,
-  WifiOff,
-} from '@mui/icons-material';
-import { useWebSocket } from '@/hooks/useWebSocket';
-import { WebSocketErrorBoundary } from '@/components/common/WebSocketErrorBoundary';
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useWebSocketContext } from '@/components/providers/WebSocketProvider';
+import { AgentStatus } from '@/hooks/useWebSocket';
 
-// Lazy load components for better performance
-const Dashboard = lazy(() => import('./Dashboard').then(module => ({ default: module.Dashboard })));
-const AgentStatus = lazy(() => import('./AgentStatus').then(module => ({ default: module.AgentStatus })));
-const SystemMonitor = lazy(() => import('../monitoring/SystemMonitor').then(module => ({ default: module.SystemMonitor })));
-const RAGModule = lazy(() => import('../rag/RAGModule').then(module => ({ default: module.RAGModule })));
-const SettingsPanel = lazy(() => import('../settings/SettingsPanel').then(module => ({ default: module.SettingsPanel })));
-const DeveloperConsole = lazy(() => import('../developer/DeveloperConsole').then(module => ({ default: module.DeveloperConsole })));
+export const CommandCenter: React.FC = () => {
+  const {
+    isConnected,
+    error,
+    reconnectAttempts,
+    agents,
+    systemMetrics,
+    events,
+    requestAgentStatus,
+    requestSystemMetrics,
+    subscribeToAgent,
+    unsubscribeFromAgent,
+  } = useWebSocketContext();
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
+  useEffect(() => {
+    if (isConnected) {
+      requestAgentStatus();
+      requestSystemMetrics();
+    }
+  }, [isConnected, requestAgentStatus, requestSystemMetrics]);
+
+  const handleAgentClick = (agentName: string) => {
+    if (selectedAgent === agentName) {
+      unsubscribeFromAgent(agentName);
+      setSelectedAgent(null);
+    } else {
+      if (selectedAgent) {
+        unsubscribeFromAgent(selectedAgent);
+      }
+      subscribeToAgent(agentName);
+      setSelectedAgent(agentName);
+    }
+  };
+
+  const getStatusColor = (status: AgentStatus['status']) => {
+    switch (status) {
+      case 'online': return 'bg-green-500';
+      case 'offline': return 'bg-gray-500';
+      case 'error': return 'bg-red-500';
+      case 'processing': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getStatusText = (status: AgentStatus['status']) => {
+    switch (status) {
+      case 'online': return 'Online';
+      case 'offline': return 'Offline';
+      case 'error': return 'Błąd';
+      case 'processing': return 'Przetwarzanie';
+      default: return 'Nieznany';
+    }
+  };
 
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`command-center-tabpanel-${index}`}
-      aria-labelledby={`command-center-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
+    <div className="space-y-6">
+      {/* Connection Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Status Połączenia
+            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+          </CardTitle>
+          <CardDescription>
+            {isConnected ? 'Połączony z serwerem WebSocket' : 'Brak połączenia'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
+              <p className="text-red-800 text-sm">Błąd: {error}</p>
+            </div>
+          )}
+          {reconnectAttempts > 0 && (
+            <p className="text-sm text-gray-600">
+              Próby ponownego połączenia: {reconnectAttempts}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* System Metrics */}
+      {systemMetrics && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Metryki Systemu</CardTitle>
+            <CardDescription>Informacje o wydajności systemu</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium">CPU</p>
+                <p className="text-2xl font-bold">{systemMetrics.cpu}%</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">RAM</p>
+                <p className="text-2xl font-bold">{systemMetrics.memory}%</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Dysk</p>
+                <p className="text-2xl font-bold">{systemMetrics.disk}%</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Sieć</p>
+                <p className="text-2xl font-bold">{systemMetrics.network}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Agents */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Agenci AI</CardTitle>
+          <CardDescription>Status i zarządzanie agentami</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {agents.map((agent) => (
+              <div
+                key={agent.name}
+                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                  selectedAgent === agent.name
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => handleAgentClick(agent.name)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${getStatusColor(agent.status)}`} />
+                    <div>
+                      <h3 className="font-medium">{agent.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {getStatusText(agent.status)} • Ostatnia aktywność: {agent.lastActivity}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {agent.responseTime && (
+                      <Badge variant="secondary">{agent.responseTime}ms</Badge>
+                    )}
+                    {agent.confidence && (
+                      <Badge variant="outline">{agent.confidence}%</Badge>
+                    )}
+                    {selectedAgent === agent.name && (
+                      <Badge variant="default">Wybrany</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {agents.length === 0 && (
+              <p className="text-center text-gray-500 py-8">
+                Brak dostępnych agentów
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Events */}
+      {events.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ostatnie Wydarzenia</CardTitle>
+            <CardDescription>Log aktywności systemu</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {events.map((event, index) => (
+                <div key={index} className="p-2 border rounded text-sm">
+                  <p className="font-medium">{String(event.type)}</p>
+                  <p className="text-gray-600">{String(event.timestamp)}</p>
+                  {typeof event.data !== 'undefined' && (
+                    <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto">
+                      {JSON.stringify(event.data as any, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `command-center-tab-${index}`,
-    'aria-controls': `command-center-tabpanel-${index}`,
-  };
-}
-
-export function CommandCenter() {
-  const [activeTab, setActiveTab] = useState(0);
-  const [isDevMode, setIsDevMode] = useState(false);
-
-  // WebSocket for real-time monitoring
-  const {
-    isConnected: wsConnected,
-    agents: wsAgents,
-    systemMetrics,
-    error: wsError,
-    reconnectAttempts,
-    requestAgentStatus,
-    requestSystemMetrics,
-    connect: reconnect,
-  } = useWebSocket();
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
-
-  const handleRefresh = () => {
-    if (wsConnected) {
-      requestAgentStatus();
-      requestSystemMetrics();
-    } else {
-      reconnect();
-    }
-  };
-
-  const getConnectionStatus = () => {
-    if (wsConnected) {
-      return {
-        status: 'connected',
-        color: 'success',
-        icon: <Wifi />,
-        text: 'Połączony',
-      };
-    } else if (reconnectAttempts > 0) {
-      return {
-        status: 'reconnecting',
-        color: 'warning',
-        icon: <Wifi />,
-        text: `Ponowne łączenie (${reconnectAttempts})`,
-      };
-    } else {
-      return {
-        status: 'disconnected',
-        color: 'error',
-        icon: <WifiOff />,
-        text: 'Rozłączony',
-      };
-    }
-  };
-
-  const connectionStatus = getConnectionStatus();
-
-  return (
-    <WebSocketErrorBoundary>
-      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        {/* Header with connection status */}
-      <Paper
-        sx={{
-          p: 2,
-          borderRadius: 0,
-          borderBottom: '1px solid var(--color-card-border)',
-          background: 'var(--color-surface)',
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
-            Command Center
-          </Typography>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Connection Status */}
-            <Chip
-              icon={connectionStatus.icon}
-              label={connectionStatus.text}
-              color={connectionStatus.color as any}
-              variant="outlined"
-              size="small"
-            />
-            
-            {/* Refresh Button */}
-            <Tooltip title="Odśwież dane">
-              <IconButton
-                onClick={handleRefresh}
-                disabled={!wsConnected && reconnectAttempts > 0}
-                size="small"
-              >
-                <Refresh />
-              </IconButton>
-            </Tooltip>
-            
-            {/* Dev Mode Toggle */}
-            <Tooltip title="Tryb deweloperski">
-              <IconButton
-                onClick={() => setIsDevMode(!isDevMode)}
-                color={isDevMode ? 'primary' : 'default'}
-                size="small"
-              >
-                <Code />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* WebSocket Error Alert */}
-      {wsError && (
-        <Alert
-          severity="error"
-          sx={{ m: 2, borderRadius: 2 }}
-          action={
-            <IconButton
-              color="inherit"
-              size="small"
-              onClick={reconnect}
-            >
-              <Refresh />
-            </IconButton>
-          }
-        >
-          Błąd połączenia WebSocket: {wsError}
-        </Alert>
-      )}
-
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', background: 'var(--color-surface)' }}>
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          aria-label="Command center tabs"
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            '& .MuiTab-root': {
-              minHeight: 64,
-              textTransform: 'none',
-              fontWeight: 500,
-            },
-          }}
-        >
-          <Tab
-            icon={<Chat />}
-            label="Czat"
-            {...a11yProps(0)}
-            sx={{ minWidth: 100 }}
-          />
-          <Tab
-            icon={<SmartToy />}
-            label={`Agenty (${wsAgents.length})`}
-            {...a11yProps(1)}
-            sx={{ minWidth: 120 }}
-          />
-          <Tab
-            icon={<Monitor />}
-            label="Monitoring"
-            {...a11yProps(2)}
-            sx={{ minWidth: 120 }}
-          />
-          <Tab
-            icon={<LibraryBooks />}
-            label="RAG"
-            {...a11yProps(3)}
-            sx={{ minWidth: 80 }}
-          />
-          <Tab
-            icon={<Settings />}
-            label="Ustawienia"
-            {...a11yProps(4)}
-            sx={{ minWidth: 120 }}
-          />
-          {isDevMode && (
-            <Tab
-              icon={<Code />}
-              label="Konsola"
-              {...a11yProps(5)}
-              sx={{ minWidth: 100 }}
-            />
-          )}
-        </Tabs>
-      </Box>
-
-      {/* Tab Content */}
-      <Box sx={{ flex: 1, overflow: 'hidden' }}>
-        <TabPanel value={activeTab} index={0}>
-          <Suspense fallback={
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-              <CircularProgress />
-            </Box>
-          }>
-            <Dashboard />
-          </Suspense>
-        </TabPanel>
-
-        <TabPanel value={activeTab} index={1}>
-          <Suspense fallback={
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-              <CircularProgress />
-            </Box>
-          }>
-            <AgentStatus />
-          </Suspense>
-        </TabPanel>
-
-        <TabPanel value={activeTab} index={2}>
-          <Suspense fallback={
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-              <CircularProgress />
-            </Box>
-          }>
-            <SystemMonitor metrics={systemMetrics} isConnected={wsConnected} />
-          </Suspense>
-        </TabPanel>
-
-        <TabPanel value={activeTab} index={3}>
-          <Suspense fallback={
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-              <CircularProgress />
-            </Box>
-          }>
-            <RAGModule />
-          </Suspense>
-        </TabPanel>
-
-        <TabPanel value={activeTab} index={4}>
-          <Suspense fallback={
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-              <CircularProgress />
-            </Box>
-          }>
-            <SettingsPanel />
-          </Suspense>
-        </TabPanel>
-
-        {isDevMode && (
-          <TabPanel value={activeTab} index={5}>
-            <Suspense fallback={
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-                <CircularProgress />
-              </Box>
-            }>
-              <DeveloperConsole />
-            </Suspense>
-          </TabPanel>
-        )}
-      </Box>
-      </Box>
-    </WebSocketErrorBoundary>
-  );
-} 
+}; 
