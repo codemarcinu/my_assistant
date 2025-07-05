@@ -53,6 +53,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const shouldReconnectRef = useRef<boolean>(true);
   const lastPongRef = useRef<number>(Date.now());
+  const circuitBreakerOpenRef = useRef<boolean>(false);
+  const circuitBreakerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Exponential backoff calculation
+  const getReconnectDelay = (attempt: number) => {
+    const base = 1000; // 1s
+    const max = 30000; // 30s
+    return Math.min(base * 2 ** attempt, max);
+  };
 
   // Zustand store
   const {
@@ -128,6 +137,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const connect = useCallback(() => {
     if (!shouldReconnectRef.current) {
       console.log('[WebSocketProvider] Reconnect disabled, skipping connection attempt');
+      return;
+    }
+    if (circuitBreakerOpenRef.current) {
+      console.warn('[WebSocketProvider] Circuit breaker is open. Skipping reconnect.');
       return;
     }
 
@@ -217,16 +230,26 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         
         if (autoReconnect && shouldReconnectRef.current && event.code !== 1000) {
           if (reconnectAttempts < maxReconnectAttempts) {
-            console.log(`[WebSocketProvider] Attempting reconnect ${reconnectAttempts + 1}/${maxReconnectAttempts}`);
-                         const timeout = setTimeout(() => {
-               setReconnectAttempts(reconnectAttempts + 1);
-               connect();
-             }, reconnectInterval);
-            
+            const delay = getReconnectDelay(reconnectAttempts);
+            console.log(`[WebSocketProvider] Attempting reconnect ${reconnectAttempts + 1}/${maxReconnectAttempts} in ${delay}ms`);
+            const timeout = setTimeout(() => {
+              setReconnectAttempts(reconnectAttempts + 1);
+              connect();
+            }, delay);
             reconnectTimeoutRef.current = timeout;
           } else {
-            console.error('[WebSocketProvider] Max reconnect attempts reached');
-            setError('Max reconnect attempts reached');
+            if (!circuitBreakerOpenRef.current) {
+              console.error('[WebSocketProvider] Max reconnect attempts reached. Circuit breaker OPEN.');
+              setError('Max reconnect attempts reached. Circuit breaker active.');
+              circuitBreakerOpenRef.current = true;
+              circuitBreakerTimeoutRef.current = setTimeout(() => {
+                circuitBreakerOpenRef.current = false;
+                setReconnectAttempts(0);
+                setError(null);
+                console.warn('[WebSocketProvider] Circuit breaker reset. Reconnect allowed.');
+                connect();
+              }, 60000); // 1 min lockout
+            }
           }
         }
       };
@@ -240,7 +263,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       console.error('[WebSocketProvider] Error creating connection:', err);
       setError('Failed to create WebSocket connection');
     }
-  }, [wsUrl, isTauri, autoReconnect, reconnectInterval, maxReconnectAttempts, reconnectAttempts, startHeartbeat, stopHeartbeat, setConnected, setError, setReconnectAttempts, updateAgents, updateSystemMetrics, addEvent]);
+  }, [wsUrl, isTauri, autoReconnect, reconnectInterval, maxReconnectAttempts, reconnectAttempts, startHeartbeat, stopHeartbeat, setConnected, setError, setReconnectAttempts, updateAgents, updateSystemMetrics, addEvent, getReconnectDelay]);
 
   const disconnect = useCallback(() => {
     console.log('[WebSocketProvider] Disconnecting...');
@@ -314,6 +337,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       }
     };
   }, [connect, stopHeartbeat]);
+
+  // Cleanup circuit breaker timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (circuitBreakerTimeoutRef.current) {
+        clearTimeout(circuitBreakerTimeoutRef.current);
+        circuitBreakerTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const contextValue: WebSocketContextType = {
     isConnected,
