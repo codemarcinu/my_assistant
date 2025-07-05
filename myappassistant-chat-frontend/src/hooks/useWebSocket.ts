@@ -1,28 +1,34 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { z } from 'zod';
 
-export interface AgentStatus {
-  name: string;
-  status: 'online' | 'offline' | 'error' | 'processing';
-  lastActivity: string;
-  responseTime?: number;
-  errorCount?: number;
-  confidence?: number;
-}
+// --- ZOD SCHEMAS ---
+export const WebSocketMessageSchema = z.object({
+  type: z.string(),
+  data: z.unknown(),
+  timestamp: z.union([z.string(), z.number()]),
+});
 
-export interface SystemMetrics {
-  cpu: number;
-  memory: number;
-  disk: number;
-  network: number;
-  activeConnections: number;
-  timestamp: string;
-}
+export const AgentStatusSchema = z.object({
+  name: z.string(),
+  status: z.enum(['online', 'offline', 'error', 'processing']),
+  lastActivity: z.string(),
+  responseTime: z.number().optional(),
+  errorCount: z.number().optional(),
+  confidence: z.number().optional(),
+});
 
-export interface WebSocketEvent {
-  type: 'agent_status' | 'system_metrics' | 'error' | 'notification' | 'pong';
-  data: any;
-  timestamp: string;
-}
+export const SystemMetricsSchema = z.object({
+  cpu: z.number(),
+  memory: z.number(),
+  disk: z.number(),
+  network: z.number(),
+  activeConnections: z.number(),
+  timestamp: z.string(),
+});
+
+export type AgentStatus = z.infer<typeof AgentStatusSchema>;
+export type SystemMetrics = z.infer<typeof SystemMetricsSchema>;
+export type WebSocketEvent = z.infer<typeof WebSocketMessageSchema>;
 
 export interface UseWebSocketOptions {
   url?: string;
@@ -102,6 +108,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
   }, []);
 
+  const validateMessage = (data: unknown): WebSocketEvent | null => {
+    const result = WebSocketMessageSchema.safeParse(data);
+    if (!result.success) {
+      console.error('[WebSocket] Invalid message format:', result.error);
+      return null;
+    }
+    return result.data;
+  };
+
   const connect = useCallback(() => {
     if (!shouldReconnectRef.current) {
       console.log('[WebSocket] Reconnect disabled, skipping connection attempt');
@@ -123,53 +138,62 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       ws.onmessage = (event) => {
+        let parsed: unknown;
         try {
-          const data: WebSocketEvent = JSON.parse(event.data);
-          
-          // Handle pong response for heartbeat
-          if (data.type === 'pong') {
-            lastPongRef.current = Date.now();
-            if (heartbeatTimeoutRef.current) {
-              clearTimeout(heartbeatTimeoutRef.current);
-              heartbeatTimeoutRef.current = null;
-            }
-            return;
-          }
-          
-          switch (data.type) {
-            case 'agent_status':
-              setAgents(prevAgents => {
-                const updatedAgents = [...prevAgents];
-                const existingIndex = updatedAgents.findIndex(agent => agent.name === data.data.name);
-                
-                if (existingIndex >= 0) {
-                  updatedAgents[existingIndex] = { ...updatedAgents[existingIndex], ...data.data };
-                } else {
-                  updatedAgents.push(data.data);
-                }
-                
-                return updatedAgents;
-              });
-              break;
-              
-            case 'system_metrics':
-              setSystemMetrics(data.data);
-              break;
-              
-            case 'error':
-              setError(data.data.message);
-              break;
-              
-            case 'notification':
-              // Add to events list
-              setEvents(prev => [...prev.slice(-9), data]); // Keep last 10 events
-              break;
-              
-            default:
-              console.warn('[WebSocket] Unknown event type:', data.type);
-          }
+          parsed = JSON.parse(event.data);
         } catch (parseError) {
           console.error('[WebSocket] Error parsing message:', parseError);
+          return;
+        }
+        const data = validateMessage(parsed);
+        if (!data) return;
+        // Handle pong response for heartbeat
+        if (data.type === 'pong') {
+          lastPongRef.current = Date.now();
+          if (heartbeatTimeoutRef.current) {
+            clearTimeout(heartbeatTimeoutRef.current);
+            heartbeatTimeoutRef.current = null;
+          }
+          return;
+        }
+        switch (data.type) {
+          case 'agent_status': {
+            const agentParse = AgentStatusSchema.safeParse(data.data);
+            if (!agentParse.success) {
+              console.error('[WebSocket] Invalid agent_status payload:', data.data);
+              return;
+            }
+            setAgents(prevAgents => {
+              const updatedAgents = [...prevAgents];
+              const existingIndex = updatedAgents.findIndex(agent => agent.name === agentParse.data.name);
+              if (existingIndex >= 0) {
+                updatedAgents[existingIndex] = { ...updatedAgents[existingIndex], ...agentParse.data };
+              } else {
+                updatedAgents.push(agentParse.data);
+              }
+              return updatedAgents;
+            });
+            break;
+          }
+          case 'system_metrics': {
+            const metricsParse = SystemMetricsSchema.safeParse(data.data);
+            if (!metricsParse.success) {
+              console.error('[WebSocket] Invalid system_metrics payload:', data.data);
+              return;
+            }
+            setSystemMetrics(metricsParse.data);
+            break;
+          }
+          case 'error': {
+            const msg = typeof (data.data as any)?.message === 'string' ? (data.data as any).message : 'Unknown error';
+            setError(msg);
+            break;
+          }
+          case 'notification':
+            setEvents(prev => [...prev.slice(-9), data]);
+            break;
+          default:
+            console.warn('[WebSocket] Unknown event type:', data.type);
         }
       };
 
@@ -233,6 +257,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, [stopHeartbeat]);
 
   const sendMessage = useCallback((message: any) => {
+    // Walidacja outgoing message
+    const result = WebSocketMessageSchema.safeParse(message);
+    if (!result.success) {
+      console.error('[WebSocket] Attempted to send invalid message:', result.error);
+      throw new Error('Invalid WebSocket message format');
+    }
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {
