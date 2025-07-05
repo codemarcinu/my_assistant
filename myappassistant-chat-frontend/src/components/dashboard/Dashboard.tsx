@@ -26,6 +26,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useRAG } from '@/hooks/useRAG';
 import { chatAPI } from '@/lib/api';
 import { receiptAPI } from '@/lib/api';
+import { WebSocketErrorBoundary } from '@/components/common/WebSocketErrorBoundary';
 
 export function Dashboard() {
   const { messages, addMessage, clearMessages, updateMessage } = useChatStore();
@@ -229,7 +230,8 @@ export function Dashboard() {
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <WebSocketErrorBoundary>
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Error Banner */}
       <ErrorBanner
         error={error || ragError}
@@ -556,6 +558,7 @@ export function Dashboard() {
           <QuickCommands />
         </Box>
       </Box>
-    </Box>
+      </Box>
+    </WebSocketErrorBoundary>
   );
 } 

@@ -43,7 +43,7 @@ describe('useWebSocket', () => {
     it('should connect to WebSocket on mount', () => {
       renderHook(() => useWebSocket());
       
-      expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:8001/ws/dashboard');
+      expect(global.WebSocket).toHaveBeenCalledWith('ws://127.0.0.1:8001/ws/dashboard');
     });
 
     it('should use custom URL when provided', () => {
@@ -358,10 +358,12 @@ describe('useWebSocket', () => {
       mockWebSocket.readyState = 3; // CLOSED
       
       act(() => {
-        result.current.sendMessage({ type: 'test', data: 'test' });
+        expect(() => {
+          result.current.sendMessage({ type: 'test', data: 'test' });
+        }).toThrow('WebSocket is not connected');
       });
       
-      expect(consoleSpy).toHaveBeenCalledWith('WebSocket is not connected');
+      expect(consoleSpy).toHaveBeenCalledWith('[WebSocket] Cannot send message - connection not open');
       expect(mockWebSocket.send).not.toHaveBeenCalled();
       
       consoleSpy.mockRestore();
@@ -497,9 +499,137 @@ describe('useWebSocket', () => {
       });
       
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Unknown WebSocket event type:',
+        '[WebSocket] Unknown event type:',
         'unknown_type'
       );
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Heartbeat Mechanism', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should send ping messages on heartbeat interval', () => {
+      const { result } = renderHook(() => useWebSocket({ heartbeatInterval: 1000 }));
+      
+      act(() => {
+        mockWebSocket.onopen?.();
+      });
+      
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      
+      expect(mockWebSocket.send).toHaveBeenCalledWith(
+        JSON.stringify({ type: 'ping', timestamp: expect.any(Number) })
+      );
+    });
+
+    it('should handle pong responses', () => {
+      const { result } = renderHook(() => useWebSocket());
+      
+      act(() => {
+        mockWebSocket.onopen?.();
+      });
+      
+      const pongMessage: WebSocketEvent = {
+        type: 'pong',
+        data: {},
+        timestamp: '2024-01-01T00:00:00Z',
+      };
+      
+      act(() => {
+        mockWebSocket.onmessage?.({ data: JSON.stringify(pongMessage) });
+      });
+      
+      // Should not update any state for pong messages
+      expect(result.current.agents).toHaveLength(0);
+      expect(result.current.systemMetrics).toBeNull();
+    });
+
+    it('should reconnect on heartbeat timeout', () => {
+      const { result } = renderHook(() => useWebSocket({ heartbeatTimeout: 1000 }));
+      
+      act(() => {
+        mockWebSocket.onopen?.();
+      });
+      
+      // Advance time past heartbeat timeout
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
+      
+      expect(mockWebSocket.close).toHaveBeenCalledWith(1000, 'Heartbeat timeout');
+    });
+  });
+
+  describe('Proper Cleanup', () => {
+    it('should close WebSocket with proper code on unmount', () => {
+      const { unmount } = renderHook(() => useWebSocket());
+      
+      unmount();
+      
+      expect(mockWebSocket.close).toHaveBeenCalledWith(1000, 'Component unmounting');
+    });
+
+    it('should handle 1001 close code gracefully', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const { result } = renderHook(() => useWebSocket());
+      
+      act(() => {
+        mockWebSocket.onclose?.({ code: 1001, reason: 'Going away' });
+      });
+      
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[WebSocket] Connection closed due to "going away" - this is normal for page unloads'
+      );
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should not attempt reconnect on manual disconnect (code 1000)', () => {
+      const { result } = renderHook(() => useWebSocket({ autoReconnect: true }));
+      
+      act(() => {
+        mockWebSocket.onclose?.({ code: 1000, reason: 'Manual disconnect' });
+      });
+      
+      // Should not attempt reconnect for code 1000
+      expect(result.current.reconnectAttempts).toBe(0);
+    });
+  });
+
+  describe('Enhanced Logging', () => {
+    it('should use consistent logging format', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const { result } = renderHook(() => useWebSocket());
+      
+      act(() => {
+        mockWebSocket.onopen?.();
+      });
+      
+      expect(consoleSpy).toHaveBeenCalledWith('[WebSocket] Connected successfully');
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should log disconnect attempts with attempt count', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const { result } = renderHook(() => useWebSocket({ autoReconnect: true }));
+      
+      act(() => {
+        mockWebSocket.onclose?.({ code: 1006, reason: 'Abnormal closure' });
+        jest.advanceTimersByTime(5000);
+      });
+      
+      expect(consoleSpy).toHaveBeenCalledWith('[WebSocket] Attempting reconnect 1/5');
       
       consoleSpy.mockRestore();
     });

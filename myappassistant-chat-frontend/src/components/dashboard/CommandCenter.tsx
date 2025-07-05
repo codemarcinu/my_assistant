@@ -25,6 +25,7 @@ import {
   WifiOff,
 } from '@mui/icons-material';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { WebSocketErrorBoundary } from '@/components/common/WebSocketErrorBoundary';
 
 // Lazy load components for better performance
 const Dashboard = lazy(() => import('./Dashboard').then(module => ({ default: module.Dashboard })));
@@ -124,8 +125,9 @@ export function CommandCenter() {
   const connectionStatus = getConnectionStatus();
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Header with connection status */}
+    <WebSocketErrorBoundary>
+      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        {/* Header with connection status */}
       <Paper
         sx={{
           p: 2,
@@ -314,6 +316,7 @@ export function CommandCenter() {
           </TabPanel>
         )}
       </Box>
-    </Box>
+      </Box>
+    </WebSocketErrorBoundary>
   );
 } 
