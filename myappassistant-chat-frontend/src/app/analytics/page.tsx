@@ -1,5 +1,6 @@
 import { WebSocketMetrics } from '@/components/monitoring/WebSocketMetrics';
 import { PoolMetrics } from '@/components/monitoring/PoolMetrics';
+import { OfflineStatus } from '@/components/monitoring/OfflineStatus';
 import { WebSocketPoolProvider } from '@/components/providers/WebSocketPoolProvider';
 
 export default function AnalyticsPage() {
@@ -10,6 +11,7 @@ export default function AnalyticsPage() {
       <WebSocketPoolProvider>
         <PoolMetrics />
       </WebSocketPoolProvider>
+      <OfflineStatus />
     </div>
   );
 } 
